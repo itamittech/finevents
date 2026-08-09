@@ -4,6 +4,10 @@
 - **Date:** 2026-08-09
 - **Serves:** v1 instrument scope
 
+> **Amendment note (added on review):** the revisit trigger below names a **backtest that will never run** — [ADR-0037](0037-forward-only-agent-learning.md) removed historical agent replay entirely. Read the trigger against the *live* record and the ADR-0038 seed join instead; the decision itself is unaffected.
+>
+> **A tension worth recording, not resolved here.** This ADR narrows the instrument set to reduce the spurious-correlation surface, and that is right. But the same narrowness reduces **statistical power**: eleven instruments that co-move heavily (NIFTY/SENSEX ≈ 0.98, S&P/Nasdaq/Dow, gold/silver) carry far fewer independent observations than the raw count of ~5,500 year-one predictions suggests. ADR-0037 concedes the point — "effective sample size is well below the raw figure" — and asserts the direction holds without computing it. Narrow scope and detectable effect pull against each other, and which way the trade should fall is a question for the pre-registered power analysis, which may reopen this decision.
+
 ## Context
 
 The project summary specifies the top 10 stocks in India and the USA. Two problems with starting there:

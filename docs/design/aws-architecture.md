@@ -145,8 +145,8 @@ Estimates. Token and CPU figures are calculated, not measured. Defaults per ADR-
 ### What the breakdown exposes
 
 - **Bedrock is ~51% of the bill** at the low end, ~25% if Firecrawl reaches the paid tier.
-- **The single largest line is now the wiki curator at $4.25** — one call a day, on the more expensive model. That inversion is deliberate and is the whole content of [ADR-0040](../adr/0040-split-reasoning-model-by-role.md): under forward-only a bad prediction is scored and forgotten, while a bad wiki page compounds with no replay machinery left to repair it. The money follows the irrecoverable failure, not the call volume.
-- **The predictor's eleven separate calls cost $3.77.** That is the direct price of ADR-0029's per-instrument decision — eleven calls duplicate the shared prompt blocks — and it buys clean attribution and independent retryability.
+- **The single largest line is now the wiki curator at $5.40** — one call a day, on the more expensive model. ($4.25 was the ADR-0040 figure; ADR-0041's 1-hop link-neighbour pre-loading added $1.15.) That inversion is deliberate and is the whole content of [ADR-0040](../adr/0040-split-reasoning-model-by-role.md): under forward-only a bad prediction is scored and forgotten, while a bad wiki page compounds with no replay machinery left to repair it. The money follows the irrecoverable failure, not the call volume.
+- **The predictor's eleven separate calls cost $4.27.** ($3.77 was the pre-ADR-0042 figure; block 6b's track-record payload added $0.50.) That is the direct price of ADR-0029's per-instrument decision — eleven calls duplicate the shared prompt blocks — and it buys clean attribution and independent retryability.
 - **CloudWatch at $2.50 is third largest** — observability costs about a third of all model inference. Appropriate for a system whose point is measurement, but worth knowing.
 - **Everything else rounds to noise.** Step Functions is four cents. Cognito is free. The two time-series foundation models together cost five cents, because they run in-process; endpoints would have been ~$75/month each.
 
@@ -217,6 +217,6 @@ Per-forecast latency and per-call token counts are calculated, not measured. Fig
 
 - Labelled-sample size and recall floor for the pre-filter (ADR-0021)
 - Spot-check disagreement threshold for classification quality (ADR-0022) — now gates the seed as well as live classification
-- Sampling rate for baseline-blind control runs (ADR-0029)
-- Length of the post-go-live tuning period whose results are excluded from the skill record (ADR-0037) — must be fixed before go-live, not after seeing results
-- Licence: permissive required for harness reuse (ADR-0033); data-redistribution policy separate
+- Sampling rate for baseline-blind control runs (ADR-0029, REQ-612). **Note:** the $0.38 control line above already implies roughly 9% of days — about five control observations inside the 60-day tuning window. Check that this can resolve the anchoring index at all before treating the cost line as settled.
+
+*Settled since this list was written:* tuning-period length — 60 trading days, [ADR-0045](../adr/0045-tuning-window.md); licence — Apache 2.0, [ADR-0044](../adr/0044-licence-and-publication-policy.md).

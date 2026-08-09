@@ -24,7 +24,7 @@ The idea is not novel and the architecture is not either. Event-driven market an
 
 | Failure mode | Where it's handled here |
 |---|---|
-| Memory contamination — backtests overlapping model knowledge cutoffs, so memorised prices substitute for reasoning | L11; contamination splitting (ADR-0031) |
+| Memory contamination — backtests overlapping model knowledge cutoffs, so memorised prices substitute for reasoning | Removed by construction: forward-only (ADR-0037) means the target is always tomorrow, so L11 does not apply. Contamination splitting is no longer needed |
 | Oracle fallacy — retrieving a past episode containing a post-hoc narrative | Bitemporal model and as-of gateway (ADR-0016) |
 | Attribution — raw returns as a noisy proxy for skill | RPS and calibration against a six-rung baseline ladder, never returns |
 | Unmodelled transaction costs | Not applicable — the system forecasts, it does not trade |
@@ -59,12 +59,15 @@ The price is patience, and it is a real price. The numeric ladder is calibrated 
 | Milestone | When |
 |---|---|
 | Tuning window closes, configuration freezes ([ADR-0045](adr/0045-tuning-window.md)) | ~month 3 |
-| **Aggregate agent-versus-ladder skill measurable** | **~month 11–13** |
+| **First skill *interval*** — a point estimate with bootstrap bounds | **~month 11–13** |
+| Effect of R² ≈ 1% distinguishable from zero | ~year 3 |
 | Individual correlation pages at actionable confidence | Year 2–3 |
+
+> **Month 11–13 produces an interval, not a verdict.** The [power analysis](analysis/power/results.md) puts power to detect a strong-for-finance edge (R² = 0.25%) at **9%** on that sample, so the honest report at month 13 is *inconclusive* for anything but an implausibly large effect. That is a statement about the measurement, not the architecture — and **inconclusive must never be reported as a null**, which is exactly the failure this project exists to avoid ([ADR-0046](adr/0046-pre-registered-skill-comparison.md), REQ-920).
 
 Nothing about the agent is known at launch, by construction. The first three months are a tuning period whose results are published but excluded from the skill record — the boundary fixed in advance, because choosing it afterwards is indistinguishable from selecting a favourable start date.
 
-That trade is deliberate. A contaminated result available in month 1 would have to be defended for the life of the project; a clean one available in month 9 does not.
+That trade is deliberate. A contaminated result available in month 1 would have to be defended for the life of the project; a clean one available in month 11–13 does not.
 
 ## Explicit non-goals
 
@@ -83,6 +86,6 @@ That trade is deliberate. A contaminated result available in month 1 would have 
 
 ## Open
 
-- Licence: permissive (Apache 2.0 or MIT) for harness reusability; data-redistribution policy separate.
+- **How much of the timeline claim survives the power analysis.** [ADR-0046](adr/0046-pre-registered-skill-comparison.md) pre-registers the statistic; the [power analysis](analysis/power/results.md) shows month 11–13 yields an *interval*, not a verdict. The tension between REQ-406's shared regime block (which buys coherence) and statistical power (which the resulting correlated errors destroy) is the most valuable open question it surfaced, and is not resolved.
 - Whether the pattern is later applied to a less adversarial domain — operations, incidents, supply chain — where events-to-outcomes holds but the field is not arbitraged.
-- How the project is presented publicly during the ~9 months before it has an agent result. The harness, the ladder, the ADR record and the live dashboard are all shippable and interesting on day 1; the skill claim is not, and must not be implied by a dashboard that looks like it is making one.
+- How the project is presented publicly during the ~11–13 months before it has an agent result. The harness, the ladder, the ADR record and the live dashboard are all shippable and interesting on day 1; the skill claim is not, and must not be implied by a dashboard that looks like it is making one.

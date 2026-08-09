@@ -21,17 +21,24 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 | T0.1 | `git init`; set `user.email` to `itamittech@gmail.com` and verify before the first commit | REQ-005 | The brief calls this out specifically |
 | T0.2 | Apache 2.0 `LICENSE` + `NOTICE` | REQ-1105 | |
 | T0.3 | `DATA_SOURCES.md` with per-source licence and attribution | REQ-1109, REQ-1110 | |
-| T0.4 | Pre-commit hook: credential and environment-file scan | REQ-1101 | |
-| T0.5 | Pre-commit hook: block `raw/` paths and scraped-payload signatures | REQ-1102 | Silent failure, permanent once public |
-| T0.6 | Post-commit hook: documentation-update check | REQ-1103 | |
-| T0.7 | CI running the same validation as the hooks | REQ-1104 | Hooks are convenience; CI is the gate |
+| T0.4 | Pre-commit hook: credential and environment-file scan (gitleaks/detect-secrets + pattern rule) | REQ-1101 | |
+| T0.5 | Pre-commit hook: block `raw/` paths and scraped-payload signatures | REQ-1102 | Silent failure, permanent once public. **Define the payload signature in Design first** — it is referenced four times and defined nowhere |
+| T0.6 | **CI-on-PR documentation-currency check** with a config-driven source-path→doc mapping, plus the `docs: n/a — <reason>` escape hatch | REQ-1103, REQ-1116 | **Not a post-commit hook** — ADR-0014 rejected that outright, since it fires after the commit exists and can only warn |
+| T0.6a | Pre-commit: bandit SAST and pip-audit CVE gates | REQ-1113, REQ-1114 | Both decided in ADR-0014 and previously carried by no REQ and no task |
+| T0.6b | CI-on-PR: pull request must reference a REQ-id or ADR | REQ-1115 | ADR-0001's traceability chain, enforced |
+| T0.7 | CI running the same validation as the hooks, **and verifying the hooks ran** | REQ-1104 | Hooks are convenience and bypassable; CI is the gate |
 | T0.8 | Python scaffold with the Design §1 module layout | — | |
 | T0.9 | Import-boundary lint: no storage client outside `ingest/`+`repository/`; no model client outside `events/`+`predict/`+`wiki/` | REQ-104, REQ-1005 | ADR-0004's line as a lint |
-| T0.10 | Traceability check: every ADR referenced by a REQ, every REQ carrying a verification code | REQ-006 | |
-| T0.11 | **Clear the nine pre-build verification items** in `aws-architecture.md` | — | Nova pricing/availability, AgentCore + SAM coverage, Chronos context length, TimesFM licence, deterministic seeding, post-filter volume, pre-training cutoffs, market calendars |
+| T0.9a | **Forward-only lint** — no call site outside `harness/` and the Lane A calibration path constructs an `AsOfRepository` with an `as_of` earlier than today; no replay entry point exists at any scope | REQ-601 | Same AST walk and module graph as T0.9, so write it in the same pass. **This is the only mechanical enforcement of ADR-0037**, the project's largest decision — until it exists, forward-only is aspirational rather than asserted |
+| T0.10 | Traceability check, three assertions: every **Accepted** ADR referenced by ≥1 REQ; every REQ carrying a verification code; **every REQ reachable from a task** | REQ-006 | The third fails today on the REQs listed under "Requirement coverage gaps" below. Fix the requirements, never weaken the check. "Accepted" scopes out superseded ADRs like 0006 |
+| T0.11 | **Clear the ten pre-build verification items** in [`aws-architecture.md`](design/aws-architecture.md) § "Verification needed before build" | — | Do not restate the list here; it drifts. Includes whether Bedrock Batch Inference supports prompt caching, which underwrites both the backfill line and the caching credit |
 | T0.12 | **Clear the four data-terms questions** in ADR-0044 | REQ-1111 | Must complete before the repo goes public, not after |
+| T0.13 | **Choose the toolchain**: Python version, packaging/lockfile, test runner, AWS mocking, CI platform | — | The Python version is the one irreversible choice — it must satisfy Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image. Verify that intersection **before** T0.8 |
+| T0.14 | **Decide repository visibility** against ADR-0044's precondition | REQ-1111 | The repo is public now; ADR-0044 requires T0.12's answers *before* it goes public. Resolve them, go private, or supersede |
+| T0.15 | `Contributing.md` — including `pre-commit install` as a required setup step | REQ-1117 | ADR-0014 names this consequence explicitly; the hooks do nothing uninstalled |
+| T0.16 | Define the **scraped-payload signature** in Design §9 | REQ-1102 | Blocks T0.5 — referenced four times across the doc set, defined nowhere |
 
-**Gate G0:** T0.4–T0.7 and T0.9 green.
+**Gate G0:** T0.4–T0.7 (incl. T0.6a, T0.6b), T0.9, T0.9a and T0.14 green.
 
 ---
 
@@ -54,8 +61,10 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 
 | # | Task | REQ | Notes |
 |---|---|---|---|
+| T2.0 | `config/` + `ModelClient` with per-role SSM resolution (`CLASSIFY`/`PREDICT`/`CURATE`) | REQ-1007 | **Moved up from T8.2.** T2.1's cache key includes the model ID and T5.4 invokes `CLASSIFY` in Phase 5 — both precede Phase 8, so resolution cannot live there |
 | T2.1 | Cassette record/replay layer; cache key includes model ID | REQ-1210, REQ-1211 | |
 | T2.2 | Replay-mode cache miss is a hard failure, never a live call | REQ-1210 | A silent fallthrough reintroduces nondeterminism exactly where the test believes it removed it |
+| T2.3 | **Decide where cassettes live for CI.** They are gitignored, stored in S3, and CI must run with no AWS account — and committing them would put scraped article text into a public repo | REQ-1210, REQ-1107 | Unresolved collision between ADR-0018 and ADR-0044. Blocks T2.1 |
 
 ---
 
@@ -67,7 +76,7 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 | T3.2 | Festival/holiday table with 12-month forward coverage asserted | REQ-210 | |
 | T3.3 | Stooq price fetcher | REQ-204 | |
 | T3.4 | jugaad-data NSE fetcher | REQ-204 | |
-| T3.5 | FRED covariate fetcher — real 10Y, DXY, VIX, WTI | REQ-205 | |
+| T3.5 | FRED covariate fetcher — **five** series: `DGS10`, `DFII10`, `DTWEXBGS`, `VIXCLS`, `DCOILWTICO` | REQ-205 | ADR-0017 is authoritative. Several documents previously enumerated only four while their counts said five |
 | T3.6 | GDELT 2.0 event fetcher | REQ-206 | |
 | T3.7 | Firecrawl fetchers — MCX, economic calendars, news | REQ-207 | JSON-schema extraction |
 | T3.8 | Ingest validation: schema, range plausibility, session continuity | REQ-208 | |
@@ -82,7 +91,14 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 
 ## Phase 4 — Leakage harness ⛔ **GATE**
 
-Nothing in Phases 8–13 runs live until this phase is green (REQ-1212).
+**No scored prediction is made until this phase is green (REQ-1212).** That is a gate on *running live*, not on *building* — and the distinction is load-bearing, because T4.1, T4.2, T4.5 and T4.6 all test the prompt assembler (T8.1) and the prediction path, which Phase 8 creates. Read as "Phase 4 completes before Phase 5 starts", the plan is circular. It is not; the two halves sequence differently:
+
+| Sub-phase | Tasks | Buildable after | Gates |
+|---|---|---|---|
+| **4a** | T4.3, T4.4 — cross-market ordering, L9 fixtures | T3.1 market calendars | Phase 5 onward |
+| **4b** | T4.1, T4.2, T4.5, T4.6, T4.7 — snapshot integrity, canaries, the leaky variant | T8.1 prompt assembler | **Any scored prediction** (REQ-1212) |
+
+**G4 is the one gate that must never be softened to unblock work** — under forward-only a leaked prediction cannot be re-run. If 4b appears to block you, the sequencing is wrong, not the gate.
 
 | # | Task | REQ | Notes |
 |---|---|---|---|
@@ -159,7 +175,7 @@ Nothing in Phases 8–13 runs live until this phase is green (REQ-1212).
 | # | Task | REQ | Notes |
 |---|---|---|---|
 | T8.1 | Single prompt assembler with snapshot + cut-off assertion | REQ-603, REQ-1201 | The only place a prompt is built |
-| T8.2 | `ModelClient` with per-role resolution from SSM | REQ-1007 | No model ID in code |
+| T8.2 | *(moved to T2.0 — `ModelClient` per-role SSM resolution is needed by Phase 2 and Phase 5)* | — | |
 | T8.3 | 11 prediction calls per day, departure-from-baseline framing | REQ-602, REQ-604 | |
 | T8.4 | Output validation — probabilities sum to 1, schema, version stamps | REQ-605, REQ-607 | |
 | T8.5 | Citation validation — a page not existing at cut-off is a **leakage signal** | REQ-606 | |
@@ -168,6 +184,8 @@ Nothing in Phases 8–13 runs live until this phase is green (REQ-1212).
 | T8.8 | Baseline-blind control on the **same model** as the predictor; anchoring index | REQ-611, REQ-1009 | Design §4.6 |
 | T8.9 | Coherence check, computed for Chronos too as a control | REQ-613 | |
 | T8.10 | Only univariate forecasts reach a prompt — asserted | REQ-505 | |
+| T8.11 | **Fit the baseline-blind control sampling rate** against anchoring-index precision vs cost | REQ-612 | The seventh `C` threshold. The $0.38 cost line implies ~9% of days ≈ 5 observations in the tuning window — check that resolves anything |
+| T8.12 | Predictions written immutably before the next market open, per instrument's own calendar | REQ-614 | `CI` gate with no task until now. A run overrunning past NSE open must halt that instrument, not publish late |
 
 ---
 
@@ -214,7 +232,7 @@ Nothing in Phases 8–13 runs live until this phase is green (REQ-1212).
 | T11.6 | Deploy-time assertions: parameters resolve, models available, control model matches predictor | REQ-1008, REQ-1009 | |
 | T11.7 | Observability — per-stage tokens, latency, errors | REQ-1010 | Turns cost estimates into measurements |
 | T11.8 | Runtime budget alarm at 60 minutes | REQ-1011 | |
-| T11.9 | Cost alarm outside $16–33/month | REQ-1015 | |
+| T11.9 | Cost alarm outside $16–33/month, **widened to $25–42 while `shadow/enabled`** | REQ-1015 | T13.5 turns the shadow on at go-live; a fixed $33 ceiling would alarm on day 1 |
 | T11.10 | Docker Compose local stack — DynamoDB Local, MinIO, cassette client | REQ-1013 | |
 | T11.11 | `measurement/period_id` bumped on any config change | REQ-819 | |
 
@@ -241,6 +259,7 @@ Nothing in Phases 8–13 runs live until this phase is green (REQ-1212).
 | T12.15 | Steering audit log | REQ-916 | |
 | T12.16 | Publication pipeline for derived data; raw-content boundary asserted | REQ-1106, REQ-1107, REQ-917 | |
 | T12.17 | Source URLs and fetch timestamps published | REQ-1108 | |
+| T12.18 | **Package `harness/` as an independently installable artefact** with its own README, so it can be run against a third-party predictor | REQ-1105 | [Product.md](Product.md) and ADR-0033 both call the evaluation harness a **first-class deliverable, co-equal with the pipeline** — and until now it had no task, no packaging boundary and no consumer-facing interface. Half the stated product |
 
 > **T12.9–T12.15 are the largest single item that existed in no prior estimate.** Four verbs, an audit log, a provenance model and a two-series dashboard. Scope accordingly.
 
@@ -252,14 +271,33 @@ Nothing in Phases 8–13 runs live until this phase is green (REQ-1212).
 |---|---|---|---|
 | T13.1 | Verify G4 green — no scored prediction before it | REQ-1212 | |
 | T13.2 | Verify T0.11 and T0.12 cleared | REQ-1111 | |
-| T13.3 | Freeze the six calibrated thresholds and record the evidence for each | REQ-302, 307, 310, 311, 719, 813 | |
+| T13.3 | Freeze the **nine** calibrated thresholds and record the evidence for each | REQ-302, 307, 310, 311, **408**, **612**, 719, 813, **1213** | REQ-612 was previously omitted here and is fitted by no task — see T8.11 |
 | T13.4 | Decide the `seed_enabled` arm; record it | REQ-712 | Blocks nothing, but must be recorded |
 | T13.5 | Enable the shadow A/B for 60 trading days | REQ-820–822 | |
 | T13.6 | **Open the tuning window** — 60 trading days, labelled `tuning`, no extension | REQ-815–818 | Coincides with T13.5 by design |
+| T13.9 | Implement the ADR-0046 comparison: fixed comparator, day-level aggregation, block bootstrap, one-sided test; every figure carries its interval | REQ-903, REQ-919, REQ-920 | Must exist before the first skill figure is rendered, not after |
+| T13.10 | Estimate κ from the first ~60 scored days; re-run `docs/analysis/power`; publish the revised timeline | REQ-921 | The power analysis' central input is currently an assumption |
 | T13.7 | Publish the derived record from day 1 | REQ-1106, REQ-1112 | A record that starts and stops invites the assumption results turned unfavourable |
 | T13.8 | Close the tuning window; freeze configuration; begin the counted skill record | REQ-815, REQ-819 | ~month 3 |
 
 ---
+
+## Requirement coverage gaps
+
+T0.10's third assertion — every REQ reachable from a task — currently fails. These are the requirements with no owning task, and where each belongs. **Cite them on the named task rather than deleting the assertion.**
+
+| REQ | Owning task | Note |
+|---|---|---|
+| REQ-001, 002, 004 | T0.6, T0.6b | Process, enforced by the CI-on-PR checks |
+| REQ-003 | T0.10 | Revisit-trigger presence — a `CI` gate with no builder until now |
+| REQ-201, 202, 203 | Gate G3 | "All 11 instruments" already gates the phase; cite the REQs |
+| REQ-407 | T1.4 | Feature normalisation cannot reach past cut-off — a leakage property test sitting outside the Phase 4 harness |
+| REQ-502, 506, 509 | T6.8 | Context-window sizing, one-series-at-a-time, and the deliberate non-restriction of context to post-cutoff data |
+| REQ-704, 710 | T7.1, T7.3 | Page model, and the mandatory disconfirming-evidence rule — REQ-710 is the sole listed mitigation for the "asset-linkage priors become self-fulfilling" standing risk |
+| REQ-807 | T9.9 | Tracks reported independently, never ensembled |
+| REQ-823 | T13.1 | No skill figure quoted before the harness gates are green |
+| REQ-909, 918 | T12.9–T12.12 | The four verbs as a set; no live parameter steering in v1 |
+| REQ-1014 | T11.7 | Caching economics re-derived on every model change — now load-bearing, since the cache breakpoint moved (Design §5) |
 
 ## Critical path
 
@@ -267,11 +305,12 @@ Nothing in Phases 8–13 runs live until this phase is green (REQ-1212).
 T1.1 bitemporal schema
   → T1.3 AsOfRepository → G1
   → Phase 3 ingest → G3
-  → Phase 4 leakage harness → G4  ⛔ hard gate
+  → Phase 4a cross-market ordering (T4.3, T4.4)
   → Phase 5 events (T5.5 gates the seed)
   → Phase 6 features + Lane A → G6
   → Phase 7 wiki + seed (T7.7 calibrates four thresholds, free)
-  → Phase 8 prediction
+  → Phase 8 prediction (T8.1 prompt assembler)
+  → Phase 4b snapshot integrity + canaries → G4  ⛔ hard gate, before any scored prediction
   → Phase 9 scoring + consolidation
   → Phase 10 calibration
   → Phases 11–12 infrastructure + frontend (parallelisable from Phase 6)
@@ -287,7 +326,8 @@ T1.1 bitemporal schema
 | Numeric ladder calibrated and running | Day 1 |
 | Tuning window closes; configuration freezes | ~month 3 |
 | Shadow A/B concludes; predictor model settled | ~month 3 |
-| **First interpretable aggregate skill figure** | **~month 11–13** |
+| **First skill *interval*** (not a verdict — [power analysis](analysis/power/results.md)) | **~month 11–13** |
+| κ measured from the live record; timeline re-derived (REQ-921) | ~month 6 |
 | Correlation pages at actionable confidence | Year 2–3 |
 
 Cost through this period: ~$4 one-off setup, ~$16–33/month, plus ~$18 for the shadow window.

@@ -5,6 +5,10 @@
 - **Amends:** [ADR-0008](0008-volatility-relative-movement-buckets.md) (baseline set), [ADR-0029](0029-prediction-as-departure-from-baseline.md) (prompt block 3)
 - **Detail:** [Prediction Contract](../design/prediction-contract.md)
 
+> **Amendment note (added on review):** **the rung numbers below are this ADR's own and no longer match the ladder.** Here, rung 5 is *Chronos-2 covariate-informed*. In the current six-rung ladder ([ADR-0042](0042-calibration-feedback-and-calibrated-track.md), REQ-806) rung 5 is *the agent, raw* and rung 6 is *the agent, calibrated*. Read literally, this ADR's revisit trigger — "the agent fails to beat rung 5" — now says the agent fails to beat itself. **Read every rung number below as local to this ADR.** Prefer naming the track over citing a rung number anywhere new; the numbering has moved once already.
+>
+> **A substantive question this exposes, still open.** This ADR made the covariate-informed run "the actual test of the wiki thesis" — the rival handed the same severity signal the agent gets. The current ladder names only "Chronos-2" and "TimesFM 2.5" without saying *which configuration*, while `Design.md` §3 scores four numeric tracks (`chronos_uni`, `chronos_cov`, `timesfm_uni`, `timesfm_cov`). If the reported rungs are the univariate ones, the hardest baseline this ADR argued for has quietly left the ladder, and "the agent beats Chronos" means something materially weaker than intended. **Decide and record which configuration each rung reports** before any skill figure is quoted.
+
 ## Context
 
 The baseline set established in ADR-0008 — always-flat, persistence, conditional climatology — is weak. All three are easy to beat, which means beating them demonstrates less than it appears. A system whose entire claim rests on measured skill needs a benchmark that is hard to clear.

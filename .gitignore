@@ -46,3 +46,8 @@ node_modules/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Power-analysis working data — fetched, never committed (ADR-0044)
+docs/analysis/power/fred/
+docs/analysis/power/*.npy
+docs/analysis/power/results.txt

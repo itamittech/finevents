@@ -6,7 +6,7 @@ FinEvents collects financial instrument prices and world events daily, maintains
 
 A negative answer is a valid and publishable outcome. The design is built so that a null result is believable.
 
-> **Status: pre-implementation.** The design phase is complete — 45 ADRs, requirements, design and a build plan. No code has been written yet. See [Tasks.md](docs/Tasks.md) for the build order.
+> **Status: pre-implementation.** The design phase is complete — 46 ADRs, requirements, design and a build plan. No code has been written yet. See [Tasks.md](docs/Tasks.md) for the build order.
 
 ## What makes this different
 
@@ -21,7 +21,7 @@ This is unusual, and it is the point. It means:
 | *"You tuned on the test set"* | There is no test set. Thresholds calibrate against a deterministic join that touches no agent output. |
 | *"The learning curve is an artefact of how you replayed history"* | The curve is elapsed calendar time. Day 200 is 200 days after day 1. |
 
-The price is patience: no interpretable agent result before roughly month 11–13.
+The price is patience: no interpretable agent result before roughly month 11–13 — and what arrives then is a skill *interval*, not a verdict. A [power analysis](docs/analysis/power/results.md) puts the chance of detecting a strong-for-finance edge at that sample at **9%**, so anything short of an implausibly large effect reads as inconclusive. Inconclusive is not the same as null, and [ADR-0046](docs/adr/0046-pre-registered-skill-comparison.md) pre-registers the statistic so the two can never be confused.
 
 ## How it works
 
@@ -52,7 +52,7 @@ Start with the [ADR index](docs/adr/README.md).
 |---|---|
 | [Product.md](docs/Product.md) | Positioning, prior art, explicit non-goals |
 | [SystemDesign.md](docs/SystemDesign.md) | End-to-end architecture; §2.1 is the agency boundary |
-| [Requirement.md](docs/Requirement.md) | ~110 numbered, testable requirements |
+| [Requirement.md](docs/Requirement.md) | 184 numbered, testable requirements |
 | [Design.md](docs/Design.md) | Modules, interfaces, schemas, algorithms |
 | [Tasks.md](docs/Tasks.md) | Build order and gates |
 | [Point-in-time test harness](docs/design/point-in-time-test-harness.md) | Leakage threat model |

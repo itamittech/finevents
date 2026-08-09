@@ -11,7 +11,7 @@ Per [ADR-0044](docs/adr/0044-licence-and-publication-policy.md), every source's 
 | [GDELT 2.0](https://www.gdeltproject.org/) | Unscheduled world events, Feb 2015→ | BigQuery free tier / file downloads | **CC BY 4.0** | **Yes** — wherever data or derivatives appear | Granularity of attribution ❓ open |
 | [Stooq](https://stooq.com/) | Index and metals OHLCV history | Keyless CSV | Site terms | To confirm | Redistribution of derived aggregates ❓ open |
 | [jugaad-data](https://github.com/jugaad-py/jugaad-data) | NSE index history | Python library | Library MIT; data is NSE's | To confirm | ❓ open |
-| [FRED](https://fred.stlouisfed.org/) | Regime covariates — real 10Y yield, dollar index, VIX, WTI | Keyless CSV | St. Louis Fed terms; most series are public domain, some are third-party | Varies by series | Terms for derived series ❓ open |
+| [FRED](https://fred.stlouisfed.org/) | Regime covariates — nominal 10Y (`DGS10`), real 10Y (`DFII10`), dollar index (`DTWEXBGS`), VIX (`VIXCLS`), WTI (`DCOILWTICO`) | Keyless CSV | St. Louis Fed terms; most series are public domain, some are third-party | Varies by series | Terms for derived series ❓ open |
 | [Firecrawl](https://www.firecrawl.dev/) | MCX prices, economic calendars, news articles | API, key in Secrets Manager | Firecrawl ToS; **retrieved content belongs to its publishers** | n/a — content is never redistributed | ✅ policy set |
 | MCX | Indian domestic metal prices | via Firecrawl | Exchange terms | n/a — never redistributed | ✅ policy set |
 | Market calendars (NSE, NYSE) | Session instants in UTC, DST | Maintained in this repo | Ours | — | ✅ |

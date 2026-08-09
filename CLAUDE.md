@@ -4,14 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Pre-implementation, but the design phase has produced a substantial record. There is no source code, no build system, no test suite, and no git repository yet (`git init` has not been run). There are therefore no build/lint/test commands to document — record the real ones here as soon as the first code lands; do not invent them in the meantime.
+Pre-implementation, but the design phase has produced a substantial record. The git repository exists (commits authored correctly as `itamittech@gmail.com`, remote `github.com/itamittech/finevents`, **currently public**). There is no source code, no build system and no test suite. There are therefore no build/lint/test commands to document — record the real ones here as soon as the first code lands; do not invent them in the meantime.
+
+The toolchain is **not yet chosen** — no Python version, packaging tool, test runner or CI platform is decided anywhere. Do not assume one; see Tasks.md T0.13 — the Python version must satisfy Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image, and that intersection is the one irreversible choice.
 
 **Read these before proposing anything:**
 
 | Path | What it is |
 |---|---|
-| `docs/adr/README.md` | Index of all 45 ADRs, standing risks, open decisions. **Start here.** |
-| `docs/Requirement.md` | ~110 numbered REQ-ids. **No code for a feature without one.** |
+| `docs/adr/README.md` | Index of all 46 ADRs, standing risks, open decisions. **Start here.** |
+| `docs/Requirement.md` | **184** numbered REQ-ids. **No code for a feature without one.** |
 | `docs/Design.md` | Module layout, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | Build order, dependencies, and the hard leakage gate |
 | `docs/SystemDesign.md` | End-to-end architecture; §2.1 is the agency boundary |
@@ -20,6 +22,9 @@ Pre-implementation, but the design phase has produced a substantial record. Ther
 | `docs/design/aws-architecture.md` | Service topology and the authoritative cost model |
 | `docs/design/prediction-contract.md` | Prompt blocks, output schema, validation rules |
 | `docs/Product.md` | Positioning, prior art, non-goals |
+| `README.md` | Public-facing summary — written, and currently the most accurate short description |
+| `DATA_SOURCES.md` | Per-source licence and attribution; four data-terms questions still open |
+| `LICENSE`, `NOTICE` | Apache 2.0 (ADR-0044) |
 | `ProjectSummary.txt` | The original brief, with a status block mapping each point to where it landed |
 
 ADRs are **immutable once accepted**. To change a decision, write a superseding ADR — never edit an accepted one's Decision section. Status-line and amendment-note updates at the top are the sanctioned exception.
@@ -30,10 +35,12 @@ A daily pipeline that scrapes financial instruments and world events, then learn
 
 **Terminology note.** `ProjectSummary.txt` describes this as an *agentic system*. Per [ADR-0041](docs/adr/0041-no-agents-deterministic-pipeline.md) it contains **no agents** — nothing has tools or runs its own loop. Every model call is single-shot against a prompt assembled by code. The three-tier boundary is set out in [SystemDesign §2.1](docs/SystemDesign.md). Do not reintroduce the agentic framing in new documents unless that ADR is superseded.
 
-Tracked data:
-- Top ~10 stock market prices, India and USA
-- Gold, silver, platinum, palladium prices
+Tracked data — **11 instruments** (REQ-201), indices not individual equities:
+- Indices: NIFTY 50, SENSEX, S&P 500, Nasdaq, Dow
+- Metals: gold spot USD/oz, silver, platinum, palladium, MCX gold INR, MCX silver INR
 - 10–20 high-impact events (geopolitical attacks, disasters, Fed announcements, major financial news)
+
+> `ProjectSummary.txt` asked for "top ~10 stock prices". [ADR-0009](docs/adr/0009-scope-indices-and-metals-first.md) narrowed v1 to **indices and metals, deferring individual equities** — a wider instrument × event surface makes a weak result ambiguous. Do not reintroduce single stocks without superseding it.
 
 The correlation-and-learning layer is the product. Scraping exists to feed it.
 
@@ -55,7 +62,7 @@ Constraints that shape implementation choices:
 
 - **The agent runs forward only.** Per `docs/adr/0037-forward-only-agent-learning.md`, the agent never executes against a historical date — no backtest, no replay, at any scope. History feeds three things and only three: Lane A numeric calibration, the deterministic wiki seed, and threshold calibration. **Any proposal that involves replaying the agent through past dates contradicts an accepted ADR** and needs a superseding one, not an exception.
 - **Knowledge accretion, not re-prompting.** Modeled on Karpathy's WikiLLM idea — the agent's memory grows and is reused day over day rather than being rebuilt each run. If a design requires re-teaching the system daily, it is the wrong design.
-- **Live prices are the eval harness.** Forecast accuracy is measured against actual market movement, in volatility-relative buckets at t+1 and t+5. All five ladder rungs are scored on identical live days.
+- **Live prices are the eval harness.** Forecast accuracy is measured against actual market movement, in volatility-relative buckets at t+1 and t+5. All **six** ladder rungs are scored on identical live days — climatology, conditional climatology, Chronos-2, TimesFM 2.5, agent raw, agent calibrated (ADR-0042). The rung 5→6 gap is the headline miscalibration measurement (REQ-809), so never drop rung 6.
 - **Cost efficiency is a first-class constraint** on model selection and scrape frequency. Current design: ~$16–33/month recurring, ~$4 one-off setup.
 - **The reasoning model is split by role** (ADR-0040): Nova Pro predicts, Nova Premier curates the wiki, Nova Lite classifies. Three SSM parameters, no model ID in code. The baseline-blind control must always match the *predictor* model, or the anchoring index measures the wrong thing.
 - **The UI must expose the learning curve** — whether the agent is improving or degrading day over day — and let a human steer the agent, not just observe it. Note ADR-0020 superseded Streamlit with a static SPA on S3 + CloudFront.
@@ -80,23 +87,26 @@ Work flows from documents to code. **The chain is `Requirement.md` (REQ-xxx) →
 
 | Document | State |
 |---|---|
-| `docs/Requirement.md` | ✅ ~110 numbered REQ-ids, each with a verification code |
+| `docs/Requirement.md` | ✅ **184** numbered REQ-ids, each with a verification code. 20 are reachable from no task — see Tasks.md gap list |
 | `docs/Design.md` | ✅ Modules, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | ✅ 13 phases in dependency order |
 | `docs/SystemDesign.md` | ✅ |
 | `docs/Product.md` | ✅ |
-| `README.md`, `Contributing.md` | ❌ Not written |
+| `README.md` | ✅ Written |
+| `Contributing.md` | ✅ Written |
 | ~~`AgentDesign.md`~~ | **Dropped** — ADR-0041 removed agents; SystemDesign §2.1 covers the agency boundary |
 
-**Before writing code for a feature, confirm its REQ-id exists.** ADR-0001 makes this a hard precondition, not a preference. When behaviour changes, update the spec in the same commit — the post-commit hook is meant to enforce it.
+**Before writing code for a feature, confirm its REQ-id exists.** ADR-0001 makes this a hard precondition, not a preference. When behaviour changes, update the spec in the same commit — CI on the pull request enforces it.
 
-Six requirements specify a calibration **method** rather than a value (marked `C`). That is deliberate — each value must be fitted against data that does not exist yet. Do not invent numbers for them.
+**Ten** requirements specify a calibration **method** rather than a value (marked `C`): REQ-302, 307, 310, 311, 408, 612, 719, 813, 921, 1213. That is deliberate — each value must be fitted against data that does not exist yet. Do not invent numbers for them. All nine are frozen at go-live (Tasks.md T13.3).
 
-## Git hooks (to be implemented)
+## Git hooks and CI
 
-- **Pre-commit** — security scan and vulnerability assessment of staged code; block commits containing environment files or credentials.
-- **Post-commit** — verify documentation was updated in the relevant places for the committed code.
-- **CI** — runs the same validation as workflows.
+Per [ADR-0014](docs/adr/0014-security-pre-commit-docs-in-ci.md) — note this differs from the original brief:
+
+- **Pre-commit** — security scan and vulnerability assessment of staged code; block commits containing environment files, credentials, `raw/` paths or scraped-payload content.
+- **CI on pull request** — the documentation-currency check, plus SAST and dependency-CVE gates. **CI is the gate; hooks are convenience.**
+- **A post-commit documentation hook was explicitly rejected** by ADR-0014 — it fires after the commit exists, so it can only warn. `REQ-1103` and `T0.6` still specify one and contradict the ADR they cite; they need correcting, not implementing.
 
 ## Contribution identity
 

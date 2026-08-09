@@ -5,6 +5,8 @@
 - **Serves:** ADR-0011 (CAMEO substrate + overlay), cost control (project summary point 10)
 
 > **Amendment note (2026-08-09):** This ADR's classification decision stands — Nova Lite, same model for backfill and daily, for the consistency reasons below. What ADR-0027 changes is the *reasoning* assignment: where this ADR says "Opus 5 retains everything that is actual judgment", the reasoning model is now **configuration** (`/finevents/{env}/model/reason`), defaulting to Nova Pro under current Bedrock availability. The split between mechanical mapping and judgment is unchanged; only the model filling the judgment slot is no longer fixed. Original decision text preserved unedited.
+>
+> **Second amendment note (added on review):** [ADR-0040](0040-split-reasoning-model-by-role.md) split the reasoning slot again, by role — **Nova Pro predicts, Nova Premier curates**. Two consequences for the text below. First, the consequence *"a model-family boundary now sits inside the pipeline: Nova produces severity scores that **Claude** consumes"* **no longer holds** — every role is Nova, so there is no cross-family boundary at all, and that consequence can be struck rather than managed. Second, the spot-check "against Opus 5" is now a spot-check against **whichever stronger model is configured**; under ADR-0038 it **gates the wiki seed**, so it must pass *before* the seed is built rather than before backfill is accepted. The consistency argument — one classifier across all time — is untouched and remains the load-bearing part.
 
 ## Context
 

@@ -31,7 +31,7 @@ This framing is what makes the result interpretable. Climatology is precisely wh
 
 **One call per instrument — eleven calls per run** (ADR-0029). Each prediction is independent, attributable, and small enough to validate reliably; one malformed response costs one instrument rather than the day.
 
-**Coherence comes from shared context, not from a shared call.** Every one of the eleven prompts carries the *same* regime block — real 10Y yield, dollar index, VIX, crude, all as σ-relative moves. The instruments are therefore reasoning from an identical view of market state even though they are predicted separately. No twelfth "market state" call is needed; the regime covariates already are the market state.
+**Coherence comes from shared context, not from a shared call.** Every one of the eleven prompts carries the *same* regime block — nominal 10Y yield, real 10Y yield, dollar index, VIX, crude (five series, ADR-0017), all as σ-relative moves. The instruments are therefore reasoning from an identical view of market state even though they are predicted separately. No twelfth "market state" call is needed; the regime covariates already are the market state.
 
 **Residual incoherence is measured, not prevented.** After all eleven predictions land, a deterministic check scores them against known structural relationships:
 
@@ -65,7 +65,8 @@ That array of numbers is the entire input. No prompt, no metadata, no event text
 target     = [close[t-N] … close[t]]
 covariates = {
   "dxy":            [… same window …],
-  "real_yield_10y": [… same window …],
+  "nominal_yield_10y": [… same window …],
+  "real_yield_10y":    [… same window …],
   "vix":            [… same window …],
   "wti":            [… same window …],
   "severity":       [0, 0, 0, 2.1, 0, 0, …],   # mostly zeros, spikes on event days
@@ -133,7 +134,7 @@ At 120M parameters on CPU this is roughly **1.5–4 vCPU-hours**, and it batches
 | **6b** | **The predictor's own track record** ([ADR-0042](../adr/0042-calibration-feedback-and-calibrated-track.md)) — reliability by confidence band, directional balance, departure discipline, RPS by severity, over a trailing window. **Every line is arithmetic over the scored record; none of it is model-written**, for the same reason scoring has no model in it — a self-assessment the model produced is one the model could flatter. | Daily |
 | 7 | Output instruction | Stable |
 
-Blocks 1–2 are the natural cache boundary. Nova caps cached content at roughly 20k tokens, so only part of that prefix caches — re-derive on every model change (ADR-0027).
+**Block 1 alone is the cache boundary.** Block 2 is the instrument page and differs on every one of the eleven calls, so a breakpoint after it caches nothing reusable — eleven writes at 1.25×, zero reads. Nova caps cached content at roughly 20k tokens and the TTL is ~5 minutes, so caching pays within a run only — re-derive on every model change (ADR-0027).
 
 **Block 6 provenance is not decoration.** The model must be able to see that a hit rate rests on a deterministic join over history rather than on the system's own track record — those two things warrant different weight, and collapsing them would make the project's central claim unmeasurable from inside the prompt as well as from outside it.
 
@@ -162,12 +163,17 @@ Blocks 1–2 are the natural cache boundary. Nova caps cached content at roughly
   ],
   "reasoning": "…",
   "baseline_shown": true,
-  "model_id": "amazon.nova-premier-v1",
+  "model_id": "<resolved at runtime from model/reason/predict>",
   "prompt_version": "2026-08-09",
   "filter_version": "1",
-  "overlay_version": "1"
+  "overlay_version": "1",
+  "calibration_map_version": "<run_id of the map in force>"
 }
 ```
+
+**Bucket keys are normative.** `strong_down | moderate_down | flat | moderate_up | strong_up`, matching [ADR-0008](../adr/0008-volatility-relative-movement-buckets.md). `Design.md` §4.1 describes the same five buckets in prose as "large down / small down / flat / small up / large up" — same boundaries, different words. **The keys above are what code emits and validates.**
+
+`model_id` is never a literal in this document or in code (ADR-0027, REQ-1007). The predictor resolves to `model/reason/predict` — Nova Pro under ADR-0040, *not* Premier. `calibration_map_version` is required by REQ-607.
 
 **Cited pages carry version IDs**, so a prediction records exactly which page revision informed it — required for audit and for verifying point-in-time correctness after the fact.
 
@@ -204,7 +210,7 @@ The predictor sees **outcomes, never its own prior reasoning** (ADR-0029). Corre
 
 This keeps the feedback loop anchored to reality rather than to the model's own prior rhetoric, and avoids the failure where a model rationalises consistency with itself instead of reassessing from evidence.
 
-**A known residual:** hit rates are grounded in outcomes, but the *hypothesis space* is model-generated — evidence only ever accumulates on pairings the model thought to propose. Nothing in the current design surfaces a correlation the model never hypothesised. This is unaddressed and worth revisiting once the loop is running.
+**A residual that was open here and is now closed.** Hit rates are grounded in outcomes, but the *hypothesis space* would be model-generated — evidence accumulating only on pairings the model thought to propose. [ADR-0041](../adr/0041-no-agents-deterministic-pipeline.md) closes this with the **nightly correlation sweep** (REQ-718, REQ-719): a deterministic Lambda walks the full event × instrument × horizon grid and surfaces cells whose credible interval excludes 0.5 but which have no page, or whose page contradicts the statistics. It sweeps the whole grid rather than the corners a model finds interesting, and its output is reproducible from the data. The curator still judges whether a candidate is real or spurious.
 
 ## Open items
 

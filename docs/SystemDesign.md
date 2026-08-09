@@ -2,7 +2,7 @@
 
 **Status:** Design — authoritative. Precedes `Requirement.md`.
 **Date:** 2026-08-09
-**Governed by:** ADRs 0001–0040 ([index](adr/README.md))
+**Governed by:** ADRs 0001–0045 ([index](adr/README.md))
 
 This document describes how the whole machine works, end to end, so that requirements can be written against something concrete. It does not re-argue decisions — every choice below traces to an ADR, cited inline.
 
@@ -214,8 +214,8 @@ The consequence: **steps 10–12 and step 16 must not be reordered or parallelis
 | Step | Calls/day | Monthly |
 |---|---|---|
 | 8 — classify | 1 | $0.05 |
-| 11 — consolidate | 1 | $4.25 |
-| 16 — predict | 11 | $3.77 |
+| 11 — consolidate | 1 | $5.40 |
+| 16 — predict | 11 | $4.27 |
 | 17 — control | sampled | $0.38 |
 | 13–14 — Chronos + TimesFM | 44 forecasts | $0.05 |
 
@@ -237,7 +237,7 @@ Amazon's time-series foundation model. 120M parameters, encoder architecture, di
 
 ```
 context    = [close[t−N], … , close[t]]        # N ≈ 512–1024 sessions
-covariates = severity[], is_festival[], dxy[], real_yield[], vix[], wti[]
+covariates = severity[], is_festival[], dxy[], nominal_yield[], real_yield[], vix[], wti[]
              # aligned time series over the same window, not scalars
 output     = quantiles at t+1 … t+5  →  converted to bucket probabilities
 ```
@@ -593,16 +593,19 @@ Under forward-only this is no longer used to reconstruct the past — it is what
 
 ## 13. What is still open
 
-**All substantive design decisions are recorded.** What remains is six thresholds — none a design question, each a number to fit against data that does not exist yet. `Requirement.md` specifies the method for each; values are set during build.
+**All substantive design decisions are recorded.** What remains is **seven** thresholds — none a design question, each a number to fit against data that does not exist yet. `Requirement.md` specifies the method for each; values are set during build. The authoritative register is the [ADR index](adr/README.md#open-decisions).
 
-| Open | Calibrated against |
-|---|---|
-| Correlation sweep ranking rule (ADR-0041) | Seed join. Too loose floods the curator, too tight surfaces nothing |
-| Pre-filter recall floor, labelled-sample size (ADR-0021) | Hand-labelled GDELT sample |
-| Classification spot-check disagreement (ADR-0022) | Stronger model on the labelled sample — **gates the seed** |
-| Severity threshold for mandatory prediction (ADR-0013) | Seed join: severity vs realised σ move |
-| Calibration minimum-sample gate (ADR-0042) | Scored record; below the gate rung 6 equals rung 5 |
-| Baseline-blind control sampling rate (ADR-0029) | Cost against anchoring-index precision |
+| Open | REQ | Calibrated against |
+|---|---|---|
+| Pre-filter recall floor, labelled-sample size (ADR-0021) | REQ-302 | Hand-labelled GDELT sample |
+| Classification spot-check disagreement (ADR-0022) | REQ-307 | Stronger model on the labelled sample — **gates the seed** |
+| Event-day severity bar (ADR-0037) | REQ-310 | Seed join: severity vs realised σ move |
+| Severity threshold for mandatory prediction (ADR-0013) | REQ-311 | Same seed join — **a distinct parameter** |
+| Baseline-blind control sampling rate (ADR-0029) | REQ-612 | Cost against anchoring-index precision |
+| Correlation sweep ranking rule (ADR-0041) | REQ-719 | Seed join. Too loose floods the curator, too tight surfaces nothing |
+| Calibration minimum-sample gate (ADR-0042) | REQ-813 | Scored record; below the gate rung 6 equals rung 5 |
+
+**What is *not* recorded:** the statistical decision rule for the headline skill comparison. No document defines the test, the interval, the aggregation unit, or the effect size the design is powered to detect. See `Product.md` § Open.
 
 One scheduling choice remains and blocks nothing: whether to run the `seed_enabled` ablation (ADR-0038) at go-live or later. The flag and provenance tags are required either way.
 

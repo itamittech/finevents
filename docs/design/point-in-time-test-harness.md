@@ -184,6 +184,8 @@ Proves leakage is *detectable* rather than merely absent.
 
 One canary per surviving vector — a future price bar, a future event, a revised consensus figure, a cross-market close from the wrong side of the boundary.
 
+**Isolation is mandatory and was previously unstated.** These runs deliberately inject poisoned, future-dated records, and asserting the sentinel is absent from *reasoning traces* implies a model call. So: canaries run **in Dev, against cassettes, never live Bedrock**; they write to **no production store** — not `predictions`, not `scores`, not the wiki; and they are excluded from every `measurement/period_id` series. A nightly canary writing into the production prediction store would inject synthetic corruption into the only evidence the project will ever have, on days that under forward-only cannot be re-run.
+
 **A canary that is never caught proves nothing unless the harness is itself tested.** The suite includes a deliberately leaky pipeline variant that the canaries *must* catch. A test that cannot fail is not a test.
 
 ### Layer 4 — Truncated replay (Lane A only) — **demoted from centrepiece**
@@ -224,13 +226,13 @@ The previous revision framed live divergence from backtest as the signature of r
 | Trigger | Tests | Budget |
 |---|---|---|
 | Every commit | Layer 1 property tests, architecture import test, frozen-clock test | < 30s |
-| PR touching `ingest/`, `pipeline/`, `eval/`, `wiki/` | Layer 2 snapshot integrity + cross-market ordering | seconds |
+| **Every PR** | Layer 2 snapshot integrity + cross-market ordering | seconds |
 | PR touching Lane A | Layer 4 truncated replay, sampled dates | minutes |
 | Nightly | Layer 3 canaries, all surviving vectors | — |
 | Per evaluation window | Layer 5 negative controls; results attached to the run record | — |
 | Continuous | Layer 6 live scoring and ladder comparison | — |
 
-Per ADR-0014, these are CI gates. **Layer 2 is the merge gate for pipeline changes** — it has taken over that role from truncated replay.
+Per ADR-0014, these are CI gates. **Layer 2 is the merge gate** — it has taken over that role from truncated replay. It runs on every PR rather than a path allowlist: the budget is seconds, and a path list is how a check silently stops covering a module that was renamed or added. (`pipeline/` appeared in the earlier list and exists in no module layout — exactly that failure.)
 
 ---
 

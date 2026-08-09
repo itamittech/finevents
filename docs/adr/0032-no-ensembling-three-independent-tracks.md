@@ -5,6 +5,8 @@
 - **Supersedes:** the ensemble decision in [ADR-0031](0031-timesfm-third-track-and-ensemble-baselines.md) (its TimesFM adoption stands)
 - **Amends:** [ADR-0020](0020-static-spa-frontend.md) (dashboard view ordering)
 
+> **Amendment note (added on review):** rung numbering here predates [ADR-0042](0042-calibration-feedback-and-calibrated-track.md)'s sixth rung — see the note on [ADR-0030](0030-chronos-as-baseline-and-shown-forecast.md). Separately, this ADR's "**beat the best-performing rung**" is the origin of the dashboard's `best baseline` figure, and **taking a minimum over 4–6 correlated tracks is not the difference of two means** — the minimum is biased low, so the agent is measured against a benchmark flattered by selection. This ADR names the hazard ("single-number summaries of 'the baseline' will be misleading") and assigns it to nobody. The statistic, the track set it minimises over, and the correction belong in the pre-registered comparison, not in a dashboard query.
+
 ## Context
 
 ADR-0031 proposed combining Chronos-2 and TimesFM 2.5 into an ensemble baseline, on the strength of forecast-combination results. That was recorded before it was confirmed, and on review the ensemble is not wanted.

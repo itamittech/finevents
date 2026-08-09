@@ -70,6 +70,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0043](0043-steering-interface.md) | Steering — flag, propose, edit, correct; all provenance-tracked | Accepted | 2026-08-09 | Human-touched pages come to dominate the wiki |
 | [0044](0044-licence-and-publication-policy.md) | Apache 2.0; derived data published, raw content never | Accepted | 2026-08-09 | A source changes terms affecting already-published artefacts |
 | [0045](0045-tuning-window.md) | Tuning window = 60 trading days, ending when configuration freezes | Accepted | 2026-08-09 | The shadow A/B's duration changes — the two are defined to coincide |
+| [0046](0046-pre-registered-skill-comparison.md) | **The pre-registered skill comparison** — statistic, comparator, interval, and what may be claimed when | **Proposed** | 2026-08-09 | Measured κ or realised RPS variance differs materially from the simulated value |
 
 ## The forward-only turn
 
@@ -89,16 +90,19 @@ The cost of all this is patience: no agent result before roughly **month 11–13
 
 ## Open decisions
 
-**All substantive design decisions are recorded.** What remains is six thresholds, and none is a design question — each is a number to fit against data that does not exist yet. Every one can be calibrated free against the ADR-0038 seed join or an early labelled sample. `Requirement.md` specifies the **method** for each; the values are set during build.
+**All substantive design decisions are recorded.** What remains is **seven** thresholds, and none is a design question — each is a number to fit against data that does not exist yet. All but one can be calibrated free against the ADR-0038 seed join or an early labelled sample. `Requirement.md` specifies the **method** for each; the values are set during build.
 
-| Threshold | ADR | Calibrated against |
-|---|---|---|
-| Pre-filter recall floor, labelled-sample size | 0021 | Hand-labelled GDELT sample |
-| Classification spot-check disagreement | 0022 | Stronger model on the labelled sample — **gates the seed** |
-| Severity threshold for mandatory prediction | 0013 | Seed join: severity vs realised σ move |
-| Correlation sweep ranking rule | 0041 | Seed join — too loose floods the curator, too tight surfaces nothing |
-| Calibration minimum-sample gate | 0042 | Scored record; below the gate rung 6 equals rung 5 |
-| Baseline-blind control sampling rate | 0029 | Cost against anchoring-index precision |
+| REQ | Threshold | ADR | Calibrated against |
+|---|---|---|---|
+| REQ-302 | Pre-filter recall floor, labelled-sample size | 0021 | Hand-labelled GDELT sample |
+| REQ-307 | Classification spot-check disagreement | 0022 | Stronger model on the labelled sample — **gates the seed** |
+| REQ-310 | Event-day severity bar (top 20% of post-filter days) | 0037 | Seed join: severity vs realised σ move |
+| REQ-311 | Severity threshold for mandatory prediction — **distinct from REQ-310** | 0013 | Same seed join |
+| REQ-612 | Baseline-blind control sampling rate | 0029 | Cost against anchoring-index precision. **Not free** — costs model calls, and the $0.38 cost line already implies ~9% of days |
+| REQ-719 | Correlation sweep ranking rule | 0041 | Seed join — too loose floods the curator, too tight surfaces nothing |
+| REQ-813 | Calibration minimum-sample gate | 0042 | Scored record; below the gate rung 6 equals rung 5 |
+
+Two further numbers are open but carry no `C` code and appear in no register: the **too-good-to-be-true ceiling** (REQ-1209, a `CI` build gate with no value — see the harness doc's open questions) and the **coherence-violation review threshold** (REQ-613). Both need owners.
 
 One scheduling choice also remains open, and blocks nothing: whether to run the `seed_enabled` ablation (ADR-0038) at go-live or later. The flag and the provenance tags are required either way.
 
@@ -131,6 +135,8 @@ Tracked across ADRs, not owned by any single one:
 | Human proposes a hypothesis informed by knowing what happened next | ADR-0043 | **Accepted residual risk.** The audit timestamp is the only defence and it is a weak one |
 | Raw scraped content leaking into the public repo via a derived artefact | ADR-0044 | Pre-commit scan extended beyond credentials to raw paths and payload signatures; the curator is prompted to summarise, never quote |
 | Wiki degradation as it grows | ADR-0005 | Linting pass; revisit at ~500 pages |
+| **The skill test is underpowered on its own timeline — month 13 yields an interval, not a verdict** | ADR-0046; [power analysis](../analysis/power/results.md) | **Quantified.** Power to detect R² = 0.25% at ~190 post-tuning days is **9%**. Closed against *misreporting* by REQ-919/920 (interval mandatory; inconclusive ≠ null), not closed against the underlying limit |
+| **Coherence and statistical power are in direct tension** | ADR-0046, REQ-406 | **Newly visible, unresolved.** The byte-identical regime block buys cross-instrument coherence and is precisely what correlates the predictor's errors, capping effective sample size at ~4.4/day regardless of instrument count |
 
 **Retired 2026-08-09 by [ADR-0037](0037-forward-only-agent-learning.md):**
 
@@ -143,7 +149,7 @@ Tracked across ADRs, not owned by any single one:
 
 | Document | Covers |
 |---|---|
-| [Requirement.md](../Requirement.md) | **~110 numbered REQ-ids**, each testable and traced to an ADR. Six specify a calibration *method* rather than a value |
+| [Requirement.md](../Requirement.md) | **184 numbered REQ-ids**, each testable and traced to an ADR. Ten specify a calibration *method* rather than a value |
 | [Design.md](../Design.md) | Module layout, interface protocols, DynamoDB/S3 schemas, nine algorithms specified precisely, config model, error handling |
 | [Tasks.md](../Tasks.md) | 13 phases in dependency order, with three non-negotiable orderings and the hard leakage gate |
 | [SystemDesign.md](../SystemDesign.md) | End-to-end architecture, the agency boundary, the daily run, the two improvement arms |

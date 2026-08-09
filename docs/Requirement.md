@@ -28,7 +28,9 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 
 ### Open thresholds
 
-Six requirements specify a **method** rather than a value, marked `C`. This is deliberate: each value must be fitted against data that does not exist yet, and inventing numbers now would be false precision. Each states what it is calibrated against, and what happens if calibration fails.
+**Ten** requirements specify a **method** rather than a value, marked `C` — REQ-302, REQ-307, REQ-310, REQ-311, REQ-408, REQ-612, REQ-719, REQ-813, REQ-921, REQ-1213. This is deliberate: each value must be fitted against data that does not exist yet, and inventing numbers now would be false precision. Each states what it is calibrated against, and what happens if calibration fails.
+
+> All nine must appear in the go-live freeze step (Tasks.md T13.3). Two were added after review: REQ-408 (conditional-climatology cell size and the coherence floor, previously deferred by ADR-0017 to a backtest that ADR-0037 removed) and REQ-1213 (the too-good-to-be-true ceiling, previously a `CI` build gate with no value and no method anywhere).
 
 ---
 
@@ -80,7 +82,7 @@ Six requirements specify a **method** rather than a value, marked `C`. This is d
 | REQ-202 | Gold is tracked at both USD/oz spot and MCX INR as separate series. | ADR-0003 | `I` |
 | REQ-203 | Individual equities are **not** ingested in v1. | ADR-0009 | `R` |
 | REQ-204 | Price history is acquired from Stooq (CSV) and jugaad-data (NSE), both keyless. | ADR-0010 | `I` |
-| REQ-205 | Regime covariates — real 10Y yield, dollar index, VIX, WTI crude — are acquired from FRED, keyless. | ADR-0017 | `I` |
+| REQ-205 | **Five** regime covariates are acquired from FRED, keyless: nominal 10Y yield (`DGS10`), 10Y TIPS real yield (`DFII10`), trade-weighted dollar index (`DTWEXBGS`), VIX (`VIXCLS`), WTI crude (`DCOILWTICO`). The set and its order are fixed — REQ-406 makes the regime block byte-identical across all 11 prompts, so the field count is a wire shape baked into every prompt snapshot and both numeric covariate arrays. | ADR-0017 | `I` |
 | REQ-206 | Events are acquired from GDELT 2.0 (Feb 2015→present). | ADR-0007 | `I` |
 | REQ-207 | MCX prices, economic-calendar consensus and actuals, and news articles are acquired through Firecrawl using JSON-schema extraction. | ADR-0002, 0012 | `I` |
 | REQ-208 | Every acquired record passes ingest validation before write: schema conformance, range plausibility, and continuity against the prior session. | ADR-0002, 0010 | `U`, `I` |
@@ -118,7 +120,8 @@ Six requirements specify a **method** rather than a value, marked `C`. This is d
 | REQ-402 | Bucket boundaries are computed at prediction time and **stored with the prediction**. Scoring never recomputes them. | ADR-0008, 0037 | `U`, `P` |
 | REQ-403 | Horizons count **trading days** from the market calendar, not calendar days. | ADR-0037 | `U` |
 | REQ-404 | Climatology is the unconditional bucket frequency over all available history to date. | ADR-0008 | `U` |
-| REQ-405 | Conditional climatology conditions on calendar factors (festival, expiry, month, weekday) and regime state. | ADR-0017 | `U` |
+| REQ-405 | Conditional climatology conditions on calendar factors (festival, expiry, month, weekday) and regime state, using the five-level backoff ladder of Design §4.10. **The ladder level actually used is stored with the prediction** — without it, a backoff to level 0 is invisible and rung 2 silently degrades to rung 1. | ADR-0017 | `U` |
+| REQ-408 | **Method:** the conditional-climatology minimum cell size `N_min` (Design §4.10) and the coherence floor `τ_floor` (Design §4.12) are calibrated against the seed join. Too low and rung 2 fits noise and beats the agent for the wrong reason; too high and it collapses to unconditional climatology, so the confounding check passes by not running. | ADR-0017, 0029 | `C` |
 | REQ-406 | Regime state is expressed as σ-relative moves of the five FRED covariates and is **byte-identical across all 11 prediction prompts** on a given day. | ADR-0017, 0029 | `U` |
 | REQ-407 | All feature normalisation uses only data with `knowledge_time` at or before the run's cut-off. | ADR-0016 | `P` |
 
@@ -247,7 +250,10 @@ Six requirements specify a **method** rather than a value, marked `C`. This is d
 |---|---|---|---|
 | REQ-901 | The frontend is a static SPA served from S3 behind CloudFront. | ADR-0020 | `I` |
 | REQ-902 | Reads and steering writes go through API Gateway, authenticated by a Cognito user pool. | ADR-0023 | `I` |
-| REQ-903 | The dashboard shows the learning curve — agent RPS minus best-baseline RPS over elapsed days — computed on `observed` evidence only. | ADR-0033, 0038 | `U` |
+| REQ-903 | The dashboard shows the learning curve — agent RPS minus the **pre-specified comparator's** RPS over elapsed days — computed on `observed` evidence only, **always with its interval**. The comparator is fixed by ADR-0046 and is never a per-day minimum over tracks: a per-day minimum is an oracle that selects the winning track after the outcome is known, and biases the figure against the agent by roughly ten times a realistic effect. | ADR-0033, 0038, 0046 | `U` |
+| REQ-919 | Every reported skill figure carries a **block-bootstrap interval** and names the effect size the record is powered to detect. A point estimate without an interval fails review. | ADR-0046 | `CI` |
+| REQ-920 | **An inconclusive result is never reported as a null.** No claim that event reasoning does not help may be made until the interval excludes the smallest effect the project considers meaningful. | ADR-0046 | `R` |
+| REQ-921 | **Method:** κ — the share of the predictor's forecast error common across instruments — is estimated from the live record once ~60 scored days exist, and the power analysis re-run with the measured value. The revised timeline is published whichever way it moves. | ADR-0046 | `C` |
 | REQ-904 | The dashboard shows all six ladder rungs, per instrument and per horizon. | ADR-0033 | `R` |
 | REQ-905 | Every prediction is auditable to its prompt snapshot, its cited pages at their `version_id`, its reasoning, and its outcome. | ADR-0033 | `I` |
 | REQ-906 | **Two skill series are always shown together** — agent-authored pages versus human-touched pages. Reporting only the aggregate fails a CI assertion. | ADR-0043 | `CI` |
@@ -284,7 +290,7 @@ Six requirements specify a **method** rather than a value, marked `C`. This is d
 | REQ-1012 | Step ordering 10 → 11 → 12 → 12a/12b → 16 is enforced by the state machine. Step 16 reads what step 12 wrote. | ADR-0037 | `I` |
 | REQ-1013 | Local development runs the pipeline against Docker-based service stand-ins. | Brief | `I` |
 | REQ-1014 | Prompt caching economics are re-derived on every model change, never carried across. | ADR-0027 | `R` |
-| REQ-1015 | Recurring cost stays within $16–33/month at the configured defaults. A sustained breach raises an alarm. | ADR-0040, 0042 | `I` |
+| REQ-1015 | Recurring cost stays within $16–33/month at the configured defaults. A sustained breach raises an alarm. **The band widens to $25–42 while the ADR-0039 shadow window runs** (+$9/month for ~2 months); the alarm must know about the window or it fires by design on day 1 of go-live. | ADR-0040, 0042 | `I` |
 
 ---
 
@@ -294,8 +300,13 @@ Six requirements specify a **method** rather than a value, marked `C`. This is d
 |---|---|---|---|
 | REQ-1101 | A pre-commit hook runs a security scan and blocks commits containing credentials or environment files. | ADR-0014 | `CI` |
 | REQ-1102 | The same hook blocks any commit touching a `raw/` path or adding content matching the scraped-payload signature. | ADR-0044 | `CI` |
-| REQ-1103 | A post-commit hook verifies that documentation was updated in the relevant places. | ADR-0014 | `CI` |
-| REQ-1104 | CI runs the same validation as the hooks. Hooks are a convenience; CI is the gate. | ADR-0014 | `CI` |
+| REQ-1103 | **Documentation currency is checked in CI on the pull request**, not post-commit — a post-commit hook fires after the commit exists and can only warn (ADR-0014). Changes under mapped source paths require corresponding documentation changes; the path→doc mapping lives in config, never hardcoded. | ADR-0014 | `CI` |
+| REQ-1104 | CI runs the same validation as the hooks, and verifies the hooks ran. Hooks are a convenience and are bypassable by design; CI is the gate. | ADR-0014 | `CI` |
+| REQ-1113 | The pre-commit hook runs Python SAST (bandit) and blocks on high-severity findings. | ADR-0014 | `CI` |
+| REQ-1114 | The pre-commit hook runs a dependency vulnerability scan (pip-audit) and blocks on known CVEs. | ADR-0014 | `CI` |
+| REQ-1115 | CI blocks merge unless the pull request references at least one REQ-id or ADR, enforcing ADR-0001's traceability chain. | ADR-0014, 0001 | `CI` |
+| REQ-1116 | A `docs: n/a — <reason>` marker in the PR body satisfies REQ-1103 for genuinely doc-free changes. The exemption is recorded and its rate is reviewable — without a sanctioned escape, contributors reach for `--no-verify`, which disables every check rather than the one that did not apply. | ADR-0014 | `CI` |
+| REQ-1117 | Pre-commit hooks stay fast enough that bypassing them is not tempting. Anything slow belongs in CI. Speed is a security property here, not a convenience. | ADR-0014 | `R` |
 | REQ-1105 | Code is licensed Apache 2.0, with a NOTICE file. | ADR-0044 | `R` |
 | REQ-1106 | Published: the prediction record, scores, all ladder rungs, wiki pages, run manifests, event classifications, severity scores, the steering audit, and calibration maps. | ADR-0044 | `CI` |
 | REQ-1107 | Never published: anything under `raw/`, scraped article text in whole or excerpt, MCX or calendar page content, and Firecrawl payloads. | ADR-0044 | `CI` |
@@ -322,6 +333,7 @@ Six requirements specify a **method** rather than a value, marked `C`. This is d
 | REQ-1207 | **Truncated replay** runs for Lane A only: identical output against the full store and against a store truncated to the as-of date, across at least three market regimes. | Harness L4 | `CI` |
 | REQ-1208 | **Shuffle test:** randomly reassigning events to dates collapses skill to baseline. | Harness L5 | `I` |
 | REQ-1209 | **Too-good-to-be-true trip:** skill above a configured ceiling **fails the build**. It must not be possible to ship an unexplained excellent result. | Harness L5 | `CI` |
+| REQ-1213 | **Method:** the REQ-1209 ceiling is set from the null distribution of the skill statistic — the upper tail of paired RPS differences under the shuffle test (REQ-1208), at a stated exceedance probability. Too low and it fires constantly; too high and it never fires. It cannot be set before the statistic itself is defined, so it depends on the pre-registered comparison. | Harness L5 | `C` |
 | REQ-1210 | Model responses are recorded and replayed by cassette. A cache miss in replay mode is a hard failure, never a silent live call. | ADR-0018 | `CI` |
 | REQ-1211 | The cassette cache key includes the model ID, so a model change invalidates cassettes and forces a re-record. | ADR-0018 | `U` |
 | REQ-1212 | **The agent makes no scored prediction until REQ-1201 through REQ-1206 are green.** Under forward-only a leaked prediction cannot be re-run — there is no second attempt at a live day. | ADR-0037 | `R` |
