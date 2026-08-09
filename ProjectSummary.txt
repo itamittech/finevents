@@ -1,0 +1,154 @@
+Project Development -> Spec Driven Development
+
+Hooks -> Pre commit Hooks -> Security Check on the code being comitted, Vulnerability assesment
+                             Environment file, credential check before code commit
+							 
+		Post commit hooks -> Check that the documentation of the code being comitted is updated at relevant places.
+		
+		
+Documents -> Requirement.md, Design.md, Tasks.md, Product.md, SytemDesign.md (overall system architecture), Readme.md, Contributing.md, AgentDesign.md
+
+Tech Stack -> Prod Cloud (AWS Serverless), Local Running can be supported by docker based services, Language (Python), Agent Framework (Strands SDK), FrontEnd (StreamLit)
+
+CI -> GitCommit Hooks for Validation(Workflows), Cloudformation or SAM, Configuration separate for Dev/UAT/Prod, One Click Deployment infrastructure as code.
+
+Project:-> To be discussed before finalizing in chat window (Lets discuss on all point in chat)
+           1. We will use firecrawl for scrapping and checking data
+		   2. Scrap lets say top 10 stock market price of India and USA
+		   3. Scrap Gold, Sliver, Platinum and Paladium price
+		   4. Scrap 10-20 most eventful new like Attack on a country,Some disaster, Fed news, Fianncial news which is big etc.
+		   5. The most important part of this application is learning and correlating the price movements of the various instrument listed above based on events etc.
+		   6. System should learn the pattern eventually and need not be taught if the same task is being done daily over a period of time it should start learning all this
+		   7. Some inspiration if it can be applied is Karpathy wiki LLM etc
+		   8. Agentic architecture will be used like One agent for scrapping instrument of stock market, other for metal prices, other for event news, and then one agent which consolidates and learns daily from this.
+		   9. We need to use best agentic architecture here.
+		   10. Overall cost efficiency also needs to be seen here.
+		   11. The most important goal here is using framework like WikiLLM of Karpathy we will make our agent intelligent day by day so that they start learning patterns and 
+		      then be able to predict the price movement of each commodity of gold silver platinum palladium or stock market
+		   12. Agents can use eval framework as live market prices to see how good their judgement is becoming.
+		   13. Eventually we need to see the accuracy of measuring the movement i.e like 5% up, 5% down kind of forecasting.
+		   14. In the streamlit we should be able to see the continuous improvement of agent learning framework, like how its daily improving or degrading and we should be able to
+		       steer the agent
+			
+		   
+Repo - Will be open source i will provide details of that
+GitContribution -> itamittech@gmail.com . it should not be itamittech@live.com we need to change it otherwise
+
+
+================================================================================
+STATUS 2026-08-09 -- design phase complete, pre-implementation.
+Decisions live in docs/adr/ (42 ADRs). Full design in docs/SystemDesign.md.
+Everything above is left unedited as the original brief.
+================================================================================
+
+TECH STACK CHANGES
+  Streamlit    -> REMOVED. Static SPA on S3 + CloudFront (ADR-0020).
+  Strands SDK  -> REMOVED. There are no agents to build (ADR-0041).
+  Unchanged: Python, AWS serverless, SAM, Docker for local, Firecrawl.
+  Models: Nova Lite classifies, Nova Pro predicts, Nova Premier curates (ADR-0040).
+
+WHERE EACH PROJECT POINT LANDED
+  1  Firecrawl             KEPT. Free keyless sources permitted alongside (0002, 0010).
+  2  Top 10 stocks IN+US   CHANGED. v1 is indices + metals, 11 series. Individual
+                           equities deferred to v2 (0009) -- too wide a surface for
+                           spurious correlations before the loop is proven.
+  3  Gold/silver/plat/pall KEPT. Gold at both USD/oz spot and MCX INR (0003).
+  4  10-20 big events      KEPT. GDELT 2.0 + CAMEO codes + a financial-relevance
+                           overlay, behind a deterministic pre-filter (0011, 0021).
+  5  Correlate price/event KEPT. This is the product.
+  6  Learn without reteach KEPT. The wiki accretes day over day (0005).
+  7  Karpathy wiki LLM     KEPT. It is the knowledge layer (0005, 0026).
+  8  Agent per domain      DECLINED (0041). See below.
+  9  Best agentic arch     DECLINED with 8.
+ 10  Cost efficiency       KEPT. ~$16-33/month, ~$4 one-off setup.
+ 11  Predict movement      KEPT, with a timeline. Forward-only means no agent result
+                           before roughly month 8-10 (0037).
+ 12  Live prices as eval   KEPT and strengthened -- live is now the ONLY evidence
+                           path for the agent (0037).
+ 13  5% up / 5% down       CHANGED. Volatility-relative buckets in sigma over the
+                           trailing 60 sessions, at t+1 and t+5 (0008). A fixed 5%
+                           means something quite different for gold than for NIFTY.
+ 14  Steering UI           KEPT in intent, frontend changed (0020). The steering
+                           design itself is the thinnest part of the system. OPEN.
+
+WHY NO AGENTS (point 8)
+  Examined and declined in ADR-0041. Scraper agents would duplicate Firecrawl,
+  whose extraction is already LLM-driven. The wiki curator was the real candidate,
+  but three of its four proposed tools collapsed into better prompt assembly, and
+  the fourth -- query history to test a hunch -- does not fix its target risk: a
+  model that never thinks of a hypothesis will not query for it either. Replaced
+  by 1-hop link pre-loading and a nightly deterministic sweep of the entire
+  event x instrument x horizon grid. Cheaper, and more complete.
+  Consequence: this is a PIPELINE, not an agentic system. AgentDesign.md in the
+  document list above no longer has a subject -- SystemDesign.md 2.1 covers the
+  agency boundary instead.
+
+THE BIGGEST DECISION NOT IN THE ORIGINAL BRIEF
+  Forward-only (ADR-0037). The agent never runs against a historical date -- no
+  backtest, no replay, at any scope. History feeds only numeric calibration, the
+  wiki seed, and threshold tuning. This retired 7 of 11 leakage vectors, made
+  time-series pre-training contamination structurally impossible rather than
+  merely bounded, and cut one-off setup from ~$38 to ~$4. The price is patience.
+
+HOW IT IMPROVES DAY BY DAY (points 6, 11, 12)
+  Two arms, both arithmetic, both read back the next day:
+    - The wiki learns about the WORLD -- evidence accretes, posteriors tighten,
+      hypotheses get rewritten when they stop holding.
+    - Calibration learns about the PREDICTOR -- reliability, directional bias and
+      departure discipline fed back into the prompt, plus a mechanical calibration
+      layer scored as its own ladder rung (0042). The wiki cannot see systematic
+      predictor error; this is what catches it.
+
+WHAT EXISTS NOW
+  Written:     45 ADRs, Requirement.md (~110 REQ-ids), Design.md, Tasks.md,
+               SystemDesign.md, Product.md, aws-architecture.md,
+               prediction-contract.md, point-in-time-test-harness.md, CLAUDE.md
+  Not written: README.md, Contributing.md
+  Dropped:     AgentDesign.md -- ADR-0041 removed agents; SystemDesign 2.1
+               covers the agency boundary instead.
+  Code: none. Git repo: not initialised. Commit identity still to be set (T0.1).
+
+BUILD PLAN -- Tasks.md, 13 phases. Three orderings are non-negotiable:
+  1. Bitemporal schema first. knowledge_time cannot be retrofitted onto
+     populated stores.
+  2. The leakage harness (Phase 4) gates live running. Under forward-only a
+     leaked prediction cannot be re-run -- there is no second attempt at a day.
+  3. The classification spot-check gates the wiki seed. A misclassification
+     propagates into eleven years of seeded evidence.
+
+FINAL THREE DECISIONS (ADR-0043, 0044, 0045)
+  Steering (point 14) -- four verbs: flag, propose, edit, correct. Cognito-gated,
+    fully audited. Human edits are allowed AND provenance-tracked, so skill is
+    reported twice: on agent-authored pages and on human-touched pages. Full
+    power and an honest claim, instead of trading one for the other.
+  Licence -- Apache 2.0 for code. Derived data IS published: the full prediction
+    and scoring record, wiki pages, severity scores, manifests, steering audit.
+    Raw scraped article text is NEVER redistributed. Publishing the record is
+    what makes a null result verifiable by someone else, and it makes steering
+    self-policing -- you cannot quietly steer if the audit is public.
+  Tuning window -- 60 trading days, ending when the configuration freezes (the
+    shadow A/B concludes at day 60). Results are published but labelled `tuning`
+    and excluded from headline skill. The wiki learns throughout. No extension.
+
+  Consequence: first agent skill number arrives ~month 11-13, not 8-10.
+
+STILL OPEN -- nothing blocking
+  Six thresholds, none a design question. Each is a number to fit against data
+  that does not exist yet, and each can be calibrated free against the seed join
+  or an early labelled sample. Requirement.md specifies the METHOD for each;
+  values get set during build.
+    pre-filter recall floor / labelled-sample size (0021)
+    classification spot-check disagreement (0022) -- gates the seed
+    severity threshold for mandatory prediction (0013)
+    correlation sweep ranking rule (0041)
+    calibration minimum-sample gate (0042)
+    baseline-blind control sampling rate (0029)
+  Plus: whether to run the seed_enabled ablation (0038) at go-live or later.
+
+NEXT: T0.1 -- git init, set commit identity to itamittech@gmail.com, Apache 2.0
+      LICENSE + NOTICE, then the pre/post-commit hooks and CI (Tasks.md Phase 0).
+      T0.11 and T0.12 -- nine pre-build verifications and four data-terms
+      questions -- can run in parallel and must clear before go-live and before
+      the repo goes public respectively.
+
+

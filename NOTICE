@@ -1,0 +1,31 @@
+FinEvents
+Copyright 2026 Amit Mishra
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full terms.
+
+--------------------------------------------------------------------------------
+Data sources and attribution
+--------------------------------------------------------------------------------
+
+FinEvents acquires data from third-party sources. Per ADR-0044:
+
+  - Raw acquired content (scraped article text, exchange page content, and
+    provider payloads) is NEVER redistributed by this project.
+
+  - Derived work produced by this project — severity scores, wiki pages,
+    predictions, scores, run manifests, calibration maps, and the steering
+    audit trail — IS published, and is covered by the Apache License above.
+
+  - Source URLs and fetch timestamps are published so that third parties may
+    re-acquire source material under their own terms.
+
+Per-source licences and attribution obligations are recorded in DATA_SOURCES.md.
+
+GDELT Project data is licensed CC BY 4.0 and requires attribution wherever the
+data or its derivatives appear.
+
+Four source-terms questions remain open and must be resolved before any derived
+dataset is published. They are listed in docs/adr/0044-licence-and-publication-
+policy.md (REQ-1111). No data of any kind is present in this repository at the
+time of first commit.

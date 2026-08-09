@@ -1,0 +1,48 @@
+# Local tool state — machine-specific, never project content
+.claude/settings.local.json
+
+# Raw acquired content — MUST NEVER be committed (ADR-0044, REQ-1102, REQ-1107)
+# Scraped article text, MCX/calendar page content and Firecrawl payloads are
+# third-party copyrighted work. This ignore is the first line of defence; the
+# pre-commit hook (T0.5) is the enforced one.
+raw/
+**/raw/
+cassettes/
+**/cassettes/
+*.parquet
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Model weights — baked into the container image, not the repo
+weights/
+*.safetensors
+*.bin
+
+# Node / frontend
+node_modules/
+.parcel-cache/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
