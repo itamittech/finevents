@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && awk '/WHERE WE ARE/{f=1} f&&/^```/{c++; if(c==2) exit; next} f&&c==1' docs/Execution.md | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:(\"FinEvents execution position (docs/Execution.md). Per CLAUDE.md: state this position first, scope work to this increment only, end with a demo.\n\n\"+.)}}' 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Reading execution position"
+          }
+        ]
+      }
+    ]
+  }
+}

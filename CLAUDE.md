@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## How we work — read this before proposing anything
+
+The builder is one person who wants to stay in control without being overwhelmed. Those pull against each other, and the resolution is **increment size plus a visible demo** — not status reporting.
+
+**[`docs/Execution.md`](docs/Execution.md) is the running order.** It holds the increment ladder and a marker showing which increment is current. It is the answer to "where are we?"
+
+**Session protocol — follow this every time:**
+
+1. **Open `docs/Execution.md` and say which increment is current.** Do this before proposing anything, even if the request seems unrelated.
+2. **Scope the work to that increment only.** Finishing early is not licence to start the next one.
+3. **End with a demo, not a changelog.** The exact command to run, and what they should expect to see. "Here is what now works and how you check it" — never "here are the files I changed".
+4. **Update the position marker** in `docs/Execution.md` when an increment lands.
+5. **Stop.** Wait to be asked for the next one.
+
+**If a request spans several increments, say so and propose the first one.** Do not silently deliver three because they are all implied. Do not reorder the ladder to be helpful — the order encodes irreversible constraints (see the three non-negotiables in Tasks.md), and resequencing is a decision for the user, not a convenience.
+
+**Every increment ends in something visible.** If a proposed increment has nothing to show — no rows, no forecast, no page, no scored number — it is the wrong increment boundary. Split it differently or fold it into a neighbour.
+
 ## Project status
 
 Pre-implementation, but the design phase has produced a substantial record. The git repository exists (commits authored correctly as `itamittech@gmail.com`, remote `github.com/itamittech/finevents`, **currently public**). There is no source code, no build system and no test suite. There are therefore no build/lint/test commands to document — record the real ones here as soon as the first code lands; do not invent them in the meantime.
@@ -9,6 +27,8 @@ Pre-implementation, but the design phase has produced a substantial record. The 
 The toolchain is **not yet chosen** — no Python version, packaging tool, test runner or CI platform is decided anywhere. Do not assume one; see Tasks.md T0.13 — the Python version must satisfy Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image, and that intersection is the one irreversible choice.
 
 **Read these before proposing anything:**
+
+> `docs/Execution.md` is the running order — check it first (see "How we work" above).
 
 | Path | What it is |
 |---|---|
