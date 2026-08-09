@@ -57,7 +57,7 @@ flowchart TB
     end
 
     WIKI[("Wiki<br/>correlation + instrument pages<br/>S3 versioned")]
-    LAD["Evaluation ladder<br/>5 rungs, identical days"]
+    LAD["Evaluation ladder<br/>6 rungs, identical days"]
     UI["Dashboard<br/>static SPA"]
 
     src --> ING --> FIL --> CL
@@ -86,6 +86,19 @@ This project is described as an agentic system, so the boundary needs stating pr
 | **3 — Agent** | Has tools, runs its own loop, decides its own next step | **Empty.** |
 
 **As designed today, nothing in this system is an agent.** "AgentCore" appears throughout as a *compute host* — it runs containers — which makes agents look present when only the hosting is. That distinction is easy to lose and worth being blunt about.
+
+#### A note on the word "agent"
+
+This document, the ADR record and the dashboard all use **"the agent"** as the name of ladder rungs 5–6 — the LLM track that reads the wiki, as distinct from the numeric tracks. That usage follows the brief and the literature, and [ADR-0037](adr/0037-forward-only-agent-learning.md) is titled with it, so it cannot be renamed without diverging from an immutable record.
+
+**It does not mean tier 3.** When architectural agency is meant, this project says *tier 3*, *tool-using agent*, or *agent loop*.
+
+| Phrase | Means |
+|---|---|
+| "the agent", "agent track", "Lane B" | ✅ The LLM reasoning track — rungs 5–6 |
+| "classifier agent", "predictor agent", "curator agent" | ❌ **Wrong.** These are single-shot model calls. Do not use. |
+| "agentic system" | ❌ **Wrong** for this project (ADR-0041) |
+| "AgentCore Runtime" | ✅ An AWS service name. Container host. Implies nothing about agents. |
 
 #### How the agency drained out
 
@@ -373,7 +386,7 @@ The point of the system. ADR-0033 makes the harness a first-class deliverable, n
 
 ### The ladder
 
-Five rungs, all scored on **identical live days** against the same unseen targets:
+Six rungs, all scored on **identical live days** against the same unseen targets:
 
 | Rung | What it is | What beating it proves |
 |---|---|---|
@@ -471,7 +484,7 @@ That last row is the whole answer. Judgment about an outcome exists in this syst
 ### What the dashboard shows
 
 - The learning curve: agent RPS minus best-baseline RPS, over elapsed days, on `observed` evidence only
-- All five rungs, per instrument and horizon
+- All six rungs, per instrument and horizon
 - Per-prediction audit: the exact prompt snapshot, cited pages at their `version_id`, the reasoning, the outcome
 - Coverage and abstention
 - **Two skill series, always shown together** — agent-authored pages versus human-touched pages (ADR-0043). Reporting only the aggregate reintroduces the confound the provenance model exists to prevent, so the split is asserted in CI.

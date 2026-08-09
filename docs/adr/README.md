@@ -83,7 +83,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 - **Made the wiki seed necessary** (ADR-0038), since replay was what was going to populate it
 - **Reopened the reasoning-model choice** (ADR-0040) — ADR-0036 picked Nova Pro on replay economics alone, and with replay gone that justification went with it
 
-The cost of all this is patience: no agent result before roughly month 8–10, and no per-page confidence before year 2–3.
+The cost of all this is patience: no agent result before roughly **month 11–13** (ADR-0045 adds a 60-trading-day tuning window on the front), and no per-page confidence before year 2–3.
 
 **A pattern worth noticing across 0037–0040:** removing replay did not just delete a line item, it changed which failures are recoverable. Predictions became disposable and wiki pages became permanent, and ADR-0040 is the consequence — the stronger model now sits on the one call a day that cannot be undone, not on the eleven that can.
 
@@ -109,7 +109,7 @@ Tracked across ADRs, not owned by any single one:
 | Risk | Where addressed | Status |
 |---|---|---|
 | **Cross-market timing leakage (L9) — using a US close to predict an already-closed Indian session** | ADR-0009, 0037; [threat model](../design/point-in-time-test-harness.md) | **Now the highest leakage risk.** A within-day ordering failure, untouched by forward-only. Closed by a UTC-instant ordering test covering asymmetric holidays and DST |
-| **Time to first agent result — ~8–10 months, by construction** | ADR-0037 | **Accepted deliberately.** The price of a clean result. Numeric ladder runs from day 1; seeding (ADR-0038) mitigates page-level cold start |
+| **Time to first agent result — ~11–13 months, by construction** | ADR-0037, 0045 | **Accepted deliberately.** The price of a clean result: ~8–10 months of accumulation plus a 60-trading-day tuning window. Numeric ladder runs from day 1; seeding (ADR-0038) mitigates page-level cold start |
 | **Reasoning model too weak — makes a null result uninterpretable** | ADR-0027, 0039, 0040 | More urgent under forward-only, since the live record is the only evidence there will be. **Curator settled by choosing Premier** (0040); **predictor still open** — live shadow A/B, ~$18 |
 | Curation error compounding permanently into the wiki | ADR-0040 | Premier assigned to the curator outright. **No daily score exists for curation quality**, so this is mitigated by model choice rather than detected by measurement |
 | Model echoes the baseline it was handed, faking skill | ADR-0029, 0038 | Baseline-blind control; anchoring index. **Second face added:** anchoring to *seeded statistics*, tracked as seeded/observed divergence |

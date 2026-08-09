@@ -28,7 +28,7 @@ Every statement in this document is scoped to one of two lanes ([ADR-0037](../ad
 | Compared against the agent? | **Live days only** | — |
 | Leakage exposure | Full reconstruction risk | Recording risk only |
 
-**Lane A's historical numbers are calibration, not evidence.** They set bucket boundaries and confirm the baselines behave sanely. They are never quoted as skill and never compared against the agent — that comparison happens live, on identical days, for all five rungs.
+**Lane A's historical numbers are calibration, not evidence.** They set bucket boundaries and confirm the baselines behave sanely. They are never quoted as skill and never compared against the agent — that comparison happens live, on identical days, for all six rungs.
 
 ---
 
@@ -212,7 +212,7 @@ Under ADR-0037 this is not a backstop. It is where every agent result comes from
 
 - Predictions are written to immutable, timestamped storage **before market open** and never revised.
 - Both horizons are scored on maturity, against the record of what was known at prediction time.
-- The **five-rung ladder is scored on identical days**, so no rung enjoys a sample advantage.
+- The **six-rung ladder is scored on identical days**, so no rung enjoys a sample advantage.
 - The **shadow model arm ([ADR-0039](../adr/0039-live-shadow-model-ab.md))** is scored alongside and never written back to the wiki.
 
 The previous revision framed live divergence from backtest as the signature of residual leakage. With no agent backtest to diverge from, the equivalent tripwire is **Lane A**: if the numeric rungs perform materially worse live than their historical calibration suggested, that is either L11 contamination showing itself, or a live data defect. Both are worth an investigation, and they are distinguishable by whether the gap sits inside or outside the models' pre-training window.
@@ -268,7 +268,7 @@ The schema is not negotiable up front. `knowledge_time` cannot be retrofitted on
 | 7 | Lane A: climatology, Chronos, TimesFM + truncated replay | Layer 4 green across 3+ regimes |
 | 8 | Wiki seed + provenance tagging (ADR-0038) | Tag-awareness asserted in CI |
 | 9 | Lane B: agent, scoring, consolidation | Layer 3 canaries green |
-| 10 | Live forward validation (Layer 6) + ladder scoring | Ladder scores all five rungs on identical days |
+| 10 | Live forward validation (Layer 6) + ladder scoring | Ladder scores all six rungs on identical days |
 
 **Nothing goes live before step 6 passes.** The old rule — *no backtest number is quoted before truncated replay is green* — still governs Lane A, but it no longer gates the project, because there is no agent backtest to quote. The replacement rule is stricter in practice: **the agent may not make a scored prediction until snapshot integrity and cross-market ordering are green**, since under forward-only a leaked prediction cannot be re-run. There is no second chance at a live day.
 
@@ -278,4 +278,4 @@ The schema is not negotiable up front. `knowledge_time` cannot be retrofitted on
 
 - What is the right value for the too-good-to-be-true ceiling? Too low and it fires constantly; too high and it never fires. Needs calibrating against the first months of live results.
 - Where exactly does `knowledge_time` come from for Stooq CSV, which publishes no ingestion timestamp? A conservative documented estimate is the fallback.
-- How long is the tuning period ([ADR-0037](../adr/0037-forward-only-agent-learning.md)) during which live results are recorded but excluded from the skill record — and what closes it? It must be fixed in advance, not chosen after seeing the numbers.
+- ~~How long is the tuning period, and what closes it?~~ **Settled by [ADR-0045](../adr/0045-tuning-window.md):** 60 trading days, ending when the configuration freezes — which is when the ADR-0039 shadow A/B concludes. Results within it are published labelled `tuning` but excluded from headline skill. No extension.

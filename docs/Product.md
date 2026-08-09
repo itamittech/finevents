@@ -10,7 +10,7 @@ Both are first-class deliverables (ADR-0033).
 
 ## Who it's for
 
-**Primarily its author** — as a learning and demonstration artifact. Agentic architecture, evaluation rigour under adversarial conditions, and cost engineering on a real problem.
+**Primarily its author** — as a learning and demonstration artifact. Evaluation rigour under adversarial conditions, point-in-time discipline, and cost engineering on a real problem.
 
 **Secondarily, other builders** — as a reusable, contamination-aware evaluation harness for LLM-based forecasting systems, which the current literature says is missing.
 
@@ -26,7 +26,7 @@ The idea is not novel and the architecture is not either. Event-driven market an
 |---|---|
 | Memory contamination — backtests overlapping model knowledge cutoffs, so memorised prices substitute for reasoning | L11; contamination splitting (ADR-0031) |
 | Oracle fallacy — retrieving a past episode containing a post-hoc narrative | Bitemporal model and as-of gateway (ADR-0016) |
-| Attribution — raw returns as a noisy proxy for skill | RPS and calibration against a nine-rung baseline ladder, never returns |
+| Attribution — raw returns as a noisy proxy for skill | RPS and calibration against a six-rung baseline ladder, never returns |
 | Unmodelled transaction costs | Not applicable — the system forecasts, it does not trade |
 
 The papers note most published systems handle none of these. **That, not the prediction idea, is the differentiated part.**

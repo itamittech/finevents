@@ -2,7 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-09
-- **Serves:** All agent steps (ADR-0004, 0005, 0011, 0013)
+- **Serves:** All model calls (ADR-0004, 0005, 0011, 0013)
+
+> **Amendment note (2026-08-09):** this ADR's reasoning rests partly on Strands SDK targeting Bedrock natively. **[ADR-0041](0041-no-agents-deterministic-pipeline.md) removed Strands from the stack** — there are no agents to build, so the framework had nothing to do. The Bedrock choice stands on its remaining grounds (one IAM boundary, one billing relationship, no separate API key to rotate), but the Strands argument below is void, and Strands must not be re-added on the strength of it. The Claude Platform on AWS alternative was "set aside because Strands targets Bedrock natively" — that reason is now gone, leaving only "the gaps proved immaterial". Original text preserved unedited.
 - **Detail:** [AWS Architecture and Cost Model](../design/aws-architecture.md)
 
 ## Context

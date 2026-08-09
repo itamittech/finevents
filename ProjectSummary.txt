@@ -37,7 +37,7 @@ GitContribution -> itamittech@gmail.com . it should not be itamittech@live.com w
 
 ================================================================================
 STATUS 2026-08-09 -- design phase complete, pre-implementation.
-Decisions live in docs/adr/ (42 ADRs). Full design in docs/SystemDesign.md.
+Decisions live in docs/adr/ (45 ADRs). Full design in docs/SystemDesign.md.
 Everything above is left unedited as the original brief.
 ================================================================================
 
@@ -61,8 +61,9 @@ WHERE EACH PROJECT POINT LANDED
   8  Agent per domain      DECLINED (0041). See below.
   9  Best agentic arch     DECLINED with 8.
  10  Cost efficiency       KEPT. ~$16-33/month, ~$4 one-off setup.
- 11  Predict movement      KEPT, with a timeline. Forward-only means no agent result
-                           before roughly month 8-10 (0037).
+ 11  Predict movement      KEPT, with a timeline. Forward-only plus the 60-day
+                           tuning window means no agent result before roughly
+                           month 11-13 (0037, 0045).
  12  Live prices as eval   KEPT and strengthened -- live is now the ONLY evidence
                            path for the agent (0037).
  13  5% up / 5% down       CHANGED. Volatility-relative buckets in sigma over the

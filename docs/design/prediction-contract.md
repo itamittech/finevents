@@ -23,7 +23,7 @@ This framing is what makes the result interpretable. Climatology is precisely wh
 | Conditional climatology baseline (calendar + regime) | Which direction, and how far? |
 | Regime covariate values, as σ-relative moves | How much weight does accumulated evidence deserve? |
 | Standardised surprise for scheduled releases | Is the evidence strong enough to depart at all — or abstain? |
-| Severity score (from the classifier agent) | |
+| Severity score (from the classification stage) | |
 | Wiki page selection (manifest key lookup) | |
 | Cross-instrument coherence check (post-hoc) | |
 
@@ -113,7 +113,7 @@ The window slides, so calibration needs one Chronos call per simulated date, per
 
 At 120M parameters on CPU this is roughly **1.5–4 vCPU-hours**, and it batches across series. In money that is **well under a dollar** (see the architecture document); the cost is **wall-clock time of one to two hours**, not spend. It fits comfortably inside AgentCore Runtime's 8-hour execution window. A live run is 22 forecasts and takes seconds.
 
-**These historical figures are calibration, not evidence** ([ADR-0037](../adr/0037-forward-only-agent-learning.md)). They set bucket boundaries and confirm the baselines behave sanely. They are contaminated across the pre-cutoff period and are never quoted as skill, never compared against the agent. **The head-to-head against the agent happens live, on identical days, for all five rungs of the ladder.**
+**These historical figures are calibration, not evidence** ([ADR-0037](../adr/0037-forward-only-agent-learning.md)). They set bucket boundaries and confirm the baselines behave sanely. They are contaminated across the pre-cutoff period and are never quoted as skill, never compared against the agent. **The head-to-head against the agent happens live, on identical days, for all six rungs of the ladder.**
 
 ### Verification items
 

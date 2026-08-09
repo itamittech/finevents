@@ -2,9 +2,11 @@
 
 **Status:** Design — authoritative
 **Last revised:** 2026-08-09
-**Serves:** ADR-0004 (orchestration), ADR-0015 (SAM), ADR-0019 (Bedrock), ADR-0020 (frontend), ADR-0024 (environments), ADR-0027 (model config), ADR-0028 (AgentCore), ADR-0030/0031/0032 (forecasting tracks), **ADR-0037/0038/0039 (forward-only)**
+**Serves:** ADR-0004 (orchestration), ADR-0015 (SAM), ADR-0019 (Bedrock), ADR-0020 (frontend), ADR-0024 (environments), ADR-0027/0040 (model config), ADR-0028/0041 (container host), ADR-0030/0031/0032 (forecasting tracks), ADR-0037 (forward-only), ADR-0042 (calibration), ADR-0044 (publication)
 
-> **Revision 2026-08-09 — forward-only.** [ADR-0037](../adr/0037-forward-only-agent-learning.md) removed historical agent replay. **One-off backfill drops from ~$38 to ~$4.40.** Monthly recurring is unchanged. The architecture below is otherwise the same — forward-only removes a one-time batch job, not a component.
+> **Revision 2026-08-09 — forward-only.** [ADR-0037](../adr/0037-forward-only-agent-learning.md) removed historical replay. **One-off backfill drops from ~$38 to ~$4.40.** The architecture is otherwise the same — forward-only removes a one-time batch job, not a component.
+>
+> **Correction 2026-08-09 — no agents.** [ADR-0041](../adr/0041-no-agents-deterministic-pipeline.md) records that nothing in this system is an agent. The diagram below previously labelled the three model calls as "classifier agent", "predictor agent" and "wiki curator agent", which was wrong: each is a **single-shot call against a code-assembled prompt**, with no tools and no loop. "AgentCore Runtime" is the name of a **container host**, not evidence of agents running on it.
 
 ## Architecture
 
@@ -28,12 +30,12 @@ flowchart TB
         L5["Lambda: score all tracks"]
     end
 
-    subgraph runtime["AgentCore Runtime"]
+    subgraph runtime["AgentCore Runtime — container host only, no agents (ADR-0041)"]
         CH["Chronos-2<br/>in-process, 2 configs"]
         TF["TimesFM 2.5<br/>in-process, 2 configs"]
-        A1["Classifier agent"]
-        A2["Predictor agent ×11"]
-        A3["Wiki curator agent"]
+        A1["Classify<br/>1 single-shot call"]
+        A2["Predict ×11<br/>1 single-shot call each"]
+        A3["Curate wiki<br/>1 single-shot call"]
     end
 
     BR["Bedrock<br/>Lite: classify<br/>Pro: predict<br/>Premier: curate"]
@@ -72,7 +74,7 @@ flowchart TB
 | Schedule | EventBridge Scheduler | Fires the daily run after the US close; trading-day aware |
 | Orchestration | Step Functions (Standard) | Per-step retry, visibility, bounded spend |
 | Deterministic compute | Lambda | Ingest, validation, filtering, scoring, metrics |
-| Agent compute | **AgentCore Runtime** | Hosts agents and the two numeric models; 8-hour window (ADR-0028) |
+| Container compute | **AgentCore Runtime** | Hosts the three single-shot model calls and the two numeric models. **No agents** (ADR-0041); the 8-hour window that originally justified it went with replay (ADR-0037). Retained for warm weights, active-CPU-only billing, and Observability |
 | Models | **Bedrock** | Nova Lite (classify), Nova Pro (predict), Nova Premier (curate) — all three configurable per role (ADR-0027, ADR-0040) |
 | Numeric forecasters | Chronos-2, TimesFM 2.5 | In-process from Hugging Face weights; not Bedrock, not agents |
 | Object store | S3 | `raw/`, `wiki/` + run manifests (versioned), Parquet price history, cassettes |
@@ -99,7 +101,7 @@ flowchart TB
 
 **Prompt caching:** write 1.25× input, read 0.1× input, 5-minute TTL by default. **The cacheable-prefix minimum is model-dependent and not monotonic** — 512 tokens on Opus 5, ~4,096 on Haiku 4.5, and **Nova models cap cached content at roughly 20k tokens**. A prefix that caches on one model can silently fail on another, with no error, just `cache_creation_input_tokens: 0`. **Caching economics must be re-derived on every model switch (ADR-0027), never carried across.**
 
-**Caching pays within a run, not across days.** At one run per day the cache is cold at the start. Budget one write per run and keep the agent steps close enough together to stay inside the TTL.
+**Caching pays within a run, not across days.** At one run per day the cache is cold at the start. Budget one write per run and keep the model calls close enough together to stay inside the TTL.
 
 ## Cost model — authoritative
 
@@ -131,7 +133,7 @@ Estimates. Token and CPU figures are calculated, not measured. Defaults per ADR-
 | ├ Firecrawl | free tier, or Hobby | $0.00–16.00 |
 | ├ BigQuery — GDELT | free tier, 1TB/month | $0.00 |
 | └ Stooq, FRED, jugaad-data | keyless public sources | $0.00 |
-| **Agent runtime** | | **$0.50** |
+| **Container runtime** | | **$0.50** |
 | ├ AgentCore Runtime | ~60s active CPU, ~600s × 4GB session | $0.30 |
 | └ Chronos + TimesFM | 44 forecasts/day, ~30s CPU, in-process | $0.05 |
 | **Orchestration** | | **$0.04** |
