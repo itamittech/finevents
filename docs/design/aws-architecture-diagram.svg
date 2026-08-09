@@ -1,0 +1,421 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 1290" width="1640" height="1290" font-family="'Amazon Ember','Segoe UI',-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5A6B7B"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8C4FFF"/>
+    </marker>
+    <style>
+      .t{font-size:13px;fill:#16191F}
+      .s{font-size:10.5px;fill:#5A6B7B}
+      .g{font-size:14px;font-weight:600;fill:#232F3E}
+      .gs{font-size:10.5px;fill:#687787}
+      .flow{stroke:#5A6B7B;stroke-width:1.6;fill:none;marker-end:url(#a)}
+      .flowd{stroke:#8C4FFF;stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#ad)}
+      .lbl{font-size:10px;fill:#5A6B7B}
+      .badge{font-size:9.5px;font-weight:700;fill:#fff}
+      .card{fill:#fff;stroke:#D5DBDB;stroke-width:1;rx:4}
+    </style>
+  </defs>
+
+  <rect width="1640" height="1290" fill="#fff"/>
+
+  <text x="40" y="46" font-size="23" font-weight="700" fill="#232F3E">FinEvents — AWS Architecture</text>
+  <text x="40" y="70" class="s" font-size="12">Daily event-to-price learning pipeline · fully serverless · single account, three environment stacks · us-east-1</text>
+  <text x="1600" y="46" text-anchor="end" font-size="11" fill="#687787">ADR-0004 · 0015 · 0019 · 0020 · 0023 · 0024 · 0028 · 0040 · 0041</text>
+  <text x="1600" y="64" text-anchor="end" font-size="11" fill="#687787">Detail: docs/design/aws-architecture.md</text>
+
+  <!-- ============ EXTERNAL SOURCES ============ -->
+  <rect x="34" y="104" width="252" height="392" rx="6" fill="#F7F8F9" stroke="#98A2B3" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="50" y="128" class="g">External data sources</text>
+  <text x="50" y="145" class="gs">Outside AWS · free or free-tier</text>
+
+  <g transform="translate(50,158)">
+    <rect class="card" width="220" height="50"/><rect width="4" height="50" fill="#8C4FFF" rx="2"/>
+    <text x="16" y="21" class="t">GDELT 2.0</text><text x="16" y="37" class="s">Google BigQuery (GCP) · events, Feb 2015→</text>
+  </g>
+  <g transform="translate(50,216)">
+    <rect class="card" width="220" height="50"/><rect width="4" height="50" fill="#8C4FFF" rx="2"/>
+    <text x="16" y="21" class="t">Stooq · jugaad-data</text><text x="16" y="37" class="s">Keyless CSV / library · price history</text>
+  </g>
+  <g transform="translate(50,274)">
+    <rect class="card" width="220" height="50"/><rect width="4" height="50" fill="#8C4FFF" rx="2"/>
+    <text x="16" y="21" class="t">FRED</text><text x="16" y="37" class="s">Keyless CSV · 5 regime covariates</text>
+  </g>
+  <g transform="translate(50,332)">
+    <rect class="card" width="220" height="50"/><rect width="4" height="50" fill="#8C4FFF" rx="2"/>
+    <text x="16" y="21" class="t">Firecrawl</text><text x="16" y="37" class="s">API key · MCX, calendars, news</text>
+  </g>
+  <g transform="translate(50,390)">
+    <rect class="card" width="220" height="50"/><rect width="4" height="50" fill="#8C4FFF" rx="2"/>
+    <text x="16" y="21" class="t">Market calendars</text><text x="16" y="37" class="s">Repo-maintained · 5 venues, UTC</text>
+  </g>
+  <text x="50" y="470" class="lbl">Outbound HTTPS only — no inbound path</text>
+  <text x="50" y="484" class="lbl">from any source into the account.</text>
+
+  <!-- ============ AWS CLOUD ============ -->
+  <rect x="316" y="96" width="1290" height="1012" rx="8" fill="none" stroke="#232F3E" stroke-width="2"/>
+  <g transform="translate(332,112)">
+    <rect width="26" height="26" rx="3" fill="#232F3E"/>
+    <path d="M6 17 q7 4 14 0" stroke="#fff" stroke-width="1.8" fill="none"/>
+    <path d="M7 11 h4 M15 11 h4 M7 8 h12" stroke="#fff" stroke-width="1.6"/>
+  </g>
+  <text x="368" y="130" class="g">AWS Cloud</text>
+
+  <!-- REGION -->
+  <rect x="340" y="146" width="1246" height="944" rx="6" fill="none" stroke="#00A4A6" stroke-width="1.6" stroke-dasharray="7 5"/>
+  <text x="358" y="170" class="g" fill="#00767A">Region · us-east-1</text>
+  <text x="358" y="186" class="gs">Single account. Environment isolation is IAM only — env-prefixed resources, prefix-scoped policies, explicit denies on prod (ADR-0024).</text>
+
+  <!-- no-VPC note -->
+  <g transform="translate(1186,152)">
+    <rect width="384" height="52" rx="4" fill="#FFF8E7" stroke="#E5A100" stroke-width="1.2"/>
+    <text x="12" y="19" font-size="11.5" font-weight="700" fill="#8A6116">No VPC — deliberate, not an omission</text>
+    <text x="12" y="34" font-size="10" fill="#8A6116">Every component is a managed endpoint; nothing needs an ENI.</text>
+    <text x="12" y="46" font-size="10" fill="#8A6116">A NAT gateway alone (~$32/mo) would double total spend.</text>
+  </g>
+
+  <!-- ================= BAND 1: SCHEDULE + ORCHESTRATION ================= -->
+  <rect x="360" y="212" width="404" height="112" rx="5" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.3"/>
+  <text x="376" y="234" class="g">Scheduling &amp; orchestration</text>
+  <text x="376" y="249" class="gs">Application Integration</text>
+
+  <g transform="translate(376,258)">
+    <rect class="card" width="176" height="52"/>
+    <rect x="10" y="8" width="36" height="36" rx="5" fill="#E7157B"/>
+    <rect x="19" y="17" width="18" height="18" rx="2" fill="none" stroke="#fff" stroke-width="2"/>
+    <path d="M28 21 v6 l4 2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <text x="55" y="23" class="t">EventBridge</text><text x="55" y="38" class="s">Scheduler · post-US-close</text>
+  </g>
+  <g transform="translate(572,258)">
+    <rect class="card" width="176" height="52"/>
+    <rect x="10" y="8" width="36" height="36" rx="5" fill="#E7157B"/>
+    <circle cx="21" cy="18" r="3.4" fill="#fff"/><circle cx="35" cy="18" r="3.4" fill="#fff"/>
+    <circle cx="21" cy="34" r="3.4" fill="#fff"/><circle cx="35" cy="34" r="3.4" fill="#fff"/>
+    <path d="M24.4 18 h7.2 M21 21.4 v9.2 M24.4 34 h7.2" stroke="#fff" stroke-width="1.6"/>
+    <text x="55" y="23" class="t">Step Functions</text><text x="55" y="38" class="s">Standard · 20-step state machine</text>
+  </g>
+
+  <!-- ================= SECURITY / CONFIG ================= -->
+  <rect x="784" y="212" width="380" height="112" rx="5" fill="#FEF3F4" stroke="#DD344C" stroke-width="1.3"/>
+  <text x="800" y="234" class="g">Security, identity &amp; configuration</text>
+  <text x="800" y="249" class="gs">Security, Identity &amp; Compliance · Management &amp; Governance</text>
+
+  <g transform="translate(800,258)">
+    <rect class="card" width="114" height="52"/>
+    <rect x="8" y="8" width="34" height="34" rx="5" fill="#DD344C"/>
+    <circle cx="20" cy="20" r="5" fill="none" stroke="#fff" stroke-width="2"/>
+    <path d="M24 24 l8 8 v4 h-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <text x="50" y="22" class="t" font-size="11.5">Secrets</text><text x="50" y="35" class="s">Manager</text>
+  </g>
+  <g transform="translate(922,258)">
+    <rect class="card" width="114" height="52"/>
+    <rect x="8" y="8" width="34" height="34" rx="5" fill="#E7157B"/>
+    <circle cx="25" cy="25" r="6" fill="none" stroke="#fff" stroke-width="2"/>
+    <path d="M25 13 v5 M25 32 v5 M13 25 h5 M32 25 h5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <text x="50" y="22" class="t" font-size="11.5">SSM</text><text x="50" y="35" class="s">Parameter Store</text>
+  </g>
+  <g transform="translate(1044,258)">
+    <rect class="card" width="104" height="52"/>
+    <rect x="8" y="8" width="34" height="34" rx="5" fill="#DD344C"/>
+    <path d="M25 12 l10 4 v8 c0 6-5 10-10 12 -5-2-10-6-10-12 v-8z" fill="none" stroke="#fff" stroke-width="2"/>
+    <text x="50" y="22" class="t" font-size="11.5">IAM</text><text x="50" y="35" class="s">prefix-scoped</text>
+  </g>
+
+  <!-- ================= OBSERVABILITY ================= -->
+  <rect x="1184" y="212" width="386" height="112" rx="5" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.3"/>
+  <text x="1200" y="234" class="g">Observability &amp; deployment</text>
+  <text x="1200" y="249" class="gs">Management &amp; Governance · Containers</text>
+
+  <g transform="translate(1200,258)">
+    <rect class="card" width="116" height="52"/>
+    <rect x="8" y="8" width="34" height="34" rx="5" fill="#E7157B"/>
+    <path d="M14 32 l6-8 5 5 6-11 4 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="50" y="22" class="t" font-size="11.5">CloudWatch</text><text x="50" y="35" class="s">logs · metrics</text>
+  </g>
+  <g transform="translate(1324,258)">
+    <rect class="card" width="116" height="52"/>
+    <rect x="8" y="8" width="34" height="34" rx="5" fill="#ED7100"/>
+    <path d="M25 11 l11 6 v12 l-11 6 -11-6 v-12z" fill="none" stroke="#fff" stroke-width="1.8"/>
+    <text x="50" y="22" class="t" font-size="11.5">ECR</text><text x="50" y="35" class="s">~1.5 GB image</text>
+  </g>
+  <g transform="translate(1448,258)">
+    <rect class="card" width="110" height="52"/>
+    <rect x="8" y="8" width="34" height="34" rx="5" fill="#E7157B"/>
+    <path d="M14 30 l11-14 11 14z" fill="none" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/>
+    <text x="50" y="22" class="t" font-size="11.5">SAM</text><text x="50" y="35" class="s">CloudFormation</text>
+  </g>
+
+  <!-- ================= BAND 2: DETERMINISTIC COMPUTE ================= -->
+  <rect x="360" y="352" width="560" height="290" rx="5" fill="#FFF6ED" stroke="#ED7100" stroke-width="1.5"/>
+  <text x="376" y="376" class="g">Deterministic compute — AWS Lambda</text>
+  <text x="376" y="392" class="gs">Compute · no model call occurs anywhere in this group (ADR-0004, REQ-1005)</text>
+
+  <g transform="translate(376,404)">
+    <rect class="card" width="256" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#ED7100"/>
+    <path d="M17 37 l11-22 3 6 M28 37 h10" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <text x="53" y="21" class="t">Ingest · fetch</text><text x="53" y="37" class="s">Steps 2–5 · direct + Firecrawl</text>
+    <circle cx="240" cy="16" r="10" fill="#ED7100"/><text x="240" y="20" text-anchor="middle" class="badge">2-5</text>
+  </g>
+  <g transform="translate(376,462)">
+    <rect class="card" width="256" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#ED7100"/>
+    <path d="M17 25 l6 6 12-13" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="53" y="21" class="t">Validate · bitemporal write</text><text x="53" y="37" class="s">Step 6 · stamps knowledge_time</text>
+    <circle cx="240" cy="16" r="10" fill="#ED7100"/><text x="240" y="20" text-anchor="middle" class="badge">6</text>
+  </g>
+  <g transform="translate(376,520)">
+    <rect class="card" width="256" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#ED7100"/>
+    <path d="M14 14 h22 l-8 10 v11 l-6 -4 v-7z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+    <text x="53" y="21" class="t">Pre-filter · features</text><text x="53" y="37" class="s">Steps 7, 9 · CAMEO, σ, buckets</text>
+    <circle cx="240" cy="16" r="10" fill="#ED7100"/><text x="240" y="20" text-anchor="middle" class="badge">7,9</text>
+  </g>
+  <g transform="translate(648,404)">
+    <rect class="card" width="256" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#ED7100"/>
+    <path d="M16 34 v-9 M23 34 v-16 M30 34 v-12 M37 34 v-20" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="53" y="21" class="t">Score matured</text><text x="53" y="37" class="s">Step 10 · RPS, all tracks</text>
+    <circle cx="240" cy="16" r="10" fill="#ED7100"/><text x="240" y="20" text-anchor="middle" class="badge">10</text>
+  </g>
+  <g transform="translate(648,462)">
+    <rect class="card" width="256" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#ED7100"/>
+    <circle cx="22" cy="22" r="7" fill="none" stroke="#fff" stroke-width="2"/>
+    <path d="M27 27 l8 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="53" y="21" class="t">Page stats · sweep</text><text x="53" y="37" class="s">Steps 12, 12a · Beta posterior</text>
+    <circle cx="240" cy="16" r="10" fill="#ED7100"/><text x="240" y="20" text-anchor="middle" class="badge">12</text>
+  </g>
+  <g transform="translate(648,520)">
+    <rect class="card" width="256" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#ED7100"/>
+    <path d="M14 33 q8-18 22-4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <circle cx="36" cy="29" r="3" fill="#fff"/>
+    <text x="53" y="21" class="t">Calibration · manifest</text><text x="53" y="37" class="s">Steps 12b, 19–20 · isotonic map</text>
+    <circle cx="240" cy="16" r="10" fill="#ED7100"/><text x="240" y="20" text-anchor="middle" class="badge">12b</text>
+  </g>
+  <text x="376" y="600" class="lbl">Import-boundary lint (T0.9) fails the build if a model client is imported anywhere in this group.</text>
+  <text x="376" y="616" class="lbl">Scoring is arithmetic only (REQ-801) — a model that scores could grade its own homework.</text>
+
+  <!-- ================= BAND 2b: CONTAINER COMPUTE ================= -->
+  <rect x="940" y="352" width="630" height="290" rx="5" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.5"/>
+  <text x="956" y="376" class="g">Container compute — Amazon Bedrock AgentCore Runtime</text>
+  <text x="956" y="392" class="gs">Container host only — no agents run on it (ADR-0041). Warm model weights · per-second active-CPU billing</text>
+
+  <g transform="translate(956,404)">
+    <rect class="card" width="290" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#01A88D"/>
+    <path d="M15 32 q6-14 11-5 t11-12" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <text x="53" y="21" class="t">Chronos-2 · in-process</text><text x="53" y="37" class="s">Step 13 · 11 × 2 configs · local weights</text>
+  </g>
+  <g transform="translate(1262,404)">
+    <rect class="card" width="290" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#01A88D"/>
+    <path d="M15 30 l7-8 6 5 9-13" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="53" y="21" class="t">TimesFM 2.5 · in-process</text><text x="53" y="37" class="s">Step 14 · 11 × 2 configs · local weights</text>
+  </g>
+  <text x="956" y="470" class="lbl">Both are numeric libraries called by pipeline code — tier 1, not agents.</text>
+  <text x="956" y="484" class="lbl">No Bedrock call, no SageMaker endpoint (~$75/mo standing per model, avoided).</text>
+
+  <g transform="translate(956,488)">
+    <rect class="card" width="186" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#01A88D"/>
+    <path d="M18 16 h16 M18 22 h16 M18 28 h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <text x="53" y="21" class="t" font-size="11.5">Classify</text><text x="53" y="37" class="s">Step 8 · 1 call</text>
+  </g>
+  <g transform="translate(1158,488)">
+    <rect class="card" width="186" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#01A88D"/>
+    <path d="M26 13 l4 8 8 1 -6 6 2 8 -8-4 -8 4 2-8 -6-6 8-1z" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/>
+    <text x="53" y="21" class="t" font-size="11.5">Predict ×11</text><text x="53" y="37" class="s">Steps 15–17 · + control</text>
+  </g>
+  <g transform="translate(1360,488)">
+    <rect class="card" width="192" height="50"/>
+    <rect x="8" y="7" width="36" height="36" rx="5" fill="#01A88D"/>
+    <path d="M15 14 h20 v22 h-20z M15 20 h20 M22 20 v16" fill="none" stroke="#fff" stroke-width="1.7"/>
+    <text x="53" y="21" class="t" font-size="11.5">Curate wiki</text><text x="53" y="37" class="s">Steps 11, 18 · 1 call</text>
+  </g>
+  <text x="956" y="560" class="lbl">Each is a single-shot call against a code-assembled prompt. No tools, no loop, no choice about what to read.</text>
+  <text x="956" y="576" class="lbl">Tier 3 — agents — is empty by design (SystemDesign §2.1).</text>
+  <text x="956" y="614" class="lbl">Runtime rates: $0.0895/vCPU-hr, $0.00945/GB-hr — CPU charged on active use only, so I/O wait on Bedrock is free.</text>
+
+  <!-- ================= BAND 3: BEDROCK MODELS ================= -->
+  <rect x="940" y="668" width="630" height="150" rx="5" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.5"/>
+  <text x="956" y="692" class="g">Model inference — Amazon Bedrock</text>
+  <text x="956" y="708" class="gs">Artificial Intelligence · model IDs resolved per role from SSM, never hardcoded (ADR-0027, ADR-0040)</text>
+
+  <g transform="translate(956,720)">
+    <rect class="card" width="196" height="82"/>
+    <rect x="10" y="10" width="34" height="34" rx="5" fill="#01A88D"/>
+    <text x="27" y="33" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">L</text>
+    <text x="52" y="26" class="t" font-size="12">Nova Lite</text>
+    <text x="52" y="41" class="s">classify + severity</text>
+    <text x="14" y="62" class="s">model/classify</text>
+    <text x="14" y="75" class="s">1 call/day · $0.05/mo</text>
+  </g>
+  <g transform="translate(1168,720)">
+    <rect class="card" width="196" height="82"/>
+    <rect x="10" y="10" width="34" height="34" rx="5" fill="#01A88D"/>
+    <text x="27" y="33" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">P</text>
+    <text x="52" y="26" class="t" font-size="12">Nova Pro</text>
+    <text x="52" y="41" class="s">predictor</text>
+    <text x="14" y="62" class="s">model/reason/predict</text>
+    <text x="14" y="75" class="s">11 calls/day · $4.27/mo</text>
+  </g>
+  <g transform="translate(1380,720)">
+    <rect class="card" width="172" height="82" stroke="#01A88D" stroke-width="1.8"/>
+    <rect x="10" y="10" width="34" height="34" rx="5" fill="#01A88D"/>
+    <text x="27" y="33" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">✦</text>
+    <text x="52" y="26" class="t" font-size="12">Nova Premier</text>
+    <text x="52" y="41" class="s">wiki curator</text>
+    <text x="14" y="62" class="s">model/reason/curate</text>
+    <text x="14" y="75" class="s">1 call/day · $5.40/mo ←</text>
+  </g>
+  <text x="956" y="838" class="lbl">One call a day costs more than eleven. Deliberate (ADR-0040): under forward-only a bad prediction is scored and forgotten,</text>
+  <text x="956" y="853" class="lbl">while a bad wiki page compounds with no replay machinery left to repair it. The money follows the irrecoverable failure.</text>
+
+  <!-- ================= BAND 3b: DATA ================= -->
+  <rect x="360" y="668" width="560" height="290" rx="5" fill="#F5FAEF" stroke="#7AA116" stroke-width="1.5"/>
+  <text x="376" y="692" class="g">Data stores</text>
+  <text x="376" y="708" class="gs">Storage · Database · Analytics</text>
+
+  <g transform="translate(376,720)">
+    <rect class="card" width="256" height="122"/>
+    <rect x="10" y="10" width="36" height="36" rx="5" fill="#7AA116"/>
+    <path d="M17 17 h22 l-3 22 h-16z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+    <text x="55" y="25" class="t">Amazon S3</text><text x="55" y="40" class="s">versioning · prod deletion protection</text>
+    <text x="16" y="66" class="s">raw/ — never published (REQ-1107)</text>
+    <text x="16" y="80" class="s">wiki/pages · wiki/_runs (manifests)</text>
+    <text x="16" y="94" class="s">snapshots/ · cassettes/ · parquet/</text>
+    <text x="16" y="108" class="s">published/ — the derived-data mirror</text>
+  </g>
+  <g transform="translate(648,720)">
+    <rect class="card" width="256" height="122"/>
+    <rect x="10" y="10" width="36" height="36" rx="5" fill="#C925D1"/>
+    <ellipse cx="28" cy="17" rx="11" ry="4" fill="none" stroke="#fff" stroke-width="1.9"/>
+    <path d="M17 17 v22 q11 5 22 0 v-22" fill="none" stroke="#fff" stroke-width="1.9"/>
+    <path d="M17 28 q11 5 22 0" fill="none" stroke="#fff" stroke-width="1.6"/>
+    <text x="55" y="25" class="t">DynamoDB</text><text x="55" y="40" class="s">on-demand</text>
+    <text x="16" y="66" class="s">predictions · scores · runs</text>
+    <text x="16" y="80" class="s">events · candidate_events</text>
+    <text x="16" y="94" class="s">features · steering</text>
+    <text x="16" y="108" class="s">bitemporal, append-only (REQ-102)</text>
+  </g>
+  <g transform="translate(376,856)">
+    <rect class="card" width="256" height="52"/>
+    <rect x="10" y="8" width="36" height="36" rx="5" fill="#8C4FFF"/>
+    <circle cx="25" cy="23" r="7" fill="none" stroke="#fff" stroke-width="2"/>
+    <path d="M30 28 l7 7" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="55" y="23" class="t">Amazon Athena</text><text x="55" y="38" class="s">Range scans over Parquet</text>
+  </g>
+  <text x="648" y="875" class="lbl">Run manifest is written LAST (REQ-714) —</text>
+  <text x="648" y="890" class="lbl">a crash leaves the previous wiki state valid,</text>
+  <text x="648" y="905" class="lbl">which is what makes a run atomic.</text>
+  <text x="376" y="936" class="lbl">~5 GB total including versioning · $0.42/mo</text>
+
+  <!-- ================= BAND 4: FRONTEND ================= -->
+  <rect x="360" y="984" width="1210" height="94" rx="5" fill="#F7F3FF" stroke="#8C4FFF" stroke-width="1.5"/>
+  <text x="376" y="1006" class="g">Frontend &amp; API</text>
+  <text x="376" y="1021" class="gs">Networking &amp; Content Delivery · Application Integration · Security</text>
+
+  <g transform="translate(376,1024)">
+    <rect class="card" width="200" height="44"/>
+    <rect x="8" y="5" width="34" height="34" rx="5" fill="#8C4FFF"/>
+    <circle cx="25" cy="22" r="10" fill="none" stroke="#fff" stroke-width="1.8"/>
+    <ellipse cx="25" cy="22" rx="4.5" ry="10" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <path d="M15 22 h20" stroke="#fff" stroke-width="1.5"/>
+    <text x="50" y="19" class="t" font-size="11.5">CloudFront</text><text x="50" y="33" class="s">CDN · single origin</text>
+  </g>
+  <g transform="translate(590,1024)">
+    <rect class="card" width="200" height="44"/>
+    <rect x="8" y="5" width="34" height="34" rx="5" fill="#7AA116"/>
+    <path d="M15 12 h20 l-3 20 h-14z" fill="none" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/>
+    <text x="50" y="19" class="t" font-size="11.5">S3 static site</text><text x="50" y="33" class="s">SPA (ADR-0020)</text>
+  </g>
+  <g transform="translate(804,1024)">
+    <rect class="card" width="200" height="44"/>
+    <rect x="8" y="5" width="34" height="34" rx="5" fill="#E7157B"/>
+    <path d="M20 12 q-5 10 0 20 M30 12 q5 10 0 20" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <text x="50" y="19" class="t" font-size="11.5">API Gateway</text><text x="50" y="33" class="s">HTTP API · reads + steering</text>
+  </g>
+  <g transform="translate(1018,1024)">
+    <rect class="card" width="200" height="44"/>
+    <rect x="8" y="5" width="34" height="34" rx="5" fill="#DD344C"/>
+    <circle cx="25" cy="17" r="5.5" fill="none" stroke="#fff" stroke-width="1.9"/>
+    <path d="M14 33 q11-11 22 0" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/>
+    <text x="50" y="19" class="t" font-size="11.5">Cognito</text><text x="50" y="33" class="s">user pool (ADR-0023)</text>
+  </g>
+  <g transform="translate(1240,1024)">
+    <rect width="200" height="44" rx="4" fill="#F7F8F9" stroke="#98A2B3" stroke-dasharray="4 3"/>
+    <circle cx="26" cy="16" r="6" fill="none" stroke="#5A6B7B" stroke-width="1.8"/>
+    <path d="M14 34 q12-12 24 0" fill="none" stroke="#5A6B7B" stroke-width="1.8" stroke-linecap="round"/>
+    <text x="50" y="19" class="t" font-size="11.5">Operator</text><text x="50" y="33" class="s">dashboard + 4 steering verbs</text>
+  </g>
+
+  <!-- ================= ARROWS ================= -->
+  <!-- external sources -> ingest lambda -->
+  <path class="flow" d="M286 300 H322 Q340 300 340 336 V428 H372"/>
+  <text x="292" y="292" class="lbl">HTTPS</text>
+  <!-- eventbridge -> step functions -->
+  <path class="flow" d="M556 284 H568"/>
+  <!-- step functions -> lambda -->
+  <path class="flow" d="M620 310 V348"/>
+  <!-- step functions -> agentcore, routed above the group boxes -->
+  <path class="flow" d="M700 258 V204 H1174 V348"/>
+  <text x="742" y="199" class="lbl">invokes · state machine enforces step order 10 → 11 → 12 → 12a/12b → 16 (REQ-1012)</text>
+  <!-- lambda <-> data -->
+  <path class="flow" d="M500 642 V664"/>
+  <path class="flow" d="M776 642 V664"/>
+  <!-- agentcore -> bedrock -->
+  <path class="flow" d="M1050 542 V664"/>
+  <path class="flow" d="M1250 542 V664"/>
+  <path class="flow" d="M1450 542 V664"/>
+  <text x="1056" y="659" class="lbl">InvokeModel — the only path to a model anywhere in the system</text>
+  <!-- agentcore <-> wiki in S3 -->
+  <path class="flow" d="M936 470 H928 Q918 470 918 482 V652 Q918 664 906 664 H840 Q828 664 828 676 V716"/>
+  <text x="700" y="659" class="lbl">reads wiki · writes pages</text>
+  <!-- secrets -> lambda -->
+  <path class="flowd" d="M857 310 V348"/>
+  <text x="864" y="332" class="lbl" fill="#8C4FFF">Firecrawl key</text>
+  <!-- ssm -> agentcore -->
+  <path class="flowd" d="M990 310 V348"/>
+  <text x="997" y="332" class="lbl" fill="#8C4FFF">model IDs per role</text>
+  <!-- data -> api -->
+  <path class="flow" d="M900 958 V1016"/>
+  <text x="908" y="984" class="lbl">dashboard data</text>
+  <!-- frontend chain: operator -> cloudfront -> s3 -> api gw, cognito authorises -->
+  <path class="flow" d="M580 1046 H586"/>
+  <path class="flow" d="M794 1046 H800"/>
+  <path class="flow" d="M1236 1046 H1222"/>
+  <path class="flow" d="M1118 1030 V1046 H1010"/>
+  <text x="1122" y="1026" class="lbl">authorises</text>
+
+  <!-- ================= LEGEND ================= -->
+  <rect x="34" y="1128" width="1572" height="126" rx="5" fill="#FAFBFC" stroke="#D5DBDB"/>
+  <text x="52" y="1152" class="g">Legend — AWS Architecture Icons service categories</text>
+
+  <g transform="translate(52,1166)">
+    <rect width="15" height="15" rx="3" fill="#ED7100"/><text x="22" y="12" class="s">Compute · Containers</text>
+    <rect x="180" width="15" height="15" rx="3" fill="#7AA116"/><text x="202" y="12" class="s">Storage</text>
+    <rect x="300" width="15" height="15" rx="3" fill="#C925D1"/><text x="322" y="12" class="s">Database</text>
+    <rect x="430" width="15" height="15" rx="3" fill="#8C4FFF"/><text x="452" y="12" class="s">Analytics · Networking &amp; CDN</text>
+    <rect x="660" width="15" height="15" rx="3" fill="#E7157B"/><text x="682" y="12" class="s">App Integration · Mgmt &amp; Governance</text>
+    <rect x="940" width="15" height="15" rx="3" fill="#DD344C"/><text x="962" y="12" class="s">Security, Identity &amp; Compliance</text>
+    <rect x="1180" width="15" height="15" rx="3" fill="#01A88D"/><text x="1202" y="12" class="s">Artificial Intelligence / ML</text>
+  </g>
+
+  <g transform="translate(52,1196)">
+    <rect width="30" height="14" rx="2" fill="none" stroke="#232F3E" stroke-width="2"/><text x="38" y="11" class="s">AWS Cloud</text>
+    <rect x="150" width="30" height="14" rx="2" fill="none" stroke="#00A4A6" stroke-width="1.6" stroke-dasharray="4 3"/><text x="188" y="11" class="s">Region</text>
+    <rect x="270" width="30" height="14" rx="2" fill="none" stroke="#98A2B3" stroke-width="1.4" stroke-dasharray="4 3"/><text x="308" y="11" class="s">Outside AWS</text>
+    <line x1="430" y1="7" x2="470" y2="7" class="flow"/><text x="480" y="11" class="s">Data / control flow</text>
+    <line x1="620" y1="7" x2="660" y2="7" class="flowd"/><text x="670" y="11" class="s">Configuration &amp; secrets resolution</text>
+    <circle cx="945" cy="7" r="9" fill="#ED7100"/><text x="945" y="11" text-anchor="middle" class="badge">n</text>
+    <text x="962" y="11" class="s">Step number in the 20-step daily run (SystemDesign §4)</text>
+  </g>
+
+  <text x="52" y="1240" class="s">Icons are AWS-styled representations using the official AWS Architecture Icons category palette — not the official icon assets, which carry their own terms of use.</text>
+  <text x="1590" y="1240" text-anchor="end" class="s">Total: ~$16–33/month recurring · ~$4 one-off setup</text>
+</svg>

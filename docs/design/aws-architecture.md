@@ -10,6 +10,40 @@
 
 ## Architecture
 
+![FinEvents AWS architecture](aws-architecture-diagram.svg)
+
+*[aws-architecture-diagram.svg](aws-architecture-diagram.svg) — full component view. Groups follow the AWS Architecture Icons category palette; step numbers on the compute tiles refer to the 20-step daily run in [SystemDesign §4](../SystemDesign.md).*
+
+### Boundaries the diagram asserts
+
+| Boundary | What it means here |
+|---|---|
+| **Outside AWS** | GDELT (via BigQuery on GCP), Stooq, FRED, jugaad-data, Firecrawl. All reached by **outbound HTTPS only** — nothing external has an inbound path into the account. |
+| **AWS Cloud** | Everything the project runs. |
+| **Region — us-east-1** | Single region. No cross-region replication, no multi-region failover; a region outage is a missed day, which under forward-only is a visible gap rather than a corruption. |
+| **Account** | One account, three environment stacks. **IAM is the only boundary** between dev and the production learning history (ADR-0024) — hence env-prefixed resources and explicit denies on prod. |
+| **No VPC** | See below. |
+
+### Why there is no VPC
+
+Standard AWS diagrams put a VPC at their centre, and its absence here is a decision rather than an omission.
+
+Every component is a **managed endpoint reached over the AWS network**: Lambda functions declare no VPC config and so need no ENIs, and Step Functions, S3, DynamoDB, Athena, Bedrock, AgentCore Runtime, Secrets Manager, SSM, API Gateway, Cognito and CloudFront are all service endpoints. Nothing in the system listens on a port, holds a private IP, or talks to anything that does.
+
+Putting the pipeline in a VPC would buy nothing and cost a great deal in proportion:
+
+| If a VPC were added | Monthly |
+|---|---|
+| NAT gateway (needed for Lambda-in-VPC to reach Firecrawl, FRED, Stooq, BigQuery) | ~$32 + data processing |
+| Interface VPC endpoints for Bedrock, Secrets Manager, SSM, DynamoDB… | ~$7 each |
+
+A NAT gateway alone roughly **doubles the entire system's cost** against the $16–33/month budget, to isolate components that have no network surface to isolate. The security boundary that actually matters here is IAM, and that is where the effort goes (REQ-1003).
+
+**Revisit if** a component ever needs a private IP — a self-hosted database, an EC2 or Fargate task reaching internal-only resources, or a compliance requirement for private-only egress to Bedrock.
+
+<details>
+<summary>Simplified flow view (Mermaid)</summary>
+
 ```mermaid
 flowchart TB
     subgraph sources["Data sources"]
@@ -64,6 +98,8 @@ flowchart TB
     AG --> CF
     CF -.->|steering actions| AG
 ```
+
+</details>
 
 **The dividing line stays ADR-0004's:** ingest, validation, filtering, and scoring are plain Python with no model call. Only classification, prediction, and wiki curation invoke a model. **Chronos and TimesFM sit on the deterministic side** — they are numeric libraries called by pipeline code, not agents (ADR-0030).
 
