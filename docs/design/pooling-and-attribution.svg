@@ -1,0 +1,219 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 1080" width="1560" height="1080" font-family="'Segoe UI',-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5A6B7B"/></marker>
+    <marker id="pg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#01A88D"/></marker>
+    <marker id="pr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#DD344C"/></marker>
+    <style>
+      .h{font-size:15px;font-weight:700;fill:#232F3E}
+      .b{font-size:12px;fill:#16191F}
+      .s{font-size:10.5px;fill:#5A6B7B}
+      .f{stroke:#5A6B7B;stroke-width:1.6;fill:none;marker-end:url(#p)}
+      .fg{stroke:#01A88D;stroke-width:2;fill:none;marker-end:url(#pg)}
+      .fr{stroke:#DD344C;stroke-width:1.8;fill:none;stroke-dasharray:5 4;marker-end:url(#pr)}
+    </style>
+  </defs>
+  <rect width="1560" height="1080" fill="#fff"/>
+
+  <text x="34" y="42" font-size="22" font-weight="700" fill="#232F3E">Pooling and leave-one-out attribution</text>
+  <text x="34" y="64" class="s" font-size="11.5">Two changes to what the system computes. Neither touches forward-only, the wiki, or the leakage harness. Together: 23 years → 4.5 years, and a product on day 1.</text>
+
+  <!-- ================= TODAY ================= -->
+  <rect x="34" y="88" width="726" height="404" rx="6" fill="#FEF6F7" stroke="#DD344C" stroke-width="1.5"/>
+  <text x="52" y="114" class="h" fill="#B02A3A">TODAY — three tracks, no combiner</text>
+  <text x="52" y="132" class="s">ADR-0032: "no ensembling; three fully independent tracks"</text>
+
+  <g>
+    <rect x="52" y="150" width="180" height="46" rx="4" fill="#fff" stroke="#00A4A6" stroke-width="1.3"/>
+    <text x="64" y="170" class="b">Chronos-2</text><text x="64" y="186" class="s">ρ ≈ 0.06</text>
+    <rect x="52" y="204" width="180" height="46" rx="4" fill="#fff" stroke="#00A4A6" stroke-width="1.3"/>
+    <text x="64" y="224" class="b">TimesFM 2.5</text><text x="64" y="240" class="s">ρ ≈ 0.055</text>
+    <rect x="52" y="258" width="180" height="60" rx="4" fill="#fff" stroke="#01A88D" stroke-width="1.6"/>
+    <text x="64" y="278" class="b">Agent (Nova Pro)</text><text x="64" y="294" class="s">ρ ≈ 0.10 · sees both above</text>
+    <text x="64" y="309" class="s" fill="#B02A3A">and combines them in prose</text>
+  </g>
+
+  <path class="f" d="M232 173 H286 Q300 173 300 187 V270"/>
+  <path class="f" d="M232 227 H272 Q286 227 286 241 V270"/>
+  <text x="240" y="258" class="s" fill="#B02A3A">block 3</text>
+
+  <g>
+    <rect x="300" y="150" width="150" height="168" rx="4" fill="#FFF8E7" stroke="#E5A100" stroke-width="1.4"/>
+    <text x="312" y="172" class="b" font-weight="600" fill="#8A6116">Scored</text>
+    <text x="312" y="190" class="s" fill="#8A6116">separately.</text>
+    <text x="312" y="212" class="s" fill="#8A6116">Nothing in the</text>
+    <text x="312" y="226" class="s" fill="#8A6116">system combines</text>
+    <text x="312" y="240" class="s" fill="#8A6116">them — except</text>
+    <text x="312" y="254" class="s" fill="#8A6116">an LLM, in text.</text>
+    <text x="312" y="278" class="s" fill="#B02A3A">That contradicts</text>
+    <text x="312" y="292" class="s" fill="#B02A3A">invariant I2: every</text>
+    <text x="312" y="306" class="s" fill="#B02A3A">computable number</text>
+  </g>
+
+  <g>
+    <rect x="470" y="150" width="272" height="86" rx="4" fill="#fff" stroke="#DD344C" stroke-width="1.6"/>
+    <text x="482" y="172" class="b" font-weight="600">THE COMPARISON</text>
+    <text x="482" y="192" class="b" fill="#B02A3A">agent  vs  Chronos-cov</text>
+    <text x="482" y="210" class="s">Two independently noisy forecasters.</text>
+    <text x="482" y="226" class="s">Their errors do not cancel.</text>
+  </g>
+  <path class="fr" d="M450 193 H466"/>
+
+  <g>
+    <rect x="470" y="248" width="272" height="70" rx="4" fill="#FEF3F4" stroke="#DD344C" stroke-width="1.8"/>
+    <text x="606" y="272" text-anchor="middle" font-size="26" font-weight="700" fill="#B02A3A">23.0 years</text>
+    <text x="606" y="292" text-anchor="middle" class="s" fill="#B02A3A">to detect the agent's contribution</text>
+    <text x="606" y="308" text-anchor="middle" class="s" fill="#B02A3A">sd of the difference = 0.0133</text>
+  </g>
+
+  <rect x="52" y="336" width="690" height="140" rx="4" fill="#fff" stroke="#DD344C" stroke-dasharray="4 3"/>
+  <text x="64" y="358" class="b" font-weight="600" fill="#B02A3A">And what does the product output?</text>
+  <text x="64" y="380" class="s">Nothing combined. The system's answer to "what will gold do tomorrow" is three separate distributions and</text>
+  <text x="64" y="396" class="s">a ladder ranking them. A user has to pick one — and the design says the best one varies by regime.</text>
+  <text x="64" y="422" class="s" fill="#B02A3A">The numeric models are framed as <tspan font-weight="700">adversaries to beat</tspan> rather than as components. That is an</text>
+  <text x="64" y="438" class="s" fill="#B02A3A">evaluation-first decision leaking into the product.</text>
+  <text x="64" y="462" class="s">If TimesFM is already good on day 1, today's design has no way to just… use it.</text>
+
+  <!-- ================= PROPOSED ================= -->
+  <rect x="790" y="88" width="736" height="404" rx="6" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.8"/>
+  <text x="808" y="114" class="h" fill="#01705F">PROPOSED — pool for the product, leave-one-out for the science</text>
+  <text x="808" y="132" class="s">Same three tracks. Two extra computations.</text>
+
+  <g>
+    <rect x="808" y="150" width="150" height="40" rx="4" fill="#fff" stroke="#00A4A6" stroke-width="1.3"/>
+    <text x="820" y="175" class="b">Chronos-2</text>
+    <rect x="808" y="198" width="150" height="40" rx="4" fill="#fff" stroke="#00A4A6" stroke-width="1.3"/>
+    <text x="820" y="223" class="b">TimesFM 2.5</text>
+    <rect x="808" y="246" width="150" height="40" rx="4" fill="#fff" stroke="#01A88D" stroke-width="1.6"/>
+    <text x="820" y="271" class="b">Agent + wiki</text>
+  </g>
+
+  <path class="fg" d="M958 170 H996 Q1010 170 1010 184 V206"/>
+  <path class="fg" d="M958 218 H1006"/>
+  <path class="fg" d="M958 266 H996 Q1010 266 1010 252 V232"/>
+
+  <g>
+    <rect x="1012" y="184" width="150" height="68" rx="4" fill="#fff" stroke="#8C4FFF" stroke-width="2"/>
+    <text x="1024" y="206" class="b" font-weight="600">POOLER</text>
+    <text x="1024" y="222" class="s">deterministic log-pool</text>
+    <text x="1024" y="236" class="s">weights learned online</text>
+    <text x="1024" y="249" class="s" fill="#6B2FD6">arithmetic, not an LLM</text>
+  </g>
+
+  <path class="fg" d="M1162 218 H1196"/>
+
+  <g>
+    <rect x="1198" y="180" width="312" height="76" rx="4" fill="#F7FAF2" stroke="#7AA116" stroke-width="2"/>
+    <text x="1210" y="202" class="b" font-weight="700" fill="#4F6B14">★ THE PRODUCT — available day 1</text>
+    <text x="1210" y="222" class="s" fill="#4F6B14">One forecast, the best the system can make,</text>
+    <text x="1210" y="236" class="s" fill="#4F6B14">using everything it has. Does not wait for the</text>
+    <text x="1210" y="250" class="s" fill="#4F6B14">agent thesis to be proven — or to work at all.</text>
+  </g>
+
+  <!-- leave one out -->
+  <g>
+    <rect x="808" y="300" width="354" height="90" rx="4" fill="#fff" stroke="#01A88D" stroke-width="1.6"/>
+    <text x="820" y="322" class="b" font-weight="600">THE COMPARISON</text>
+    <text x="820" y="343" class="b" fill="#01705F">pool WITH agent  vs  pool WITHOUT</text>
+    <text x="820" y="361" class="s">Identical inputs, identical day, identical</text>
+    <text x="820" y="375" class="s">Chronos and TimesFM. Only the agent differs.</text>
+  </g>
+  <path class="fg" d="M1162 345 H1196"/>
+  <g>
+    <rect x="1198" y="300" width="312" height="90" rx="4" fill="#E9F8F4" stroke="#01A88D" stroke-width="2"/>
+    <text x="1354" y="332" text-anchor="middle" font-size="30" font-weight="700" fill="#01705F">4.5 years</text>
+    <text x="1354" y="354" text-anchor="middle" class="s" fill="#01705F">same system · same data · same day</text>
+    <text x="1354" y="370" text-anchor="middle" class="s" fill="#01705F">sd of the difference = 0.0041 — 3.2× smaller</text>
+    <text x="1354" y="384" text-anchor="middle" class="s" fill="#01705F">5× faster, from a better question alone</text>
+  </g>
+
+  <rect x="808" y="404" width="702" height="72" rx="4" fill="#fff" stroke="#01A88D" stroke-dasharray="4 3"/>
+  <text x="820" y="426" class="b" font-weight="600" fill="#01705F">The anchoring index becomes load-bearing</text>
+  <text x="820" y="446" class="s">If the agent only echoes the baselines it was shown, leave-one-out correctly shows nothing — it added no</text>
+  <text x="820" y="462" class="s">independent information to the pool. The control stops being a nice-to-have and becomes what explains a null.</text>
+
+  <!-- ================= WHY 5x ================= -->
+  <rect x="34" y="512" width="726" height="292" rx="6" fill="#FAFBFC" stroke="#232F3E" stroke-width="1.4"/>
+  <text x="52" y="538" class="h">Why the same effect is 5× easier to see</text>
+  <text x="52" y="556" class="s">Every forecast = signal + noise the day dealt everyone + that forecaster's own error.</text>
+
+  <text x="52" y="586" class="b" font-weight="600" fill="#B02A3A">Today: agent − Chronos</text>
+  <g>
+    <rect x="52" y="596" width="120" height="26" fill="#D5DBDB"/><text x="112" y="614" text-anchor="middle" class="s">day noise</text>
+    <rect x="172" y="596" width="150" height="26" fill="#FBD4DA"/><text x="247" y="614" text-anchor="middle" class="s">agent's own error</text>
+    <text x="336" y="614" class="b">−</text>
+    <rect x="352" y="596" width="120" height="26" fill="#D5DBDB"/><text x="412" y="614" text-anchor="middle" class="s">day noise</text>
+    <rect x="472" y="596" width="150" height="26" fill="#CFE7F5"/><text x="547" y="614" text-anchor="middle" class="s">Chronos' own error</text>
+  </g>
+  <text x="52" y="646" class="s">Day noise cancels. But you are left with <tspan font-weight="700">two</tspan> independent forecaster errors added together.</text>
+  <rect x="52" y="656" width="300" height="20" fill="#FBD4DA"/><rect x="352" y="656" width="270" height="20" fill="#CFE7F5"/>
+  <text x="632" y="671" class="s" fill="#B02A3A">sd = 0.0133</text>
+
+  <text x="52" y="712" class="b" font-weight="600" fill="#01705F">Proposed: pool-with − pool-without</text>
+  <g>
+    <rect x="52" y="722" width="120" height="26" fill="#D5DBDB"/><text x="112" y="740" text-anchor="middle" class="s">day noise</text>
+    <rect x="172" y="722" width="110" height="26" fill="#CFE7F5"/><text x="227" y="740" text-anchor="middle" class="s">Chronos err</text>
+    <rect x="282" y="722" width="60" height="26" fill="#FBD4DA"/><text x="312" y="740" text-anchor="middle" class="s">agent</text>
+    <text x="352" y="740" class="b">−</text>
+    <rect x="368" y="722" width="120" height="26" fill="#D5DBDB"/><text x="428" y="740" text-anchor="middle" class="s">day noise</text>
+    <rect x="488" y="722" width="110" height="26" fill="#CFE7F5"/><text x="543" y="740" text-anchor="middle" class="s">Chronos err</text>
+  </g>
+  <text x="52" y="770" class="s">Day noise cancels <tspan font-style="italic">and so does Chronos' error</tspan> — it is literally the same number on both sides.</text>
+  <rect x="52" y="778" width="70" height="20" fill="#FBD4DA"/>
+  <text x="132" y="793" class="s" fill="#01705F">sd = 0.0041 — only the agent's own contribution survives. This is a paired test rather than an unpaired one.</text>
+
+  <!-- ================= WHAT IT COSTS ================= -->
+  <rect x="790" y="512" width="736" height="292" rx="6" fill="#FAFBFC" stroke="#232F3E" stroke-width="1.4"/>
+  <text x="808" y="538" class="h">What it costs to build, and to run</text>
+
+  <text x="808" y="566" class="b" font-weight="600">Build</text>
+  <text x="808" y="586" class="s">The pooler is one Lambda: read four stored distributions, log-pool them, write a fifth. No new data,</text>
+  <text x="808" y="602" class="s">no new model call, no new service. Weights update from yesterday's scores — a handful of numbers.</text>
+  <text x="808" y="618" class="s">Leave-one-out is a second subtraction at scoring time. Both fit inside existing increments.</text>
+
+  <text x="808" y="650" class="b" font-weight="600">Run — Bedrock, per month</text>
+  <g class="s">
+    <text x="808" y="672">Today: 11 instruments, daily</text><text x="1180" y="672" text-anchor="end">$10.10</text>
+    <text x="808" y="690">Metals-only 4, daily</text><text x="1180" y="690" text-anchor="end" fill="#4F6B14">$7.14</text>
+    <text x="808" y="708" font-weight="700" fill="#01705F">Metals-only 4, event-triggered windows</text><text x="1180" y="708" text-anchor="end" font-weight="700" fill="#01705F">$9.66</text>
+    <text x="808" y="726">Metals-only 4, fixed 4×/day</text><text x="1180" y="726" text-anchor="end">$12.36</text>
+    <text x="808" y="744" fill="#B02A3A">All 11 instruments, fixed 4×/day — the "4×" I quoted</text><text x="1180" y="744" text-anchor="end" fill="#B02A3A">$24.20</text>
+  </g>
+  <text x="808" y="772" class="s" fill="#01705F">Narrowing to metals pays for the intraday. Event-triggered windows cost <tspan font-weight="700">less than today</tspan>, because</text>
+  <text x="808" y="788" class="s" fill="#01705F">most days carry no event and no window fires.</text>
+
+  <!-- ================= DATA ================= -->
+  <rect x="34" y="822" width="1492" height="146" rx="6" fill="#FFF8E7" stroke="#E5A100" stroke-width="1.4"/>
+  <text x="52" y="848" class="h" fill="#8A6116">Why Firecrawl cannot supply intraday prices — and why you still do not need to pay</text>
+
+  <g>
+    <rect x="52" y="862" width="470" height="90" rx="4" fill="#fff" stroke="#DD344C" stroke-width="1.4"/>
+    <text x="64" y="884" class="b" font-weight="600" fill="#B02A3A">Firecrawl gives you a page snapshot</text>
+    <text x="64" y="904" class="s">"$2,043.20" — plus <tspan font-weight="700">your fetch time</tspan>, not the market's.</text>
+    <text x="64" y="920" class="s">Unknown whether live or 15-min delayed. No bid/ask,</text>
+    <text x="64" y="934" class="s">no high/low in the window, no volume.</text>
+    <text x="64" y="948" class="s" fill="#B02A3A">Inventing event_time is leakage vectors L6 and L8.</text>
+  </g>
+  <g>
+    <rect x="538" y="862" width="470" height="90" rx="4" fill="#fff" stroke="#E5A100" stroke-width="1.4"/>
+    <text x="550" y="884" class="b" font-weight="600" fill="#8A6116">Event windows need the market's clock</text>
+    <text x="550" y="904" class="s">GDELT timestamps events to 15-minute resolution.</text>
+    <text x="550" y="920" class="s">A price whose true time is uncertain by ±15 minutes</text>
+    <text x="550" y="934" class="s">cannot be aligned to it — and alignment is the entire</text>
+    <text x="550" y="948" class="s">mechanism that raises the effect size.</text>
+  </g>
+  <g>
+    <rect x="1024" y="862" width="484" height="90" rx="4" fill="#fff" stroke="#7AA116" stroke-width="1.8"/>
+    <text x="1036" y="884" class="b" font-weight="600" fill="#4F6B14">Use a bar source — still keyless, still free</text>
+    <text x="1036" y="904" class="s">Stooq publishes intraday bars. Yahoo serves 1/5/15-min</text>
+    <text x="1036" y="920" class="s">data for GC=F, SI=F, PL=F, PA=F without a key. Both give a</text>
+    <text x="1036" y="934" class="s"><tspan font-weight="700">timestamped bar</tspan> rather than a scraped number.</text>
+    <text x="1036" y="948" class="s" fill="#4F6B14">Keep Firecrawl for MCX pages, calendars and news text.</text>
+  </g>
+
+  <text x="34" y="998" class="s">Neither change touches ADR-0037 (forward-only), the wiki, the leakage harness or the provenance model. Both supersede parts of ADR-0032 and ADR-0046 — decisions, not edits.</text>
+  <text x="34" y="1016" class="s">What pooling does <tspan font-style="italic">not</tspan> fix: individual correlation pages still need ~24 observations. Per-page confidence stays a year-2–3 matter. That is arithmetic and no design change reaches it.</text>
+  <text x="34" y="1044" class="s" fill="#687787">Numbers from docs/analysis/power/ · metals set, event-window measurement, κ = 0.7 · Chronos ρ=0.06, TimesFM ρ=0.055, agent ρ=0.10</text>
+</svg>
