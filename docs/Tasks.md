@@ -95,12 +95,14 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 
 ## Phase 4 — Leakage harness ⛔ **GATE**
 
-**No scored prediction is made until this phase is green (REQ-1212).** That is a gate on *running live*, not on *building* — and the distinction is load-bearing, because T4.1, T4.2, T4.5 and T4.6 all test the prompt assembler (T8.1) and the prediction path, which Phase 8 creates. Read as "Phase 4 completes before Phase 5 starts", the plan is circular. It is not; the two halves sequence differently:
+**The _agent_ makes no scored prediction until this phase is green (REQ-1212).** The scope is deliberate and load-bearing: REQ-1212 and the [threat model](design/point-in-time-test-harness.md) both scope the gate to the **agent** path, because what 4b closes — snapshot integrity, prompt-assembly canaries — exists only where a prompt is assembled. Lane A's numeric tracks have no prompt, so scoring climatology, Chronos and TimesFM is legal once **4a** (cross-market ordering) is green. Broadening this to "no scored prediction of any kind" would block the numeric ladder behind a gate that tests machinery it does not use.
+
+This is also a gate on *running live*, not on *building* — and the distinction is load-bearing, because T4.1, T4.2, T4.5 and T4.6 all test the prompt assembler (T8.1) and the prediction path, which Phase 8 creates. Read as "Phase 4 completes before Phase 5 starts", the plan is circular. It is not; the two halves sequence differently:
 
 | Sub-phase | Tasks | Buildable after | Gates |
 |---|---|---|---|
 | **4a** | T4.3, T4.4 — cross-market ordering, L9 fixtures | T3.1 market calendars | Phase 5 onward |
-| **4b** | T4.1, T4.2, T4.5, T4.6, T4.7 — snapshot integrity, canaries, the leaky variant | T8.1 prompt assembler | **Any scored prediction** (REQ-1212) |
+| **4b** | T4.1, T4.2, T4.5, T4.6, T4.7 — snapshot integrity, canaries, the leaky variant | T8.1 prompt assembler | **Any scored _agent_ prediction** (REQ-1212) |
 
 **G4 is the one gate that must never be softened to unblock work** — under forward-only a leaked prediction cannot be re-run. If 4b appears to block you, the sequencing is wrong, not the gate.
 
@@ -130,6 +132,7 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 | T5.6 | Severity overlay, stateless, version-stamped per event | REQ-304, REQ-305 | Statelessness asserted, not assumed |
 | T5.7 | Overlay version change triggers rescore, never in-place edit | REQ-306 | |
 | T5.8 | Standardised surprise from snapshotted consensus | REQ-308, REQ-309 | |
+| T5.9 | **Classify the eleven-year historical event set** — batched, ~5,000 post-filter events, ~$0.21 | REQ-303, REQ-711 | ADR-0035 Phase 1, and it was owned by **no task**. Two things need it: the seed join (T7.4) has nothing to join without it, and the covariate-informed numeric tracks (T6.8) would otherwise receive an all-zero severity series — silently making `chronos_cov` identical to `chronos_uni` and collapsing ladder rungs 3–4 into the univariate ones. ⛔ Gated by T5.5 for the same reason T7.4 is |
 
 **Gate G5:** T5.5 green (a prerequisite for the seed).
 
@@ -314,7 +317,7 @@ T1.1 bitemporal schema
   → Phase 6 features + Lane A → G6
   → Phase 7 wiki + seed (T7.7 calibrates four thresholds, free)
   → Phase 8 prediction (T8.1 prompt assembler)
-  → Phase 4b snapshot integrity + canaries → G4  ⛔ hard gate, before any scored prediction
+  → Phase 4b snapshot integrity + canaries → G4  ⛔ hard gate, before any scored AGENT prediction
   → Phase 9 scoring + consolidation
   → Phase 10 calibration
   → Phases 11–12 infrastructure + frontend (parallelisable from Phase 6)

@@ -48,6 +48,21 @@ Two deliberate departures, both recorded here rather than smuggled in:
 
 Nothing else is resequenced. The three non-negotiable orderings in Tasks.md are preserved exactly.
 
+### Coverage gaps found by the ordering check
+
+An independent pass over the precedence graph found tasks that this ladder does not place. They are listed here rather than quietly folded in, because two of them change an increment's contents:
+
+| Task | Belongs in | Why it cannot drift later |
+|---|---|---|
+| **T11.3** prefix-scoped IAM with explicit denies | **0** | ADR-0024 calls it mandatory rather than advisory. A template block in increment 0; a blocker at increment 13, where canary isolation depends on it |
+| **T11.10** Docker Compose local stack | **1** | Design §8 makes it what "makes the harness runnable in CI" — needed as the test substrate from increment 6 onward |
+| **T5.9** eleven-year classification batch | **7** | Newly added to Tasks.md; it was owned by no task. Without it the seed join has nothing to join **and** the covariate-informed forecasts get an all-zero severity series |
+| **T6.12** Lane A historical calibration run | **9** | Increment 14 claims REQ-808 while nothing produces the calibration it labels |
+| **T13.9** the ADR-0046 comparison | **14**, not 17 | Tasks.md T13.9: "must exist before the first skill figure is rendered". Increment 15 renders REQ-903 |
+| **T4.1 / T4.2** snapshot integrity | consider moving to **12** | `snapshots/` must exist the moment `assemble()` calls `snapshot.persist()`. Leaving them at 13 means a full increment of prompts assembled with no byte-identical rebuild test |
+
+**The G4 scope was also wrong here and is now corrected in Tasks.md.** REQ-1212 scopes the gate to the **agent** path; a Phase 4 header written during the review broadened it to "no scored prediction", which would have made increment 10 — the numeric ladder scoring — illegal under this project's own plan. Lane A has no prompt, so nothing 4b tests applies to it.
+
 ---
 
 ## The ladder
@@ -59,12 +74,16 @@ Sizes are for one person, and are the honest estimate rather than the hopeful on
 ### 0 — Toolchain and walking skeleton
 **Goal.** Prove the whole deploy loop works before writing anything that matters.
 
-**You'll see.** `sam deploy` succeeds against the dev stack. You invoke one Lambda; it writes a run record; you read the record back out of DynamoDB. CI runs on a pull request and goes green.
+**You'll see.** `sam deploy` succeeds against the dev stack. You invoke one Lambda, get a payload back, and find its line in CloudWatch. The dev role is *explicitly denied* against a production ARN that does not exist yet. CI runs on a pull request and goes green.
+
+**Deliberately writes to no store.** Increment 1 owns the schema, and `runs` is one of its stores — a skeleton that writes a run record would violate the very rule the next increment exists to establish.
 
 **Verify.**
 ```bash
 sam deploy --config-env dev && sam remote invoke HelloFn --stack-name finevents-dev
-aws dynamodb scan --table-name finevents-dev-runs --max-items 5
+aws logs tail /aws/lambda/finevents-dev-HelloFn --since 5m
+# and prove the IAM boundary exists before anything can cross it:
+aws iam simulate-principal-policy --policy-source-arn <dev-exec-role>   --action-names dynamodb:PutItem --resource-arns <a prod table ARN>   # expect explicitDeny
 ```
 
 **Covers.** T0.4–T0.16, and the minimum of T11.1/T11.2 pulled forward.
