@@ -56,7 +56,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0029](0029-prediction-as-departure-from-baseline.md) | Prediction as departure from baseline, one call per instrument | Amended by 0030 | 2026-08-09 | Coherence violations rise, or anchoring index high |
 | [0030](0030-chronos-as-baseline-and-shown-forecast.md) | Chronos-2 as shown baseline and scoring rivals (amends 0008, 0029) | Amended by 0031, 0047 | 2026-08-09 | Agent fails to beat top rung while model is not the limit |
 | [0031](0031-timesfm-third-track-and-ensemble-baselines.md) | TimesFM 2.5 as a third track (ensemble part superseded by 0032) | Accepted in part | 2026-08-09 | Numeric tracks indistinguishable, or backtest window unusable |
-| [0032](0032-no-ensembling-three-independent-tracks.md) | No ensembling; three independent tracks (supersedes 0031's ensemble) | Accepted | 2026-08-09 | Project moves from experiment to product |
+| [0032](0032-no-ensembling-three-independent-tracks.md) | No ensembling; three independent tracks (supersedes 0031's ensemble) | Amended by 0051 | 2026-08-09 | Project moves from experiment to product |
 | [0033](0033-evaluation-harness-as-first-class-deliverable.md) | Evaluation harness is a first-class deliverable | Accepted | 2026-08-09 | Agent beats top rung on post-cutoff data |
 | [0034](0034-correlation-page-evidence-model.md) | Correlation page evidence model — per-horizon, computed confidence | Accepted | 2026-08-09 | Credible intervals never reach actionable confidence |
 | [0035](0035-backfill-execution-model.md) | Backfill — bulk phase then sequential replay | Phase 1 accepted; Phase 2 removed by 0037 | 2026-08-09 | — |
@@ -75,6 +75,8 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0048](0048-abstention-per-horizon-scored-at-baseline.md) | **Abstention is per-horizon, and abstained days are scored at the baseline** (supersedes 0013) | Accepted | 2026-08-09 | Abstention exceeds the floor **and** missed moves exceed the error predicting would have incurred |
 | [0049](0049-market-calendar-scope-and-otc-spot.md) | Market calendars for all five venues; synthetic session for OTC spot (amends 0037, 0003) | Accepted | 2026-08-09 | A venue changes session times, or a spot benchmark makes the synthetic close unnecessary |
 | [0050](0050-publication-gate-scoped-to-data.md) | The data-terms gate binds on **data publication, not repository visibility** (supersedes 0044's gate timing) | Accepted | 2026-08-09 | Any of the four data-terms questions resolves unfavourably |
+| [0051](0051-pooled-forecast-as-product-output.md) | **A pooled forecast is the product output** (supersedes 0032's no-combination rule) | Accepted | 2026-08-09 | The pool underperforms the best single track over a full measurement period |
+| [0052](0052-leave-one-out-attribution.md) | **Leave-one-out contribution is the primary skill endpoint** (amends 0046) | Accepted | 2026-08-09 | The pooled forecast is withdrawn or its composition changes materially |
 
 ## The forward-only turn
 
@@ -153,7 +155,7 @@ Tracked across ADRs, not owned by any single one:
 
 | Document | Covers |
 |---|---|
-| [Requirement.md](../Requirement.md) | **186 numbered REQ-ids**, each testable and traced to an ADR. Ten specify a calibration *method* rather than a value |
+| [Requirement.md](../Requirement.md) | **188 numbered REQ-ids**, each testable and traced to an ADR. Ten specify a calibration *method* rather than a value |
 | [Design.md](../Design.md) | Module layout, interface protocols, DynamoDB/S3 schemas, nine algorithms specified precisely, config model, error handling |
 | [Tasks.md](../Tasks.md) | 13 phases in dependency order, with three non-negotiable orderings and the hard leakage gate |
 | [SystemDesign.md](../SystemDesign.md) | End-to-end architecture, the agency boundary, the daily run, the two improvement arms |

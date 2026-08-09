@@ -6,7 +6,7 @@ FinEvents collects financial instrument prices and world events daily, maintains
 
 A negative answer is a valid and publishable outcome. The design is built so that a null result is believable.
 
-> **Status: pre-implementation.** The design phase is complete — 50 ADRs, requirements, design and a build plan. No code has been written yet. See [Tasks.md](docs/Tasks.md) for the build order.
+> **Status: pre-implementation.** The design phase is complete — 52 ADRs, requirements, design and a build plan. No code has been written yet. See [Tasks.md](docs/Tasks.md) for the build order.
 
 ## What makes this different
 
@@ -61,7 +61,7 @@ Start with the [ADR index](docs/adr/README.md).
 |---|---|
 | [Product.md](docs/Product.md) | Positioning, prior art, explicit non-goals |
 | [SystemDesign.md](docs/SystemDesign.md) | End-to-end architecture; §2.1 is the agency boundary |
-| [Requirement.md](docs/Requirement.md) | 186 numbered, testable requirements |
+| [Requirement.md](docs/Requirement.md) | 188 numbered, testable requirements |
 | [Design.md](docs/Design.md) | Modules, interfaces, schemas, algorithms |
 | [Tasks.md](docs/Tasks.md) | Build order and gates |
 | [Point-in-time test harness](docs/design/point-in-time-test-harness.md) | Leakage threat model |

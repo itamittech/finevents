@@ -3,7 +3,7 @@
 **Status:** Baseline v1
 **Date:** 2026-08-09
 **Governed by:** [ADR-0001](adr/0001-spec-driven-development-with-adrs.md) — no code for a feature until its requirement exists and is numbered
-**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0050](adr/README.md)
+**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0052](adr/README.md)
 
 ## How to read this
 
@@ -252,6 +252,8 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-901 | The frontend is a static SPA served from S3 behind CloudFront. | ADR-0020 | `I` |
 | REQ-902 | Reads and steering writes go through API Gateway, authenticated by a Cognito user pool. | ADR-0023 | `I` |
 | REQ-903 | The dashboard shows the learning curve — agent RPS minus the **pre-specified comparator's** RPS over elapsed days — computed on `observed` evidence only, **always with its interval**. The comparator is fixed by ADR-0046 and is never a per-day minimum over tracks: a per-day minimum is an oracle that selects the winning track after the outcome is known, and biases the figure against the agent by roughly ten times a realistic effect. | ADR-0033, 0038, 0046 | `U` |
+| REQ-922 | A **pooled forecast** is computed each run by logarithmic pooling of every available track, equally weighted, deterministically and with no model call. It is stored and scored as a track, reported as the **product output**, and never reported as the agent's skill. | ADR-0051 | `U`, `CI` |
+| REQ-923 | The primary skill endpoint is the agent's **leave-one-out contribution** to the pool — `pool(all)` minus `pool(all except agent)` on identical days. The same subtraction is computed and reported for **every** track. ADR-0046's head-to-head becomes secondary. | ADR-0052 | `U`, `CI` |
 | REQ-919 | Every reported skill figure carries a **block-bootstrap interval** and names the effect size the record is powered to detect. A point estimate without an interval fails review. | ADR-0046 | `CI` |
 | REQ-920 | **An inconclusive result is never reported as a null.** No claim that event reasoning does not help may be made until the interval excludes the smallest effect the project considers meaningful. | ADR-0046 | `R` |
 | REQ-921 | **Method:** κ — the share of the predictor's forecast error common across instruments — is estimated from the live record once ~60 scored days exist, and the power analysis re-run with the measured value. The revised timeline is published whichever way it moves. | ADR-0046 | `C` |
