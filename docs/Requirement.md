@@ -3,7 +3,7 @@
 **Status:** Baseline v1
 **Date:** 2026-08-09
 **Governed by:** [ADR-0001](adr/0001-spec-driven-development-with-adrs.md) — no code for a feature until its requirement exists and is numbered
-**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0045](adr/README.md)
+**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0050](adr/README.md)
 
 ## How to read this
 
@@ -30,7 +30,7 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 
 **Ten** requirements specify a **method** rather than a value, marked `C` — REQ-302, REQ-307, REQ-310, REQ-311, REQ-408, REQ-612, REQ-719, REQ-813, REQ-921, REQ-1213. This is deliberate: each value must be fitted against data that does not exist yet, and inventing numbers now would be false precision. Each states what it is calibrated against, and what happens if calibration fails.
 
-> All nine must appear in the go-live freeze step (Tasks.md T13.3). Two were added after review: REQ-408 (conditional-climatology cell size and the coherence floor, previously deferred by ADR-0017 to a backtest that ADR-0037 removed) and REQ-1213 (the too-good-to-be-true ceiling, previously a `CI` build gate with no value and no method anywhere).
+> All ten must appear in the go-live freeze step (Tasks.md T13.3). Two were added after review: REQ-408 (conditional-climatology cell size and the coherence floor, previously deferred by ADR-0017 to a backtest that ADR-0037 removed) and REQ-1213 (the too-good-to-be-true ceiling, previously a `CI` build gate with no value and no method anywhere).
 
 ---
 
@@ -88,7 +88,7 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-208 | Every acquired record passes ingest validation before write: schema conformance, range plausibility, and continuity against the prior session. | ADR-0002, 0010 | `U`, `I` |
 | REQ-209 | A validation failure is a hard failure. The run halts and alerts. No substituted, interpolated or judged value is ever written. | ADR-0002 | `U` |
 | REQ-210 | A festival and market-holiday table for NSE and NYSE is maintained in the repository, with forward coverage of at least 12 months asserted in CI. | ADR-0017 | `CI` |
-| REQ-211 | Market calendars for NSE and NYSE are held in UTC instants, including session open and close, and cover DST transitions. | ADR-0037 | `CI` |
+| REQ-211 | Market calendars are held in UTC instants — session open and close, DST transitions, per-venue holidays — for **every venue in the instrument set: NSE, BSE, NASDAQ, NYSE and MCX** (both MCX sessions; the evening close overlaps the US session). OTC spot metals have no venue and take the ADR-0049 synthetic convention: reference close 17:00 America/New_York, weekends excluded, **no exchange holidays**. The convention lives in the calendar table, never derived in code. **A missing or inapplicable calendar entry is a hard CI failure, never a skipped assertion.** | ADR-0049, 0037 | `CI` |
 | REQ-212 | Firecrawl credentials are held in Secrets Manager and never appear in code, config or logs. | ADR-0014 | `CI` |
 | REQ-213 | Corporate actions and futures contract rolls are handled at ingest via adjusted series and explicit roll dates in instrument config — never at scoring. | ADR-0037 | `U` |
 
@@ -154,8 +154,9 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-605 | Output is a probability distribution over five buckets at each of t+1 and t+5. Probabilities sum to 1 within floating-point tolerance. | ADR-0008 | `U` |
 | REQ-606 | Output includes cited wiki pages as `path@version_id`. A citation to a page that did not exist at the cut-off fails validation and is recorded as a leakage signal. | ADR-0026, 0016 | `U`, `CI` |
 | REQ-607 | Output includes `model_id`, `prompt_version`, `filter_version`, `overlay_version`, and the calibration map version. | ADR-0027, 0042 | `CI` |
-| REQ-608 | The agent may abstain. Abstention is recorded, not scored as a miss. | ADR-0013 | `U` |
-| REQ-609 | Abstention is rejected when severity exceeds the REQ-311 threshold. | ADR-0013 | `U` |
+| REQ-608 | The agent may abstain **per instrument per horizon**, expressed inside the `horizons` object. `abstain: true` requires `buckets: null`. An abstained instrument-horizon is **scored at the shown baseline** for that instrument and horizon — not skipped, not scored as a miss — so every rung stays on identical live days (REQ-806) and ADR-0046's pairing stays complete. | ADR-0048 | `U`, `CI` |
+| REQ-609 | Abstention is rejected when severity exceeds the REQ-311 threshold. | ADR-0048, 0013 | `U` |
+| REQ-615 | Abstained horizons are excluded from the calibration-map **fit** (REQ-812) while still counting in the **score**. The map describes the agent's own forecasts; the ladder describes the whole record. | ADR-0048, 0042 | `U` |
 | REQ-610 | Coverage and missed moves — large realised moves on abstained days — are tracked separately. | ADR-0013 | `U` |
 | REQ-611 | A baseline-blind control runs on sampled days, on the **same model** as the primary predictor, with baselines withheld. The anchoring index is computed from the difference. | ADR-0029 | `U`, `CI` |
 | REQ-612 | **Method:** the control's sampling rate is chosen so the anchoring index reaches a stated precision within the tuning window, traded against cost. | ADR-0029 | `C` |
@@ -208,7 +209,7 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 
 | ID | Requirement | Traces to | Verify |
 |---|---|---|---|
-| REQ-806 | Six rungs are scored on **identical live days**: climatology, conditional climatology, Chronos-2, TimesFM 2.5, agent raw, agent calibrated. | ADR-0033, 0042 | `I` |
+| REQ-806 | Six rungs are scored on **identical live days**: climatology, conditional climatology, **`chronos_cov`**, **`timesfm_cov`**, agent raw, agent calibrated. Rungs 3 and 4 are the **covariate-informed** configurations (ADR-0047) — the rival handed the same severity signal the agent reasons about. The univariate tracks are scored and published as secondary series; they are what the predictor is shown (REQ-505), so beating them measures anchoring, not event reasoning. | ADR-0033, 0042, 0047 | `I` |
 | REQ-807 | The three tracks are never ensembled. Each is reported independently. | ADR-0032 | `R` |
 | REQ-808 | Lane A historical output is labelled **calibration** everywhere it surfaces and is never compared against the agent. | ADR-0037 | `CI`, `R` |
 | REQ-809 | Rung 6 is never presented as the agent's skill. The rung 5 → 6 gap is reported as the miscalibration measurement. | ADR-0042 | `CI` |
@@ -313,7 +314,8 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-1108 | Source URLs and fetch timestamps are published so a third party can re-acquire material under their own terms. | ADR-0044 | `R` |
 | REQ-1109 | `DATA_SOURCES.md` records every source's licence and attribution obligation, updated whenever a source is added. | ADR-0044 | `CI` |
 | REQ-1110 | GDELT attribution appears wherever its data or derivatives are published. | ADR-0044 | `R` |
-| REQ-1111 | Four data-terms questions clear **before** the repository goes public: Stooq redistribution of derived aggregates, FRED terms for derived series, GDELT attribution granularity, and whether model-derived severity scores constitute a derivative work of the source article. | ADR-0044 | `R` |
+| REQ-1111 | Four data-terms questions clear before **whichever comes first**: the first commit adding a fetcher for the affected source (Phase 3), or the first publication of derived artefacts (T12.16). Asserted in CI — an open question in `DATA_SOURCES.md` blocks both. The questions: Stooq redistribution of derived aggregates, FRED terms for derived series, GDELT attribution granularity, and whether model-derived severity scores constitute a derivative work of the source article. **Repository visibility is not the gate** (ADR-0050); the risk is in the data, and none is present. | ADR-0050, 0044 | `CI` |
+| REQ-1113b | Until question 4 is answered by someone qualified, severity scores are published **only as aggregates joined to event categories** — never row-joined to an article identifier, URL or headline. Stricter than ADR-0044 permits, deliberately, so a legal question does not block the build. | ADR-0050 | `CI` |
 | REQ-1112 | Publication of the derived record is a standing obligation, not a one-off release. | ADR-0044 | `R` |
 
 ---

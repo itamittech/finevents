@@ -12,8 +12,8 @@ The toolchain is **not yet chosen** — no Python version, packaging tool, test 
 
 | Path | What it is |
 |---|---|
-| `docs/adr/README.md` | Index of all 46 ADRs, standing risks, open decisions. **Start here.** |
-| `docs/Requirement.md` | **184** numbered REQ-ids. **No code for a feature without one.** |
+| `docs/adr/README.md` | Index of all 50 ADRs, standing risks, open decisions. **Start here.** |
+| `docs/Requirement.md` | **186** numbered REQ-ids. **No code for a feature without one.** |
 | `docs/Design.md` | Module layout, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | Build order, dependencies, and the hard leakage gate |
 | `docs/SystemDesign.md` | End-to-end architecture; §2.1 is the agency boundary |
@@ -87,7 +87,7 @@ Work flows from documents to code. **The chain is `Requirement.md` (REQ-xxx) →
 
 | Document | State |
 |---|---|
-| `docs/Requirement.md` | ✅ **184** numbered REQ-ids, each with a verification code. 20 are reachable from no task — see Tasks.md gap list |
+| `docs/Requirement.md` | ✅ **186** numbered REQ-ids, each with a verification code. 20 are reachable from no task — see Tasks.md gap list |
 | `docs/Design.md` | ✅ Modules, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | ✅ 13 phases in dependency order |
 | `docs/SystemDesign.md` | ✅ |

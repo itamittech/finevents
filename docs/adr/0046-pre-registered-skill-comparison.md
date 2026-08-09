@@ -1,6 +1,6 @@
 # ADR-0046: The pre-registered skill comparison
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-09
 - **Serves:** REQ-903, REQ-806, REQ-809, REQ-1208, REQ-1209, REQ-1213
 - **Amends:** [ADR-0032](0032-no-ensembling-three-independent-tracks.md) (the "best-performing rung" reporting rule), [ADR-0045](0045-tuning-window.md) (what the post-window record can claim)

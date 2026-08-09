@@ -32,13 +32,13 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 | T0.9a | **Forward-only lint** — no call site outside `harness/` and the Lane A calibration path constructs an `AsOfRepository` with an `as_of` earlier than today; no replay entry point exists at any scope | REQ-601 | Same AST walk and module graph as T0.9, so write it in the same pass. **This is the only mechanical enforcement of ADR-0037**, the project's largest decision — until it exists, forward-only is aspirational rather than asserted |
 | T0.10 | Traceability check, three assertions: every **Accepted** ADR referenced by ≥1 REQ; every REQ carrying a verification code; **every REQ reachable from a task** | REQ-006 | The third fails today on the REQs listed under "Requirement coverage gaps" below. Fix the requirements, never weaken the check. "Accepted" scopes out superseded ADRs like 0006 |
 | T0.11 | **Clear the ten pre-build verification items** in [`aws-architecture.md`](design/aws-architecture.md) § "Verification needed before build" | — | Do not restate the list here; it drifts. Includes whether Bedrock Batch Inference supports prompt caching, which underwrites both the backfill line and the caching credit |
-| T0.12 | **Clear the four data-terms questions** in ADR-0044 | REQ-1111 | Must complete before the repo goes public, not after |
+| T0.12 | **Clear the four data-terms questions**, asserted in CI as a precondition on Phase 3 and on T12.16 | REQ-1111 | ADR-0050 rebinds the gate: it blocks **data**, not repository visibility. An open question in `DATA_SOURCES.md` blocks the fetcher for that source |
 | T0.13 | **Choose the toolchain**: Python version, packaging/lockfile, test runner, AWS mocking, CI platform | — | The Python version is the one irreversible choice — it must satisfy Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image. Verify that intersection **before** T0.8 |
-| T0.14 | **Decide repository visibility** against ADR-0044's precondition | REQ-1111 | The repo is public now; ADR-0044 requires T0.12's answers *before* it goes public. Resolve them, go private, or supersede |
+| T0.14 | *(settled by [ADR-0050](adr/0050-publication-gate-scoped-to-data.md) — the repo stays public; the gate moved to T0.12)* | — | |
 | T0.15 | `Contributing.md` — including `pre-commit install` as a required setup step | REQ-1117 | ADR-0014 names this consequence explicitly; the hooks do nothing uninstalled |
 | T0.16 | Define the **scraped-payload signature** in Design §9 | REQ-1102 | Blocks T0.5 — referenced four times across the doc set, defined nowhere |
 
-**Gate G0:** T0.4–T0.7 (incl. T0.6a, T0.6b), T0.9, T0.9a and T0.14 green.
+**Gate G0:** T0.4–T0.7 (incl. T0.6a, T0.6b), T0.9 and T0.9a green.
 
 ---
 
@@ -72,7 +72,7 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 
 | # | Task | REQ | Notes |
 |---|---|---|---|
-| T3.1 | Market calendars for NSE and NYSE as **UTC instants**, with DST transitions | REQ-211 | Input to the L9 test |
+| T3.1 | Market calendars as **UTC instants** for **NSE, BSE, NASDAQ, NYSE, MCX** (both sessions) + the ADR-0049 synthetic convention for OTC spot metals | REQ-211 | Input to the L9 test. Five venues, not two. MCX evening close overlaps the US session — the asymmetric case REQ-1204 must cover. Missing entry = hard CI failure |
 | T3.2 | Festival/holiday table with 12-month forward coverage asserted | REQ-210 | |
 | T3.3 | Stooq price fetcher | REQ-204 | |
 | T3.4 | jugaad-data NSE fetcher | REQ-204 | |

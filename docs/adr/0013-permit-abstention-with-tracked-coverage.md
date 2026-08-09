@@ -1,6 +1,6 @@
 # ADR-0013: Permit abstention, with coverage tracked as a first-class metric
 
-- **Status:** Accepted
+- **Status:** **Superseded by [ADR-0048](0048-abstention-per-horizon-scored-at-baseline.md)** — the abstention *permission* stands; its granularity and its scoring rule are replaced
 - **Date:** 2026-08-09
 - **Serves:** Prediction contract, eval framework (project summary points 12, 13)
 

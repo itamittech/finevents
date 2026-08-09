@@ -146,16 +146,16 @@ At 120M parameters on CPU this is roughly **1.5–4 vCPU-hours**, and it batches
 {
   "instrument": "gold_spot_usd",
   "as_of": "2026-08-12T21:00:00Z",
-  "abstain": false,
   "horizons": {
     "t+1": {
+      "abstain": false,
       "buckets": {
         "strong_down": 0.05, "moderate_down": 0.15, "flat": 0.30,
         "moderate_up": 0.35, "strong_up": 0.15
       },
       "confidence": 0.62
     },
-    "t+5": { "buckets": { }, "confidence": 0.41 }
+    "t+5": { "abstain": true, "buckets": null, "confidence": null }
   },
   "cited_pages": [
     "correlations/geopolitical-conflict__gold.md@<version_id>",
@@ -186,7 +186,8 @@ Enforced in code before a prediction is written:
 - Bucket probabilities sum to 1.0 within tolerance; all five buckets present at both horizons.
 - Confidence within [0, 1].
 - Every cited page exists in the manifest **as of `as_of`** — a citation to a page that did not yet exist is a leakage signal, not a formatting error.
-- `abstain: true` is incompatible with a non-baseline distribution.
+- **`abstain` is per horizon**, inside `horizons` ([ADR-0048](../adr/0048-abstention-per-horizon-scored-at-baseline.md)). `abstain: true` requires `buckets: null` and `confidence: null`; anything else fails. The natural case — no signal at t+5, a call at t+1 — must be expressible, and a top-level flag cannot express it.
+- **An abstained horizon is scored at the shown baseline**, not skipped and not counted a miss. That keeps every ladder rung on identical live days (REQ-806) and ADR-0046's pairing complete, and it removes any incentive to buy accuracy by declining hard days: the agent inherits the baseline's score exactly.
 - **If event severity exceeds the mandatory-prediction threshold, `abstain` must be false** — this is where ADR-0013's "may not be silent on event days" rule is enforced, in code rather than in the prompt.
 
 A response failing any check fails the step. It never writes a partial or corrected prediction.

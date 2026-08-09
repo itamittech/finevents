@@ -37,7 +37,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0010](0010-permit-free-keyless-sources-alongside-firecrawl.md) | Permit free keyless sources alongside Firecrawl (amends 0002) | Accepted | 2026-08-09 | A free source starts requiring registration |
 | [0011](0011-cameo-substrate-with-financial-relevance-overlay.md) | CAMEO substrate with financial relevance overlay | Accepted | 2026-08-09 | Severity uncorrelated with realised volatility |
 | [0012](0012-scrape-economic-calendars-for-consensus.md) | Scrape public economic calendars for consensus | Accepted | 2026-08-09 | Consensus history unavailable beyond ~2 years |
-| [0013](0013-permit-abstention-with-tracked-coverage.md) | Permit abstention, with coverage tracked | Accepted | 2026-08-09 | Coverage below floor, or missed moves > covered errors |
+| [0013](0013-permit-abstention-with-tracked-coverage.md) | Permit abstention, with coverage tracked | **Superseded by 0048** | 2026-08-09 | — |
 | [0014](0014-security-pre-commit-docs-in-ci.md) | Security pre-commit, documentation in CI | Accepted | 2026-08-09 | Secret reaches public repo, or >20% doc exemptions |
 | [0015](0015-aws-sam-for-infrastructure.md) | AWS SAM for infrastructure as code | Accepted | 2026-08-09 | Template >1,000 lines, or divergence params can't express |
 | [0016](0016-bitemporal-data-model-with-as-of-gateway.md) | Bitemporal data model with as-of gateway | Amended by 0026 | 2026-08-09 | Truncated replay finds leakage the gateway should stop |
@@ -54,7 +54,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0027](0027-model-selection-as-configuration.md) | Model selection is configuration, not code (amends 0022) | Accepted | 2026-08-09 | A/B harness shows a material gap vs a stronger model |
 | [0028](0028-agentcore-runtime-and-observability.md) | AgentCore Runtime + Observability; Memory declined | Accepted | 2026-08-09 | Runtime cost material, or SAM can't express AgentCore |
 | [0029](0029-prediction-as-departure-from-baseline.md) | Prediction as departure from baseline, one call per instrument | Amended by 0030 | 2026-08-09 | Coherence violations rise, or anchoring index high |
-| [0030](0030-chronos-as-baseline-and-shown-forecast.md) | Chronos-2 as shown baseline and scoring rivals (amends 0008, 0029) | Amended by 0031 | 2026-08-09 | Agent fails to beat top rung while model is not the limit |
+| [0030](0030-chronos-as-baseline-and-shown-forecast.md) | Chronos-2 as shown baseline and scoring rivals (amends 0008, 0029) | Amended by 0031, 0047 | 2026-08-09 | Agent fails to beat top rung while model is not the limit |
 | [0031](0031-timesfm-third-track-and-ensemble-baselines.md) | TimesFM 2.5 as a third track (ensemble part superseded by 0032) | Accepted in part | 2026-08-09 | Numeric tracks indistinguishable, or backtest window unusable |
 | [0032](0032-no-ensembling-three-independent-tracks.md) | No ensembling; three independent tracks (supersedes 0031's ensemble) | Accepted | 2026-08-09 | Project moves from experiment to product |
 | [0033](0033-evaluation-harness-as-first-class-deliverable.md) | Evaluation harness is a first-class deliverable | Accepted | 2026-08-09 | Agent beats top rung on post-cutoff data |
@@ -70,7 +70,11 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0043](0043-steering-interface.md) | Steering — flag, propose, edit, correct; all provenance-tracked | Accepted | 2026-08-09 | Human-touched pages come to dominate the wiki |
 | [0044](0044-licence-and-publication-policy.md) | Apache 2.0; derived data published, raw content never | Accepted | 2026-08-09 | A source changes terms affecting already-published artefacts |
 | [0045](0045-tuning-window.md) | Tuning window = 60 trading days, ending when configuration freezes | Accepted | 2026-08-09 | The shadow A/B's duration changes — the two are defined to coincide |
-| [0046](0046-pre-registered-skill-comparison.md) | **The pre-registered skill comparison** — statistic, comparator, interval, and what may be claimed when | **Proposed** | 2026-08-09 | Measured κ or realised RPS variance differs materially from the simulated value |
+| [0046](0046-pre-registered-skill-comparison.md) | **The pre-registered skill comparison** — statistic, comparator, interval, and what may be claimed when | Accepted | 2026-08-09 | Measured κ or realised RPS variance differs materially from the simulated value |
+| [0047](0047-ladder-rung-identity.md) | Ladder rungs 3 and 4 are the **covariate-informed** forecasts (amends 0030, 0031, 0033) | Accepted | 2026-08-09 | The covariate-informed configuration proves unavailable or degenerate |
+| [0048](0048-abstention-per-horizon-scored-at-baseline.md) | **Abstention is per-horizon, and abstained days are scored at the baseline** (supersedes 0013) | Accepted | 2026-08-09 | Abstention exceeds the floor **and** missed moves exceed the error predicting would have incurred |
+| [0049](0049-market-calendar-scope-and-otc-spot.md) | Market calendars for all five venues; synthetic session for OTC spot (amends 0037, 0003) | Accepted | 2026-08-09 | A venue changes session times, or a spot benchmark makes the synthetic close unnecessary |
+| [0050](0050-publication-gate-scoped-to-data.md) | The data-terms gate binds on **data publication, not repository visibility** (supersedes 0044's gate timing) | Accepted | 2026-08-09 | Any of the four data-terms questions resolves unfavourably |
 
 ## The forward-only turn
 
@@ -149,7 +153,7 @@ Tracked across ADRs, not owned by any single one:
 
 | Document | Covers |
 |---|---|
-| [Requirement.md](../Requirement.md) | **184 numbered REQ-ids**, each testable and traced to an ADR. Ten specify a calibration *method* rather than a value |
+| [Requirement.md](../Requirement.md) | **186 numbered REQ-ids**, each testable and traced to an ADR. Ten specify a calibration *method* rather than a value |
 | [Design.md](../Design.md) | Module layout, interface protocols, DynamoDB/S3 schemas, nine algorithms specified precisely, config model, error handling |
 | [Tasks.md](../Tasks.md) | 13 phases in dependency order, with three non-negotiable orderings and the hard leakage gate |
 | [SystemDesign.md](../SystemDesign.md) | End-to-end architecture, the agency boundary, the daily run, the two improvement arms |

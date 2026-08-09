@@ -1,6 +1,8 @@
 # ADR-0044: Apache 2.0 for code; derived data published, raw content never
 
 - **Status:** Accepted
+
+> **Amendment note (added on review):** the *timing* of the four-question gate below — "before the repository goes public" — is **superseded by [ADR-0050](0050-publication-gate-scoped-to-data.md)**. The gate now binds before the first commit that acquires data or the first publication of derived artefacts, whichever comes first, and is asserted in CI rather than remembered. Everything else in this ADR, including the published/never-published sets, stands unchanged.
 - **Date:** 2026-08-09
 - **Serves:** ADR-0033 (evaluation harness as deliverable), ADR-0014 (pre-commit security), `Product.md`
 - **Settles:** the licence and data-redistribution open item
