@@ -20,6 +20,7 @@ The toolchain is **not yet chosen** — no Python version, packaging tool, test 
 | `docs/adr/0037-forward-only-agent-learning.md` | The largest design decision. Read before any ADR it touches. |
 | `docs/design/point-in-time-test-harness.md` | Leakage threat model and test layers |
 | `docs/design/aws-architecture.md` | Service topology and the authoritative cost model |
+| `docs/design/*.svg` | Four diagrams — deployment (AWS), logical (system design), runtime (daily process), delivery (deliverables + phases). Update the SVG in the same commit as the design it depicts |
 | `docs/design/prediction-contract.md` | Prompt blocks, output schema, validation rules |
 | `docs/Product.md` | Positioning, prior art, non-goals |
 | `README.md` | Public-facing summary — written, and currently the most accurate short description |

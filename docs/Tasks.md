@@ -4,6 +4,10 @@
 **Date:** 2026-08-09
 **Traces from:** [Requirement.md](Requirement.md) via [Design.md](Design.md)
 
+![Deliverables and delivery plan](design/project-deliverables-diagram.svg)
+
+*[project-deliverables-diagram.svg](design/project-deliverables-diagram.svg) — the five deliverables, the phase sequence with its gates, the post-go-live milestone timeline, what currently blocks what, and the definition of done for each deliverable.*
+
 Ordered by dependency, not by preference. Three orderings are **not negotiable**:
 
 1. **Bitemporal schema first (T1.1).** `knowledge_time` cannot be retrofitted onto populated stores — for several sources the information needed to reconstruct it is unrecoverable once ingest has run without it.

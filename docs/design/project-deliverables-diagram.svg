@@ -1,0 +1,385 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 1330" width="1640" height="1330" font-family="'Segoe UI',-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5A6B7B"/></marker>
+    <marker id="kr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#DD344C"/></marker>
+    <style>
+      .ttl{font-size:14px;font-weight:600;fill:#232F3E}
+      .b{font-size:11.5px;fill:#16191F}
+      .s{font-size:9.5px;fill:#5A6B7B}
+      .m{font-size:10.5px;fill:#16191F}
+      .ph{font-size:10px;font-weight:600;fill:#16191F}
+      .pn{font-size:9px;font-weight:700;fill:#fff}
+      .f{stroke:#5A6B7B;stroke-width:1.4;fill:none;marker-end:url(#k)}
+      .fr{stroke:#DD344C;stroke-width:1.6;fill:none;marker-end:url(#kr)}
+    </style>
+  </defs>
+  <rect width="1640" height="1330" fill="#fff"/>
+
+  <text x="34" y="42" font-size="22" font-weight="700" fill="#232F3E">FinEvents — Deliverables &amp; Delivery Plan</text>
+  <text x="34" y="64" class="s" font-size="11.5">What the project ships, in what order, and what must be true before each step. Traces to Tasks.md · ADR-0033 · ADR-0045 · ADR-0046</text>
+  <text x="1606" y="42" text-anchor="end" font-size="11" fill="#687787">Pre-implementation. No code written yet.</text>
+  <text x="1606" y="60" text-anchor="end" font-size="11" fill="#687787">50 ADRs · 186 requirements · 13 build phases</text>
+
+  <!-- ============ DELIVERABLES ============ -->
+  <rect x="34" y="84" width="1572" height="196" rx="5" fill="#FCFDFD" stroke="#232F3E" stroke-width="1.4"/>
+  <text x="48" y="106" class="ttl">Five deliverables — two of them first-class and co-equal (ADR-0033)</text>
+
+  <g>
+    <rect x="48" y="118" width="300" height="146" rx="5" fill="#FFF6ED" stroke="#ED7100" stroke-width="1.6"/>
+    <rect x="48" y="118" width="300" height="24" rx="5" fill="#ED7100"/>
+    <text x="60" y="135" font-size="11" font-weight="700" fill="#fff">D1 · The daily learning pipeline</text>
+    <text x="60" y="160" class="m">A Step Functions run, once per trading day.</text>
+    <text x="60" y="176" class="s">Ingest → classify → score → consolidate the wiki →</text>
+    <text x="60" y="189" class="s">forecast → predict → publish. 13 model calls.</text>
+    <text x="60" y="209" class="s">Deliverable is the <tspan font-weight="700">wiki that compounds</tspan>, not the</text>
+    <text x="60" y="222" class="s">forecasts. Predictions are scored and forgotten;</text>
+    <text x="60" y="235" class="s">pages are permanent.</text>
+    <text x="60" y="255" class="s" fill="#B35A00">Phases 1–10 · ~$16–33/month to run</text>
+  </g>
+
+  <g>
+    <rect x="360" y="118" width="300" height="146" rx="5" fill="#F7F3FF" stroke="#8C4FFF" stroke-width="2"/>
+    <rect x="360" y="118" width="300" height="24" rx="5" fill="#8C4FFF"/>
+    <text x="372" y="135" font-size="11" font-weight="700" fill="#fff">D2 · The evaluation harness</text>
+    <text x="372" y="160" class="m">Designed to be extracted and run against</text>
+    <text x="372" y="173" class="m">someone else's predictor.</text>
+    <text x="372" y="192" class="s">Six-rung ladder · point-in-time leakage tests ·</text>
+    <text x="372" y="205" class="s">canaries + a deliberately leaky variant ·</text>
+    <text x="372" y="218" class="s">anchoring, shuffle and too-good-to-be-true trips.</text>
+    <text x="372" y="238" class="s" fill="#6B2FD6">The literature says rigorous evaluation is what the</text>
+    <text x="372" y="251" class="s" fill="#6B2FD6">field is missing. This is the differentiated part.</text>
+    <text x="372" y="265" class="s" fill="#6B2FD6">Phase 4 + T12.18 packaging</text>
+  </g>
+
+  <g>
+    <rect x="672" y="118" width="300" height="146" rx="5" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.6"/>
+    <rect x="672" y="118" width="300" height="24" rx="5" fill="#E7157B"/>
+    <text x="684" y="135" font-size="11" font-weight="700" fill="#fff">D3 · Dashboard &amp; steering</text>
+    <text x="684" y="160" class="m">Static SPA. Exposes the learning curve and lets a</text>
+    <text x="684" y="173" class="m">human steer the system, not just observe it.</text>
+    <text x="684" y="192" class="s">Six rungs per instrument and horizon · per-prediction</text>
+    <text x="684" y="205" class="s">audit to prompt snapshot and cited page versions ·</text>
+    <text x="684" y="218" class="s">coverage and abstention · four steering verbs.</text>
+    <text x="684" y="238" class="s" fill="#A0125C">Two skill series always shown together — agent-authored</text>
+    <text x="684" y="251" class="s" fill="#A0125C">versus human-touched pages. Asserted in CI.</text>
+    <text x="684" y="265" class="s" fill="#A0125C">Phase 12 · largest item in no prior estimate</text>
+  </g>
+
+  <g>
+    <rect x="984" y="118" width="300" height="146" rx="5" fill="#F7FAF2" stroke="#7AA116" stroke-width="1.6"/>
+    <rect x="984" y="118" width="300" height="24" rx="5" fill="#7AA116"/>
+    <text x="996" y="135" font-size="11" font-weight="700" fill="#fff">D4 · The published record</text>
+    <text x="996" y="160" class="m">A standing obligation, not a one-off release.</text>
+    <text x="996" y="179" class="s">Predictions, scores, every ladder rung, wiki pages,</text>
+    <text x="996" y="192" class="s">run manifests, classifications, severity scores,</text>
+    <text x="996" y="205" class="s">calibration maps, the steering audit trail.</text>
+    <text x="996" y="225" class="s" fill="#4F6B14">Never published: anything under raw/, scraped article</text>
+    <text x="996" y="238" class="s" fill="#4F6B14">text in whole or excerpt, Firecrawl payloads.</text>
+    <text x="996" y="255" class="s" fill="#4F6B14">A record that starts and stops invites the assumption</text>
+    <text x="996" y="268" class="s" fill="#4F6B14">that results turned unfavourable.</text>
+  </g>
+
+  <g>
+    <rect x="1296" y="118" width="294" height="146" rx="5" fill="#FAFBFC" stroke="#98A2B3" stroke-width="1.6"/>
+    <rect x="1296" y="118" width="294" height="24" rx="5" fill="#5A6B7B"/>
+    <text x="1308" y="135" font-size="11" font-weight="700" fill="#fff">D5 · The specification record</text>
+    <text x="1308" y="160" class="m">Already delivered. The only complete one today.</text>
+    <text x="1308" y="179" class="s">50 ADRs, each with a revisit trigger · 186 numbered,</text>
+    <text x="1308" y="192" class="s">testable requirements · design, system design and a</text>
+    <text x="1308" y="205" class="s">13-phase build plan · a leakage threat model ·</text>
+    <text x="1308" y="218" class="s">a pre-registered statistical comparison.</text>
+    <text x="1308" y="238" class="s" fill="#687787">Immutable once accepted. Reversals are recorded as</text>
+    <text x="1308" y="251" class="s" fill="#687787">superseding ADRs, so the reasoning behind decisions</text>
+    <text x="1308" y="264" class="s" fill="#687787">we later reverse stays recoverable.</text>
+  </g>
+
+  <!-- ============ BUILD ROADMAP ============ -->
+  <rect x="34" y="296" width="1572" height="286" rx="5" fill="#FCFDFD" stroke="#232F3E" stroke-width="1.4"/>
+  <text x="48" y="318" class="ttl">Build sequence — 13 phases, ordered by dependency rather than preference</text>
+  <text x="48" y="334" class="s">Each phase reads what the previous one wrote, so the chain is sequential except where marked. Gates are hard: nothing downstream starts until green.</text>
+
+  <g>
+    <!-- phase cards -->
+    <g transform="translate(50,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#5A6B7B" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#5A6B7B"/><text x="6" y="13" class="pn">PHASE 0</text>
+      <text x="6" y="34" class="ph">Repo &amp; process</text>
+      <text x="6" y="48" class="s">hooks · CI · lints</text>
+      <text x="6" y="60" class="s">toolchain · licence</text>
+      <text x="6" y="72" class="s" fill="#B02A3A">16 tasks</text>
+    </g>
+    <g transform="translate(160,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+      <rect width="100" height="18" rx="4" fill="#ED7100"/><text x="6" y="13" class="pn">PHASE 1</text>
+      <text x="6" y="34" class="ph">Data foundation</text>
+      <text x="6" y="48" class="s">bitemporal schema</text>
+      <text x="6" y="60" class="s">AsOfRepository</text>
+      <text x="6" y="72" class="s" fill="#B02A3A">NOT RETROFITTABLE</text>
+    </g>
+    <g transform="translate(270,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#ED7100" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#ED7100"/><text x="6" y="13" class="pn">PHASE 2</text>
+      <text x="6" y="34" class="ph">Determinism</text>
+      <text x="6" y="48" class="s">config · client</text>
+      <text x="6" y="60" class="s">cassettes</text>
+      <text x="6" y="72" class="s" fill="#B02A3A">T2.3 open</text>
+    </g>
+    <g transform="translate(380,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#ED7100" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#ED7100"/><text x="6" y="13" class="pn">PHASE 3</text>
+      <text x="6" y="34" class="ph">Ingest</text>
+      <text x="6" y="48" class="s">5 venue calendars</text>
+      <text x="6" y="60" class="s">6 sources, valid.</text>
+      <text x="6" y="72" class="s" fill="#B02A3A">blocked by T0.12</text>
+    </g>
+    <g transform="translate(490,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#DD344C" stroke-width="1.6"/>
+      <rect width="100" height="18" rx="4" fill="#DD344C"/><text x="6" y="13" class="pn">PHASE 4a</text>
+      <text x="6" y="34" class="ph">Leakage — L9</text>
+      <text x="6" y="48" class="s">cross-market order</text>
+      <text x="6" y="60" class="s">UTC instants</text>
+      <text x="6" y="72" class="s">needs calendars</text>
+    </g>
+    <g transform="translate(600,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#01A88D" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#01A88D"/><text x="6" y="13" class="pn">PHASE 5</text>
+      <text x="6" y="34" class="ph">Events</text>
+      <text x="6" y="48" class="s">pre-filter, classify</text>
+      <text x="6" y="60" class="s">severity overlay</text>
+      <text x="6" y="72" class="s" fill="#B02A3A">T5.5 gates the seed</text>
+    </g>
+    <g transform="translate(710,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#00A4A6" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#00A4A6"/><text x="6" y="13" class="pn">PHASE 6</text>
+      <text x="6" y="34" class="ph">Features + Lane A</text>
+      <text x="6" y="48" class="s">σ · buckets · clim.</text>
+      <text x="6" y="60" class="s">Chronos-2 · TimesFM</text>
+      <text x="6" y="72" class="s">truncated replay</text>
+    </g>
+    <g transform="translate(820,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#7AA116" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#7AA116"/><text x="6" y="13" class="pn">PHASE 7</text>
+      <text x="6" y="34" class="ph">Wiki &amp; seed</text>
+      <text x="6" y="48" class="s">pages · stats</text>
+      <text x="6" y="60" class="s">deterministic seed</text>
+      <text x="6" y="72" class="s">4 thresholds, free</text>
+    </g>
+    <g transform="translate(930,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#01A88D" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#01A88D"/><text x="6" y="13" class="pn">PHASE 8</text>
+      <text x="6" y="34" class="ph">Prediction</text>
+      <text x="6" y="48" class="s">prompt assembler</text>
+      <text x="6" y="60" class="s">11 calls, validated</text>
+      <text x="6" y="72" class="s">blind control</text>
+    </g>
+    <g transform="translate(1040,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#DD344C" stroke-width="2.4"/>
+      <rect width="100" height="18" rx="4" fill="#DD344C"/><text x="6" y="13" class="pn">PHASE 4b</text>
+      <text x="6" y="34" class="ph">Leakage — full</text>
+      <text x="6" y="48" class="s">snapshot integrity</text>
+      <text x="6" y="60" class="s">canaries · leaky twin</text>
+      <text x="6" y="72" class="s" fill="#B02A3A">THE HARD GATE</text>
+    </g>
+    <g transform="translate(1150,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#8C4FFF" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#8C4FFF"/><text x="6" y="13" class="pn">PHASE 9</text>
+      <text x="6" y="34" class="ph">Score &amp; consol.</text>
+      <text x="6" y="48" class="s">RPS · six rungs</text>
+      <text x="6" y="60" class="s">curator · shuffle</text>
+      <text x="6" y="72" class="s">too-good-to-be-true</text>
+    </g>
+    <g transform="translate(1260,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#8C4FFF" stroke-width="1.2"/>
+      <rect width="100" height="18" rx="4" fill="#8C4FFF"/><text x="6" y="13" class="pn">PHASE 10</text>
+      <text x="6" y="34" class="ph">Calibration</text>
+      <text x="6" y="48" class="s">block 6b · isotonic</text>
+      <text x="6" y="60" class="s">sample gate</text>
+      <text x="6" y="72" class="s">rung 5 → 6 gap</text>
+    </g>
+    <g transform="translate(1370,346)">
+      <rect width="100" height="76" rx="4" fill="#fff" stroke="#DD344C" stroke-width="1.6"/>
+      <rect width="100" height="18" rx="4" fill="#DD344C"/><text x="6" y="13" class="pn">PHASE 13</text>
+      <text x="6" y="34" class="ph">Go-live</text>
+      <text x="6" y="48" class="s">freeze 10 thresholds</text>
+      <text x="6" y="60" class="s">open tuning window</text>
+      <text x="6" y="72" class="s">start shadow A/B</text>
+    </g>
+    <g transform="translate(1480,346)">
+      <rect width="100" height="76" rx="4" fill="#F7FAFA" stroke="#00A4A6" stroke-width="1.6" stroke-dasharray="4 3"/>
+      <text x="6" y="30" class="ph" fill="#00767A">LIVE</text>
+      <text x="6" y="46" class="s">The clock in the</text>
+      <text x="6" y="58" class="s">timeline starts</text>
+      <text x="6" y="70" class="s">only here.</text>
+    </g>
+  </g>
+
+  <!-- gates -->
+  <g>
+    <rect x="152" y="430" width="96" height="18" rx="3" fill="#FEF3F4" stroke="#DD344C"/><text x="200" y="443" text-anchor="middle" class="s" fill="#B02A3A" font-weight="700">G0</text>
+    <rect x="262" y="430" width="96" height="18" rx="3" fill="#FEF3F4" stroke="#DD344C"/><text x="310" y="443" text-anchor="middle" class="s" fill="#B02A3A" font-weight="700">G1</text>
+    <rect x="482" y="430" width="96" height="18" rx="3" fill="#FEF3F4" stroke="#DD344C"/><text x="530" y="443" text-anchor="middle" class="s" fill="#B02A3A" font-weight="700">G3 — all 11 instruments</text>
+    <rect x="702" y="430" width="96" height="18" rx="3" fill="#FEF3F4" stroke="#DD344C"/><text x="750" y="443" text-anchor="middle" class="s" fill="#B02A3A" font-weight="700">G5</text>
+    <rect x="812" y="430" width="96" height="18" rx="3" fill="#FEF3F4" stroke="#DD344C"/><text x="860" y="443" text-anchor="middle" class="s" fill="#B02A3A" font-weight="700">G6</text>
+    <rect x="1032" y="430" width="116" height="22" rx="3" fill="#DD344C"/><text x="1090" y="446" text-anchor="middle" class="s" fill="#fff" font-weight="700">⛔ G4 — HARD GATE</text>
+  </g>
+
+  <!-- arrows along the chain -->
+  <g class="f">
+    <path d="M150 384 H158"/><path d="M260 384 H268"/><path d="M370 384 H378"/><path d="M480 384 H488"/>
+    <path d="M590 384 H598"/><path d="M700 384 H708"/><path d="M810 384 H818"/><path d="M920 384 H928"/>
+    <path d="M1030 384 H1038"/><path d="M1140 384 H1148"/><path d="M1250 384 H1258"/><path d="M1360 384 H1368"/>
+    <path d="M1470 384 H1478"/>
+  </g>
+
+  <!-- parallel track -->
+  <rect x="710" y="466" width="650" height="52" rx="4" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="722" y="484" class="ph" fill="#A0125C">PHASES 11 &amp; 12 — parallelisable from Phase 6 onward</text>
+  <text x="722" y="499" class="s">Infrastructure (SAM, three stacks, IAM with explicit denies, Step Functions, observability, Docker Compose local stack) and the</text>
+  <text x="722" y="511" class="s">frontend, steering and publication pipeline. Everything else is sequential, because each phase reads what the previous one wrote.</text>
+  <path class="f" d="M760 422 V462"/>
+  <path class="f" d="M1360 492 H1400 Q1412 492 1412 480 V428"/>
+
+  <text x="50" y="484" class="ph" fill="#B02A3A">Three orderings are not negotiable</text>
+  <text x="50" y="500" class="s">1 · Bitemporal schema first (T1.1). knowledge_time cannot be retrofitted onto</text>
+  <text x="50" y="512" class="s">populated stores — for several sources it is unrecoverable once ingest has run.</text>
+  <text x="50" y="527" class="s">2 · The leakage harness gates live running. A leaked prediction cannot be re-run.</text>
+  <text x="50" y="542" class="s">3 · The classification spot-check (T5.5) gates the wiki seed (T7.4). A</text>
+  <text x="50" y="554" class="s">misclassification propagates into eleven years of seeded evidence.</text>
+  <text x="50" y="571" class="s" fill="#B02A3A">Rebuilding the seed invalidates every live observation accrued against the old pages.</text>
+
+  <!-- ============ POST GO-LIVE TIMELINE ============ -->
+  <rect x="34" y="598" width="1572" height="234" rx="5" fill="#FCFDFD" stroke="#232F3E" stroke-width="1.4"/>
+  <text x="48" y="620" class="ttl">After go-live — what is known, and when</text>
+  <text x="48" y="636" class="s">The clock below starts at go-live, not at project start. Build time is additional and is not estimated anywhere in the plan.</text>
+
+  <line x1="100" y1="690" x2="1560" y2="690" stroke="#232F3E" stroke-width="2"/>
+  <g>
+    <circle cx="140" cy="690" r="8" fill="#7AA116"/>
+    <text x="140" y="672" text-anchor="middle" class="ph">Day 1</text>
+    <text x="140" y="714" text-anchor="middle" class="s">Numeric ladder</text>
+    <text x="140" y="726" text-anchor="middle" class="s">calibrated + running</text>
+    <text x="140" y="740" text-anchor="middle" class="s" fill="#4F6B14">Dashboard live.</text>
+    <text x="140" y="752" text-anchor="middle" class="s" fill="#4F6B14">Record published.</text>
+
+    <circle cx="420" cy="690" r="8" fill="#E7157B"/>
+    <text x="420" y="672" text-anchor="middle" class="ph">~Month 3</text>
+    <text x="420" y="714" text-anchor="middle" class="s">Tuning window closes</text>
+    <text x="420" y="726" text-anchor="middle" class="s">Configuration freezes</text>
+    <text x="420" y="740" text-anchor="middle" class="s">Shadow A/B concludes;</text>
+    <text x="420" y="752" text-anchor="middle" class="s">predictor model settled</text>
+    <text x="420" y="768" text-anchor="middle" class="s" fill="#A0125C">60 trading days. No extension.</text>
+
+    <circle cx="700" cy="690" r="8" fill="#8C4FFF"/>
+    <text x="700" y="672" text-anchor="middle" class="ph">~Month 6</text>
+    <text x="700" y="714" text-anchor="middle" class="s">κ measured from the</text>
+    <text x="700" y="726" text-anchor="middle" class="s">live record (REQ-921)</text>
+    <text x="700" y="740" text-anchor="middle" class="s">Power analysis re-run;</text>
+    <text x="700" y="752" text-anchor="middle" class="s">timeline re-derived</text>
+    <text x="700" y="768" text-anchor="middle" class="s" fill="#6B2FD6">Published whichever way it moves.</text>
+
+    <circle cx="1000" cy="690" r="10" fill="#DD344C"/>
+    <text x="1000" y="670" text-anchor="middle" class="ph" fill="#B02A3A">~Month 11–13</text>
+    <text x="1000" y="714" text-anchor="middle" class="s" font-weight="700">First skill INTERVAL</text>
+    <text x="1000" y="727" text-anchor="middle" class="s" font-weight="700">— not a verdict</text>
+    <text x="1000" y="743" text-anchor="middle" class="s">Power to detect a strong-for-finance</text>
+    <text x="1000" y="755" text-anchor="middle" class="s">edge at this sample is <tspan font-weight="700">9%</tspan>.</text>
+    <text x="1000" y="771" text-anchor="middle" class="s" fill="#B02A3A">Inconclusive ≠ null (REQ-920).</text>
+
+    <circle cx="1280" cy="690" r="8" fill="#00A4A6"/>
+    <text x="1280" y="672" text-anchor="middle" class="ph">~Year 3</text>
+    <text x="1280" y="714" text-anchor="middle" class="s">An effect of R² ≈ 1%</text>
+    <text x="1280" y="726" text-anchor="middle" class="s">becomes distinguishable</text>
+    <text x="1280" y="740" text-anchor="middle" class="s">from zero</text>
+
+    <circle cx="1500" cy="690" r="8" fill="#5A6B7B"/>
+    <text x="1500" y="672" text-anchor="middle" class="ph">Year 2–3</text>
+    <text x="1500" y="714" text-anchor="middle" class="s">Individual correlation</text>
+    <text x="1500" y="726" text-anchor="middle" class="s">pages reach actionable</text>
+    <text x="1500" y="740" text-anchor="middle" class="s">confidence</text>
+  </g>
+
+  <rect x="48" y="786" width="1544" height="34" rx="4" fill="#FFF8E7" stroke="#E5A100" stroke-width="1.2"/>
+  <text x="60" y="800" class="s" fill="#8A6116" font-weight="700">The price of forward-only is patience, and it is a real price.</text>
+  <text x="60" y="814" class="s" fill="#8A6116">A contaminated result available in month 1 would have to be defended for the life of the project; a clean one available later does not. But the design cannot deliver a believable *null* on its own timeline — only an interval.</text>
+
+  <!-- ============ WHAT BLOCKS WHAT ============ -->
+  <rect x="34" y="848" width="1016" height="252" rx="5" fill="#FEF6F7" stroke="#DD344C" stroke-width="1.3"/>
+  <text x="48" y="870" class="ttl" fill="#B02A3A">Open items that block delivery — resolve before the phase they gate</text>
+
+  <g class="s">
+    <rect x="48" y="882" width="988" height="30" rx="3" fill="#fff" stroke="#DD344C"/>
+    <text x="58" y="895" class="m" font-weight="600">Python version intersection</text>
+    <text x="58" y="907">Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image. The one irreversible toolchain choice.</text>
+    <text x="1026" y="901" text-anchor="end" class="s" fill="#B02A3A" font-weight="700">blocks T0.8</text>
+
+    <rect x="48" y="918" width="988" height="30" rx="3" fill="#fff" stroke="#DD344C"/>
+    <text x="58" y="931" class="m" font-weight="600">Four data-terms questions (T0.12)</text>
+    <text x="58" y="943">Stooq · FRED · GDELT attribution · whether model-derived severity is a derivative work. Question 4 is legal, not technical.</text>
+    <text x="1026" y="937" text-anchor="end" class="s" fill="#B02A3A" font-weight="700">blocks Phase 3</text>
+
+    <rect x="48" y="954" width="988" height="30" rx="3" fill="#fff" stroke="#DD344C"/>
+    <text x="58" y="967" class="m" font-weight="600">Where cassettes live for CI (T2.3)</text>
+    <text x="58" y="979">Gitignored, stored in S3, yet CI must run with no AWS account — and committing them would put scraped text in a public repo.</text>
+    <text x="1026" y="973" text-anchor="end" class="s" fill="#B02A3A" font-weight="700">blocks T2.1</text>
+
+    <rect x="48" y="990" width="988" height="30" rx="3" fill="#fff" stroke="#DD344C"/>
+    <text x="58" y="1003" class="m" font-weight="600">Ten calibration thresholds</text>
+    <text x="58" y="1015">Each fixes a method, not a value — fitted against data that does not exist yet. Four are free against the seed join.</text>
+    <text x="1026" y="1009" text-anchor="end" class="s" fill="#B02A3A" font-weight="700">frozen at T13.3</text>
+
+    <rect x="48" y="1026" width="988" height="30" rx="3" fill="#fff" stroke="#DD344C"/>
+    <text x="58" y="1039" class="m" font-weight="600">Ten pre-build verification items</text>
+    <text x="58" y="1051">Nova pricing and availability · AgentCore + SAM coverage · Chronos context length · TimesFM licence · deterministic seeding.</text>
+    <text x="1026" y="1045" text-anchor="end" class="s" fill="#B02A3A" font-weight="700">blocks go-live</text>
+
+    <rect x="48" y="1062" width="988" height="30" rx="3" fill="#fff" stroke="#98A2B3"/>
+    <text x="58" y="1075" class="m" font-weight="600">Coherence versus statistical power</text>
+    <text x="58" y="1087">REQ-406's shared regime block buys cross-instrument coherence and is what correlates the predictor's errors. Unresolved by design.</text>
+    <text x="1026" y="1081" text-anchor="end" class="s" fill="#687787" font-weight="700">watch, do not act</text>
+  </g>
+
+  <!-- ============ DEFINITION OF DONE ============ -->
+  <rect x="1062" y="848" width="544" height="252" rx="5" fill="#F7FAF2" stroke="#7AA116" stroke-width="1.3"/>
+  <text x="1076" y="870" class="ttl" fill="#4F6B14">Definition of done — per deliverable</text>
+
+  <g class="s">
+    <text x="1076" y="892" class="m" font-weight="600">D1 Pipeline</text>
+    <text x="1076" y="906">Runs unattended for 60 trading days inside its time budget,</text>
+    <text x="1076" y="918">halts rather than degrades, and never publishes past a market open.</text>
+
+    <text x="1076" y="940" class="m" font-weight="600">D2 Harness</text>
+    <text x="1076" y="954">Every canary is proven catchable against a deliberately leaky</text>
+    <text x="1076" y="966">variant, and the package installs and runs outside this repo.</text>
+
+    <text x="1076" y="988" class="m" font-weight="600">D3 Dashboard</text>
+    <text x="1076" y="1002">Any prediction is traceable to its prompt snapshot and the exact</text>
+    <text x="1076" y="1014">page versions that produced it; both skill series always render.</text>
+
+    <text x="1076" y="1036" class="m" font-weight="600">D4 Published record</text>
+    <text x="1076" y="1050">A third party can re-derive every reported figure from the</text>
+    <text x="1076" y="1062">published artefacts alone, without access to this account.</text>
+
+    <text x="1076" y="1084" class="s" fill="#4F6B14" font-weight="700">That last one is the real test — it is what makes a null believable.</text>
+  </g>
+
+  <!-- footer -->
+  <rect x="34" y="1116" width="1572" height="70" rx="5" fill="#FAFBFC" stroke="#D5DBDB"/>
+  <text x="48" y="1138" class="ttl">Success is a trustworthy answer, not a favourable one</text>
+  <text x="48" y="1157" class="s">The learning thesis is directly observable: the agent's edge over the comparator, plotted over elapsed calendar time, with its interval. If the wiki compounds, that line trends up. If it is flat, the wiki is not</text>
+  <text x="48" y="1172" class="s">contributing — and that is a finding. A negative result is valid and publishable, and rarely demonstrated rigorously in this field. The design exists to make that claim defensible rather than to make it come out well.</text>
+
+  <!-- legend -->
+  <rect x="34" y="1202" width="1572" height="42" rx="4" fill="#FAFBFC" stroke="#D5DBDB"/>
+  <g transform="translate(48,1218)">
+    <rect width="14" height="14" rx="3" fill="#ED7100"/><text x="21" y="11" class="s">Foundation / deterministic</text>
+    <rect x="210" width="14" height="14" rx="3" fill="#01A88D"/><text x="231" y="11" class="s">Model-facing</text>
+    <rect x="360" width="14" height="14" rx="3" fill="#7AA116"/><text x="381" y="11" class="s">Knowledge</text>
+    <rect x="500" width="14" height="14" rx="3" fill="#8C4FFF"/><text x="521" y="11" class="s">Evaluation</text>
+    <rect x="640" width="14" height="14" rx="3" fill="#DD344C"/><text x="661" y="11" class="s">Gate, control or blocker</text>
+    <rect x="850" width="14" height="14" rx="3" fill="#E7157B"/><text x="871" y="11" class="s">Parallelisable track</text>
+    <rect x="1030" width="14" height="14" rx="3" fill="#5A6B7B"/><text x="1051" y="11" class="s">Already delivered</text>
+    <text x="1200" y="11" class="s" font-style="italic">Phase numbering follows Tasks.md; Phase 4 is split 4a / 4b.</text>
+  </g>
+</svg>

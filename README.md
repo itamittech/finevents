@@ -44,6 +44,15 @@ Despite appearances, nothing here has tools or runs its own loop ([ADR-0041](doc
 
 The system is a Step Functions pipeline with three model calls a day: classify, predict, curate.
 
+## Diagrams
+
+| View | Shows |
+|---|---|
+| [System design](docs/design/system-design-diagram.svg) | Logical — invariants, the agency boundary, two lanes, modules, both improvement arms, controls |
+| [Daily process](docs/design/process-diagram.svg) | Runtime — 20 steps as a swimlane, timing envelope, gates, and the five failure responses |
+| [AWS architecture](docs/design/aws-architecture-diagram.svg) | Deployment — every service, boundaries, and why there is no VPC |
+| [Deliverables &amp; plan](docs/design/project-deliverables-diagram.svg) | Delivery — five deliverables, 13 phases with gates, milestones, and what blocks what |
+
 ## Documentation
 
 Start with the [ADR index](docs/adr/README.md).

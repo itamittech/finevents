@@ -28,6 +28,13 @@ Once a day, after the US close, FinEvents:
 
 ## 2. The system in one picture
 
+![FinEvents system design](design/system-design-diagram.svg)
+
+*[system-design-diagram.svg](design/system-design-diagram.svg) — the logical view: invariants, the agency boundary, the two lanes, the module layout, the daily loop, both improvement arms and the controls. For the runtime sequence see [process-diagram.svg](design/process-diagram.svg); for deployment see [aws-architecture-diagram.svg](design/aws-architecture-diagram.svg).*
+
+<details>
+<summary>Compact flow view (Mermaid)</summary>
+
 ```mermaid
 flowchart TB
     subgraph src["Sources — free or free-tier"]
@@ -72,6 +79,8 @@ flowchart TB
     LAD --> UI
     UI -.->|steering| WIKI
 ```
+
+</details>
 
 **The dividing line is ADR-0004's:** ingest, filtering, feature computation, scoring and statistics are plain Python. Only classification, prediction and curation call a model. **Chronos and TimesFM sit on the deterministic side** — they are numeric libraries called by pipeline code, not agents (ADR-0030).
 
@@ -173,6 +182,10 @@ Everything below follows from these. A design that violates one is wrong regardl
 ---
 
 ## 4. The daily run
+
+![Daily run process](design/process-diagram.svg)
+
+*[process-diagram.svg](design/process-diagram.svg) — the same twenty steps as a swimlane process, with the timing envelope, the ordering constraint, every control and gate, and the five distinct failure responses.*
 
 One Step Functions execution, fired by EventBridge after the US close, trading-day aware (ADR-0004).
 

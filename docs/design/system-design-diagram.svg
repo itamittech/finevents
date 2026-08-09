@@ -1,0 +1,327 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 1300" width="1640" height="1300" font-family="'Segoe UI',-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5A6B7B"/></marker>
+    <marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#00767A"/></marker>
+    <marker id="mp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8C4FFF"/></marker>
+    <style>
+      .ttl{font-size:14px;font-weight:600;fill:#232F3E}
+      .b{font-size:11.5px;fill:#16191F}
+      .s{font-size:9.5px;fill:#5A6B7B}
+      .m{font-size:10.5px;fill:#16191F}
+      .f{stroke:#5A6B7B;stroke-width:1.5;fill:none;marker-end:url(#m)}
+      .fg{stroke:#00767A;stroke-width:1.8;fill:none;marker-end:url(#mg)}
+      .fp{stroke:#8C4FFF;stroke-width:1.6;fill:none;stroke-dasharray:5 4;marker-end:url(#mp)}
+      .mod{fill:#fff;stroke:#B9C0C7;stroke-width:1;rx:4}
+    </style>
+  </defs>
+  <rect width="1640" height="1300" fill="#fff"/>
+
+  <text x="34" y="42" font-size="22" font-weight="700" fill="#232F3E">FinEvents — System Design</text>
+  <text x="34" y="64" class="s" font-size="11.5">The logical view: what the machine is, independent of where it runs. Traces to SystemDesign §2–§9 · Design §1–§4</text>
+  <text x="1606" y="42" text-anchor="end" font-size="11" fill="#687787">Deployment view: aws-architecture-diagram.svg</text>
+  <text x="1606" y="60" text-anchor="end" font-size="11" fill="#687787">Runtime view: process-diagram.svg</text>
+
+  <!-- ===== INVARIANTS ===== -->
+  <rect x="34" y="84" width="1572" height="72" rx="5" fill="#F4F6F8" stroke="#232F3E" stroke-width="1.4"/>
+  <text x="48" y="104" class="ttl">Six invariants — a design that violates one is wrong regardless of how well it works</text>
+  <g class="s" font-size="10">
+    <text x="48" y="124" font-weight="700" fill="#232F3E">I1</text><text x="68" y="124">The agent never runs against a past date</text>
+    <text x="330" y="124" font-weight="700" fill="#232F3E">I2</text><text x="350" y="124">Models do judgment only; every computable number is computed</text>
+    <text x="790" y="124" font-weight="700" fill="#232F3E">I3</text><text x="810" y="124">Prediction is a departure from a baseline, never a price</text>
+    <text x="48" y="144" font-weight="700" fill="#232F3E">I4</text><text x="68" y="144">Nothing enters a prompt with knowledge_time after the cut-off</text>
+    <text x="490" y="144" font-weight="700" fill="#232F3E">I5</text><text x="510" y="144">Every wiki observation carries seeded / observed provenance</text>
+    <text x="960" y="144" font-weight="700" fill="#232F3E">I6</text><text x="980" y="144">The run manifest is written last</text>
+  </g>
+  <text x="1240" y="134" class="s" font-style="italic">Everything below follows from these.</text>
+
+  <!-- ===== AGENCY TIERS ===== -->
+  <rect x="34" y="172" width="466" height="286" rx="5" fill="#FAFBFC" stroke="#98A2B3" stroke-width="1.3"/>
+  <text x="48" y="194" class="ttl">The agency boundary</text>
+  <text x="48" y="210" class="s">Three tiers. The word "agent" applies to exactly one — and it is empty.</text>
+
+  <rect x="48" y="222" width="438" height="66" rx="4" fill="#FFF6ED" stroke="#ED7100" stroke-width="1.2"/>
+  <text x="60" y="241" class="b" font-weight="600">Tier 1 — Deterministic</text>
+  <text x="60" y="256" class="s">No model involved at all</text>
+  <text x="60" y="272" class="s">Ingest · validation · pre-filter · features · scoring · page statistics</text>
+  <text x="60" y="283" class="s">orchestration · publishing · Chronos-2 · TimesFM 2.5</text>
+
+  <rect x="48" y="296" width="438" height="66" rx="4" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.2"/>
+  <text x="60" y="315" class="b" font-weight="600">Tier 2 — Model call</text>
+  <text x="60" y="330" class="s">Prompt assembled by code. One call, structured output.</text>
+  <text x="60" y="345" class="s">No tools, no loop, no choice about what to read.</text>
+  <text x="60" y="357" class="s">Classifier (Lite) · Predictor ×11 (Pro) · Curator (Premier)</text>
+
+  <rect x="48" y="370" width="438" height="52" rx="4" fill="#F7F8F9" stroke="#98A2B3" stroke-width="1.2" stroke-dasharray="5 3"/>
+  <text x="60" y="389" class="b" font-weight="600" fill="#687787">Tier 3 — Agent</text>
+  <text x="60" y="404" class="s">Has tools, runs its own loop, decides its own next step</text>
+  <text x="400" y="396" class="b" font-weight="700" fill="#687787">EMPTY</text>
+
+  <text x="48" y="440" class="s">Agency was examined and declined (ADR-0041). The curator's four proposed tools</text>
+  <text x="48" y="452" class="s">collapsed: three were replaceable, the fourth did not fix its own target risk.</text>
+
+  <!-- ===== TWO LANES ===== -->
+  <rect x="516" y="172" width="546" height="286" rx="5" fill="#FAFBFC" stroke="#98A2B3" stroke-width="1.3"/>
+  <text x="530" y="194" class="ttl">Two lanes — conflating them is the fastest way to misread the risk</text>
+
+  <rect x="530" y="206" width="256" height="180" rx="4" fill="#F7FAFA" stroke="#00A4A6" stroke-width="1.3"/>
+  <text x="542" y="226" class="b" font-weight="600" fill="#00767A">Lane A — numeric</text>
+  <text x="542" y="245" class="s">Climatology · conditional climatology</text>
+  <text x="542" y="258" class="s">Chronos-2 · TimesFM 2.5</text>
+  <text x="542" y="278" class="m" font-weight="600">Runs on history: yes</text>
+  <text x="542" y="293" class="s">Backtested over 11 years</text>
+  <text x="542" y="311" class="m" font-weight="600">Purpose of history:</text>
+  <text x="542" y="325" class="s">calibration and sanity only</text>
+  <text x="542" y="345" class="s">Full reconstruction leakage risk —</text>
+  <text x="542" y="357" class="s">the frozen clock and truncated</text>
+  <text x="542" y="369" class="s">replay still govern here.</text>
+
+  <rect x="798" y="206" width="250" height="180" rx="4" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.3"/>
+  <text x="810" y="226" class="b" font-weight="600" fill="#01705F">Lane B — agent</text>
+  <text x="810" y="245" class="s">Prediction · scoring</text>
+  <text x="810" y="258" class="s">wiki consolidation</text>
+  <text x="810" y="278" class="m" font-weight="600" fill="#B02A3A">Runs on history: NEVER</text>
+  <text x="810" y="293" class="s">as_of is always now</text>
+  <text x="810" y="311" class="m" font-weight="600">Purpose of history: n/a</text>
+  <text x="810" y="325" class="s">Recording risk only</text>
+  <text x="810" y="345" class="s">7 of 11 leakage vectors have</text>
+  <text x="810" y="357" class="s">no mechanism here. L9 remains</text>
+  <text x="810" y="369" class="s">the top surviving risk.</text>
+
+  <text x="530" y="406" class="s">History feeds exactly three things (ADR-0037): Lane A calibration · the deterministic wiki seed · threshold calibration.</text>
+  <text x="530" y="420" class="s">It is never replayed through the agent. Lane A's historical numbers are labelled <tspan font-weight="700">calibration</tspan>, never compared against the agent.</text>
+  <text x="530" y="440" class="s" fill="#B02A3A" font-weight="700">The head-to-head happens live, on identical days, for all six rungs — and only there.</text>
+
+  <!-- ===== MODULES ===== -->
+  <rect x="1078" y="172" width="528" height="286" rx="5" fill="#FAFBFC" stroke="#98A2B3" stroke-width="1.3"/>
+  <text x="1092" y="194" class="ttl">Module layout</text>
+  <text x="1092" y="210" class="s">Two import rules enforced in CI, not by review (Design §1)</text>
+
+  <g class="m">
+    <rect class="mod" x="1092" y="220" width="122" height="26"/><text x="1102" y="237">config/</text>
+    <rect class="mod" x="1224" y="220" width="122" height="26"/><text x="1234" y="237">repository/</text>
+    <rect class="mod" x="1356" y="220" width="122" height="26"/><text x="1366" y="237">ingest/</text>
+    <rect class="mod" x="1092" y="254" width="122" height="26"/><text x="1102" y="271">events/</text>
+    <rect class="mod" x="1224" y="254" width="122" height="26"/><text x="1234" y="271">features/</text>
+    <rect class="mod" x="1356" y="254" width="122" height="26"/><text x="1366" y="271">numeric/</text>
+    <rect class="mod" x="1092" y="288" width="122" height="26"/><text x="1102" y="305">predict/</text>
+    <rect class="mod" x="1224" y="288" width="122" height="26"/><text x="1234" y="305">score/</text>
+    <rect class="mod" x="1356" y="288" width="122" height="26"/><text x="1366" y="305">wiki/</text>
+    <rect class="mod" x="1092" y="322" width="122" height="26"/><text x="1102" y="339">calibrate/</text>
+    <rect class="mod" x="1224" y="322" width="122" height="26"/><text x="1234" y="339">eval/</text>
+    <rect class="mod" x="1356" y="322" width="122" height="26"/><text x="1366" y="339">steering/</text>
+    <rect class="mod" x="1092" y="356" width="122" height="26"/><text x="1102" y="373">api/</text>
+    <rect class="mod" x="1224" y="356" width="254" height="26"/><text x="1234" y="373">harness/  — leakage tests, canaries, cassettes</text>
+  </g>
+  <rect x="1092" y="394" width="386" height="24" rx="3" fill="#FFF6ED" stroke="#ED7100" stroke-dasharray="4 3"/>
+  <text x="1102" y="410" class="s" fill="#B35A00">No storage client imported outside <tspan font-weight="700">ingest/</tspan> and <tspan font-weight="700">repository/</tspan></text>
+  <rect x="1092" y="422" width="386" height="24" rx="3" fill="#F0FBF8" stroke="#01A88D" stroke-dasharray="4 3"/>
+  <text x="1102" y="438" class="s" fill="#01705F">No model client outside <tspan font-weight="700">events/</tspan>, <tspan font-weight="700">predict/</tspan> and <tspan font-weight="700">wiki/</tspan> — ADR-0004's line as a lint</text>
+
+  <!-- ===== CORE DATA FLOW ===== -->
+  <rect x="34" y="476" width="1572" height="330" rx="5" fill="#FCFDFD" stroke="#232F3E" stroke-width="1.4"/>
+  <text x="48" y="498" class="ttl">The daily loop — how knowledge accretes</text>
+
+  <!-- inputs -->
+  <rect x="52" y="512" width="150" height="150" rx="4" fill="#F7F8F9" stroke="#98A2B3" stroke-dasharray="5 3"/>
+  <text x="64" y="532" class="b" font-weight="600">Inputs</text>
+  <text x="64" y="552" class="s">Prices, 11 instruments</text>
+  <text x="64" y="566" class="s">World events (GDELT)</text>
+  <text x="64" y="580" class="s">Scheduled releases</text>
+  <text x="64" y="594" class="s">5 regime covariates</text>
+  <text x="64" y="608" class="s">Market calendars</text>
+  <text x="64" y="630" class="s" fill="#B02A3A">All bitemporal:</text>
+  <text x="64" y="643" class="s" fill="#B02A3A">event_time +</text>
+  <text x="64" y="655" class="s" fill="#B02A3A">knowledge_time</text>
+
+  <!-- deterministic core -->
+  <rect x="226" y="512" width="176" height="150" rx="4" fill="#FFF6ED" stroke="#ED7100" stroke-width="1.2"/>
+  <text x="238" y="532" class="b" font-weight="600">Deterministic core</text>
+  <text x="238" y="552" class="s">Pre-filter (CAMEO)</text>
+  <text x="238" y="566" class="s">σ over trailing 60 sessions</text>
+  <text x="238" y="580" class="s">5 volatility-relative buckets</text>
+  <text x="238" y="594" class="s">Climatology, conditional</text>
+  <text x="238" y="608" class="s">Standardised surprise</text>
+  <text x="238" y="622" class="s">Trading-day horizons</text>
+  <text x="238" y="642" class="s" fill="#B35A00">Every number the model</text>
+  <text x="238" y="654" class="s" fill="#B35A00">receives is computed here.</text>
+
+  <!-- numeric tracks -->
+  <rect x="426" y="512" width="176" height="150" rx="4" fill="#F7FAFA" stroke="#00A4A6" stroke-width="1.2"/>
+  <text x="438" y="532" class="b" font-weight="600">Numeric tracks</text>
+  <text x="438" y="552" class="s">Chronos-2 · TimesFM 2.5</text>
+  <text x="438" y="566" class="s">Each in 2 configurations:</text>
+  <text x="438" y="582" class="m">univariate → shown to agent</text>
+  <text x="438" y="598" class="m" font-weight="600">covariate → hidden rival</text>
+  <text x="438" y="618" class="s">Covariates are aligned series,</text>
+  <text x="438" y="630" class="s">not scalars — severity spikes</text>
+  <text x="438" y="642" class="s">across the whole window.</text>
+  <text x="438" y="656" class="s" fill="#00767A">No ensembling (ADR-0032).</text>
+
+  <!-- wiki -->
+  <rect x="626" y="512" width="230" height="150" rx="4" fill="#F7FAF2" stroke="#7AA116" stroke-width="1.6"/>
+  <text x="638" y="532" class="b" font-weight="600">The wiki — the product</text>
+  <text x="638" y="550" class="s">Correlation · instrument · regime pages</text>
+  <text x="638" y="566" class="m">Hypothesis (model-written prose)</text>
+  <text x="638" y="581" class="m">Evidence table (per observation)</text>
+  <text x="638" y="596" class="m" font-weight="600">Computed block — never model-written</text>
+  <text x="638" y="611" class="m">Contradictions (mandatory)</text>
+  <text x="638" y="626" class="m">Links → 1-hop neighbours pre-loaded</text>
+  <text x="638" y="646" class="s" fill="#4F6B14">Statistics three ways: seeded · observed · combined.</text>
+  <text x="638" y="658" class="s" fill="#4F6B14">Beta-Binomial posterior, Jeffreys prior.</text>
+
+  <!-- predictor -->
+  <rect x="880" y="512" width="212" height="150" rx="4" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.2"/>
+  <text x="892" y="532" class="b" font-weight="600">Predictor — 7-block prompt</text>
+  <text x="892" y="550" class="s">1  Task frame</text>
+  <text x="892" y="563" class="s">2  Instrument page</text>
+  <text x="892" y="576" class="s">3  Both univariate baselines</text>
+  <text x="892" y="589" class="s">4  Regime — byte-identical ×11</text>
+  <text x="892" y="602" class="s">5  Today's events + surprise</text>
+  <text x="892" y="615" class="s">6  Accumulated evidence, tagged</text>
+  <text x="892" y="628" class="m" font-weight="600">6b Its own track record</text>
+  <text x="892" y="641" class="s">7  Output instruction</text>
+  <text x="892" y="656" class="s" fill="#01705F">Output: 5 buckets × 2 horizons</text>
+
+  <!-- ladder -->
+  <rect x="1116" y="512" width="220" height="150" rx="4" fill="#F7F3FF" stroke="#8C4FFF" stroke-width="1.4"/>
+  <text x="1128" y="532" class="b" font-weight="600">Evaluation ladder</text>
+  <text x="1128" y="547" class="s">Six rungs, identical live days</text>
+  <g class="m">
+    <text x="1128" y="566">1 · Climatology</text>
+    <text x="1128" y="581">2 · Conditional climatology</text>
+    <text x="1128" y="596">3 · Chronos-2 (covariate)</text>
+    <text x="1128" y="611">4 · TimesFM 2.5 (covariate)</text>
+    <text x="1128" y="626" font-weight="600">5 · Agent — raw</text>
+    <text x="1128" y="641" font-weight="600">6 · Agent — calibrated</text>
+  </g>
+  <text x="1128" y="656" class="s" fill="#6B2FD6">Metric: Ranked Probability Score</text>
+
+  <!-- outputs -->
+  <rect x="1360" y="512" width="230" height="150" rx="4" fill="#F7F8F9" stroke="#98A2B3" stroke-dasharray="5 3"/>
+  <text x="1372" y="532" class="b" font-weight="600">Outputs</text>
+  <text x="1372" y="552" class="s">The learning curve — agent RPS</text>
+  <text x="1372" y="565" class="s">minus comparator, with interval</text>
+  <text x="1372" y="580" class="s">The 5 → 6 gap (miscalibration)</text>
+  <text x="1372" y="595" class="s">Per-prediction audit trail</text>
+  <text x="1372" y="610" class="s">Coverage, abstention, missed moves</text>
+  <text x="1372" y="625" class="s">The published derived record</text>
+  <text x="1372" y="645" class="s" fill="#B02A3A">A null result is a valid and</text>
+  <text x="1372" y="657" class="s" fill="#B02A3A">publishable outcome.</text>
+
+  <!-- flow arrows -->
+  <path class="f" d="M202 580 H222"/>
+  <path class="f" d="M402 580 H422"/>
+  <path class="f" d="M602 580 H622"/>
+  <path class="f" d="M856 580 H876"/>
+  <path class="f" d="M1092 580 H1112"/>
+  <path class="f" d="M1336 580 H1356"/>
+  <path class="f" d="M402 600 Q414 600 414 690 H900 Q912 690 912 668"/>
+  <text x="600" y="686" class="s">features reach the predictor directly, not only through the numeric tracks</text>
+  <path class="f" d="M512 662 V690" marker-end="none"/>
+
+  <!-- two arms -->
+  <rect x="52" y="706" width="748" height="88" rx="4" fill="#F7FAF2" stroke="#7AA116" stroke-width="1.3"/>
+  <text x="64" y="726" class="b" font-weight="600" fill="#4F6B14">Arm 1 — knowledge about the WORLD</text>
+  <text x="64" y="744" class="s">Score → curator appends the observation and says what it means → code recomputes the posterior → the predictor reads a different</text>
+  <text x="64" y="757" class="s">number tomorrow. Four things drive it: the evidence base grows, the interval tightens, the curator can rewrite a hypothesis that stops</text>
+  <text x="64" y="770" class="s">holding, and the nightly sweep surfaces grid cells the data supports but no page covers.</text>
+  <text x="64" y="787" class="s" fill="#4F6B14" font-weight="700">Blind spot: it cannot see errors that belong to the predictor rather than to any correlation.</text>
+
+  <rect x="812" y="706" width="778" height="88" rx="4" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.3"/>
+  <text x="824" y="726" class="b" font-weight="600" fill="#01705F">Arm 2 — knowledge about the PREDICTOR</text>
+  <text x="824" y="744" class="s">"The model says 0.70 and that bucket occurs 45% of the time" is invisible to every page's hit rate — overconfidence is spread across all</text>
+  <text x="824" y="757" class="s">of them. Closed two ways: prompt block 6b (its own reliability, directional balance, departure discipline — all arithmetic), and a nightly</text>
+  <text x="824" y="770" class="s">isotonic map applied mechanically, so the correction does not depend on the model choosing to act on what it read.</text>
+  <text x="824" y="787" class="s" fill="#01705F" font-weight="700">The 5 → 6 gap should shrink. If it does, the model is learning from its own record; if flat, the mechanical layer is carrying it.</text>
+
+  <!-- ===== CONTROLS ===== -->
+  <rect x="34" y="824" width="1572" height="176" rx="5" fill="#FEF6F7" stroke="#DD344C" stroke-width="1.4"/>
+  <text x="48" y="846" class="ttl" fill="#B02A3A">Controls — what makes a null result believable</text>
+  <text x="48" y="862" class="s">The harness is a first-class deliverable, not test tooling. Each control targets a specific way the result could be wrong.</text>
+
+  <g class="s">
+    <rect x="48" y="872" width="243" height="56" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="58" y="890" class="m" font-weight="600">Anchoring index</text>
+    <text x="58" y="905">Same prediction with and without the</text>
+    <text x="58" y="917">baseline shown. Detects echoing.</text>
+
+    <rect x="303" y="872" width="243" height="56" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="313" y="890" class="m" font-weight="600">Seeded / observed divergence</text>
+    <text x="313" y="905">Persistent zero divergence = the agent</text>
+    <text x="313" y="917">is reproducing the seed, not learning.</text>
+
+    <rect x="558" y="872" width="243" height="56" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="568" y="890" class="m" font-weight="600">Shuffle test</text>
+    <text x="568" y="905">Reassign events to random dates. Skill</text>
+    <text x="568" y="917">must collapse to baseline.</text>
+
+    <rect x="813" y="872" width="243" height="56" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="823" y="890" class="m" font-weight="600">Coherence violations</text>
+    <text x="823" y="905">Structurally impossible cross-instrument</text>
+    <text x="823" y="917">forecasts. Computed for Chronos too.</text>
+
+    <rect x="1068" y="872" width="243" height="56" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="1078" y="890" class="m" font-weight="600">Coverage + missed moves</text>
+    <text x="1078" y="905">Detects buying accuracy by declining</text>
+    <text x="1078" y="917">the hard days.</text>
+
+    <rect x="1323" y="872" width="267" height="56" rx="4" fill="#fff" stroke="#DD344C" stroke-width="1.8"/>
+    <text x="1333" y="890" class="m" font-weight="600">Too-good-to-be-true trip</text>
+    <text x="1333" y="905">Skill above a ceiling FAILS THE BUILD. A</text>
+    <text x="1333" y="917">strong result is more likely a bug.</text>
+  </g>
+
+  <rect x="48" y="938" width="1542" height="50" rx="4" fill="#fff" stroke="#DD344C" stroke-width="1.4"/>
+  <text x="58" y="956" class="m" font-weight="600">Why scoring contains no model call, ever (REQ-801)</text>
+  <text x="58" y="972" class="s">A model that scores can grade its own homework, and the project's stated success criterion is that a <tspan font-weight="700">null</tspan> result is believable. The too-good-to-be-true trip also depends on it: that inference only holds</text>
+  <text x="58" y="983" class="s">if the scorer is incapable of being generous. And scores must be reproducible forever — the learning curve compares day 400 against day 40, so a drifting scorer would measure the scorer.</text>
+
+  <!-- ===== PROVENANCE + STEERING ===== -->
+  <rect x="34" y="1018" width="770" height="164" rx="5" fill="#F7FAF2" stroke="#7AA116" stroke-width="1.3"/>
+  <text x="48" y="1040" class="ttl" fill="#4F6B14">Provenance — finer-grained than a single tag</text>
+  <text x="48" y="1056" class="s">A human does not generate observations; writing evidence rows would be fabricating data.</text>
+  <g class="m">
+    <rect x="48" y="1066" width="240" height="46" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="58" y="1084" font-weight="600">Evidence rows</text>
+    <text x="58" y="1100" class="s">seeded | observed — never human</text>
+    <rect x="300" y="1066" width="240" height="46" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="310" y="1084" font-weight="600">Hypothesis + narrative</text>
+    <text x="310" y="1100" class="s">author: agent | human | mixed</text>
+    <rect x="552" y="1066" width="240" height="46" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="562" y="1084" font-weight="600">Sweep candidates</text>
+    <text x="562" y="1100" class="s">origin: sweep | human</text>
+  </g>
+  <text x="48" y="1132" class="s">Steering — four verbs, Cognito-authenticated, fully audited: <tspan font-weight="700">flag</tspan> · <tspan font-weight="700">propose</tspan> · <tspan font-weight="700">edit</tspan> · <tspan font-weight="700">correct</tspan>. A correction keeps the row's source tag and adds corrected_by.</text>
+  <text x="48" y="1150" class="s" fill="#4F6B14" font-weight="700">Two skill series are always reported together — agent-authored pages versus human-touched pages.</text>
+  <text x="48" y="1166" class="s">A correct prediction citing a human-written hypothesis is not the agent having learned anything. The published audit trail is what makes steering self-policing.</text>
+
+  <!-- ===== DATA MODEL ===== -->
+  <rect x="816" y="1018" width="790" height="164" rx="5" fill="#FAFBFC" stroke="#98A2B3" stroke-width="1.3"/>
+  <text x="830" y="1040" class="ttl">Bitemporal data model — and why it survives forward-only</text>
+  <text x="830" y="1058" class="s">Every record carries <tspan font-weight="700">event_time</tspan> (when it happened) and <tspan font-weight="700">knowledge_time</tspan> (the earliest we could have known it). Revisions append; nothing is updated in place.</text>
+  <text x="830" y="1078" class="s">Under forward-only this is no longer used to <tspan font-style="italic">reconstruct</tspan> the past. It is what makes <tspan font-weight="700">scoring</tspan> correct: a t+5 prediction matures five days later and</text>
+  <text x="830" y="1091" class="s">must be scored against what was known at t, which requires the record to say so. That is a recording obligation — far easier to satisfy than a reconstruction one.</text>
+  <text x="830" y="1114" class="s" fill="#B02A3A" font-weight="700">knowledge_time cannot be retrofitted onto populated stores, which is why the schema is built first and nothing else may precede it.</text>
+  <text x="830" y="1136" class="s">Wiki versioning is S3 object versioning plus a per-run manifest recording every page's version_id. Every prediction cites pages by path@version_id,</text>
+  <text x="830" y="1149" class="s">so any forecast can be replayed against exactly the knowledge that produced it — which is what makes the audit trail real rather than nominal.</text>
+  <text x="830" y="1168" class="s" fill="#687787">Stores: S3 (raw, wiki, parquet, cassettes, snapshots, published) · DynamoDB (predictions, scores, runs, events, features, steering) · Athena (range scans)</text>
+
+  <!-- footer -->
+  <text x="34" y="1210" class="s">Read with: <tspan font-weight="700">SystemDesign.md</tspan> §2.1 (agency boundary), §5 (three tracks), §6 (the wiki), §8 (evaluation) · <tspan font-weight="700">Design.md</tspan> §1–§4 (modules, schemas, algorithms) · <tspan font-weight="700">prediction-contract.md</tspan> (prompt + output schema)</text>
+  <text x="34" y="1228" class="s">The product is the wiki and the measurement. Scraping exists to feed them; the pipeline exists to make them meaningful.</text>
+
+  <!-- legend -->
+  <rect x="34" y="1244" width="1572" height="40" rx="4" fill="#FAFBFC" stroke="#D5DBDB"/>
+  <g transform="translate(48,1258)">
+    <rect width="14" height="14" rx="3" fill="#ED7100"/><text x="21" y="11" class="s">Deterministic</text>
+    <rect x="150" width="14" height="14" rx="3" fill="#01A88D"/><text x="171" y="11" class="s">Model call</text>
+    <rect x="290" width="14" height="14" rx="3" fill="#7AA116"/><text x="311" y="11" class="s">Knowledge / provenance</text>
+    <rect x="500" width="14" height="14" rx="3" fill="#8C4FFF"/><text x="521" y="11" class="s">Evaluation</text>
+    <rect x="640" width="14" height="14" rx="3" fill="#00A4A6"/><text x="661" y="11" class="s">Lane A — numeric, historical</text>
+    <rect x="870" width="14" height="14" rx="3" fill="#DD344C"/><text x="891" y="11" class="s">Control or hard gate</text>
+    <text x="1060" y="11" class="s" font-style="italic">Nothing in this diagram is an agent. Tier 3 stays empty deliberately until ADR-0041 is superseded.</text>
+  </g>
+</svg>

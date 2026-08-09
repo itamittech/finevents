@@ -1,0 +1,318 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 1210" width="1640" height="1210" font-family="'Segoe UI',-apple-system,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5A6B7B"/></marker>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#DD344C"/></marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#00767A"/></marker>
+    <style>
+      .h{font-size:13px;font-weight:600;fill:#16191F}
+      .b{font-size:11px;fill:#16191F}
+      .s{font-size:9.5px;fill:#5A6B7B}
+      .lane{font-size:12px;font-weight:600;fill:#232F3E}
+      .lanes{font-size:9.5px;fill:#687787}
+      .col{font-size:11px;font-weight:600;fill:#232F3E}
+      .f{stroke:#5A6B7B;stroke-width:1.5;fill:none;marker-end:url(#ar)}
+      .fe{stroke:#DD344C;stroke-width:1.5;fill:none;stroke-dasharray:5 3;marker-end:url(#arr)}
+      .fg{stroke:#00767A;stroke-width:1.5;fill:none;marker-end:url(#arg)}
+      .badge{font-size:9px;font-weight:700;fill:#fff}
+      .box{stroke-width:1.2;rx:4}
+    </style>
+  </defs>
+  <rect width="1640" height="1210" fill="#fff"/>
+
+  <text x="34" y="42" font-size="22" font-weight="700" fill="#232F3E">FinEvents — Daily Run Process</text>
+  <text x="34" y="64" class="s" font-size="11.5">One Step Functions execution, once per trading day. 20 steps across six lanes. Traces to SystemDesign §4 · Design §7 · REQ-1012</text>
+  <text x="1606" y="42" text-anchor="end" font-size="11" fill="#687787">Process view — see aws-architecture-diagram.svg for deployment</text>
+  <text x="1606" y="60" text-anchor="end" font-size="11" fill="#687787">and system-design-diagram.svg for the logical view</text>
+
+  <!-- TIMING RAIL -->
+  <rect x="34" y="84" width="1572" height="56" rx="5" fill="#F7FAFA" stroke="#00A4A6" stroke-width="1.2"/>
+  <text x="48" y="103" class="h" fill="#00767A">Timing envelope</text>
+  <line x1="200" y1="118" x2="1560" y2="118" stroke="#00A4A6" stroke-width="2"/>
+  <g font-size="9.5" fill="#00767A">
+    <circle cx="230" cy="118" r="5" fill="#00A4A6"/><text x="230" y="136" text-anchor="middle">21:00 UTC</text><text x="230" y="110" text-anchor="middle" font-weight="700">cut-off declared</text>
+    <circle cx="420" cy="118" r="5" fill="#00A4A6"/><text x="420" y="136" text-anchor="middle">21:05 UTC</text><text x="420" y="110" text-anchor="middle">run fires (EventBridge)</text>
+    <circle cx="760" cy="118" r="5" fill="#00A4A6"/><text x="760" y="136" text-anchor="middle">+60 min budget (REQ-1011)</text><text x="760" y="110" text-anchor="middle">alarm only — a slow run is not a wrong run</text>
+    <circle cx="1180" cy="118" r="5" fill="#DD344C"/><text x="1180" y="136" text-anchor="middle" fill="#B02A3A">03:45 UTC — NSE opens</text><text x="1180" y="110" text-anchor="middle" font-weight="700" fill="#B02A3A">HARD DEADLINE per instrument</text>
+    <circle cx="1470" cy="118" r="5" fill="#DD344C"/><text x="1470" y="136" text-anchor="middle" fill="#B02A3A">14:30 UTC — NYSE opens</text><text x="1470" y="110" text-anchor="middle" fill="#B02A3A">(REQ-614)</text>
+  </g>
+
+  <!-- COLUMN HEADERS -->
+  <g class="col" text-anchor="middle">
+    <text x="288" y="176">1 · Trigger</text>
+    <text x="443" y="176">2 · Acquire</text>
+    <text x="598" y="176">3 · Validate</text>
+    <text x="753" y="176">4 · Understand</text>
+    <text x="908" y="176">5 · Features</text>
+    <text x="1063" y="176">6 · Score &amp; learn</text>
+    <text x="1218" y="176">7 · Forecast</text>
+    <text x="1373" y="176">8 · Predict</text>
+    <text x="1528" y="176">9 · Commit</text>
+  </g>
+  <g stroke="#E4E7EA" stroke-width="1">
+    <line x1="365" y1="186" x2="365" y2="920"/><line x1="520" y1="186" x2="520" y2="920"/>
+    <line x1="675" y1="186" x2="675" y2="920"/><line x1="830" y1="186" x2="830" y2="920"/>
+    <line x1="985" y1="186" x2="985" y2="920"/><line x1="1140" y1="186" x2="1140" y2="920"/>
+    <line x1="1295" y1="186" x2="1295" y2="920"/><line x1="1450" y1="186" x2="1450" y2="920"/>
+  </g>
+
+  <!-- ===== LANE 1 — ORCHESTRATION ===== -->
+  <rect x="34" y="186" width="1572" height="72" fill="#FDF2F8" stroke="#E7157B" stroke-width="1.2"/>
+  <text x="48" y="212" class="lane">Orchestration</text><text x="48" y="228" class="lanes">Step Functions</text><text x="48" y="242" class="lanes">Standard workflow</text>
+  <rect x="216" y="196" width="1380" height="30" rx="4" fill="#fff" stroke="#E7157B" stroke-width="1.4"/>
+  <text x="906" y="215" text-anchor="middle" class="b" font-weight="600">Single state machine execution — per-step retry, bounded spend, full audit of every transition</text>
+  <rect x="985" y="232" width="310" height="20" rx="3" fill="#FFF0F6" stroke="#E7157B" stroke-dasharray="4 3"/>
+  <text x="1140" y="246" text-anchor="middle" class="s" fill="#A0125C" font-weight="700">Order 10 → 11 → 12 → 12a/12b → 16 enforced (REQ-1012)</text>
+
+  <!-- ===== LANE 2 — DETERMINISTIC COMPUTE ===== -->
+  <rect x="34" y="258" width="1572" height="176" fill="#FFFBF6" stroke="#ED7100" stroke-width="1.2"/>
+  <text x="48" y="284" class="lane">Deterministic</text><text x="48" y="300" class="lanes">AWS Lambda</text><text x="48" y="314" class="lanes">No model call ever</text>
+  <text x="48" y="336" class="lanes" fill="#B35A00">Asserted by import</text><text x="48" y="349" class="lanes" fill="#B35A00">lint (T0.9), not review</text>
+
+  <g class="box">
+    <rect x="218" y="270" width="140" height="52" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="230" y="290" class="b">Declare cut-off</text><text x="230" y="305" class="s">timestamp for the run</text>
+    <circle cx="345" cy="281" r="9" fill="#ED7100"/><text x="345" y="284" text-anchor="middle" class="badge">1</text>
+  </g>
+  <g class="box">
+    <rect x="373" y="270" width="140" height="52" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="385" y="290" class="b">Fetch all sources</text><text x="385" y="305" class="s">prices · events · news · FRED</text>
+    <circle cx="500" cy="281" r="9" fill="#ED7100"/><text x="500" y="284" text-anchor="middle" class="badge">2-5</text>
+  </g>
+  <g class="box">
+    <rect x="528" y="270" width="140" height="52" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="540" y="290" class="b">Validate + write</text><text x="540" y="305" class="s">stamp knowledge_time</text>
+    <circle cx="655" cy="281" r="9" fill="#ED7100"/><text x="655" y="284" text-anchor="middle" class="badge">6</text>
+  </g>
+  <g class="box">
+    <rect x="683" y="270" width="140" height="52" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="695" y="290" class="b">Pre-filter events</text><text x="695" y="305" class="s">CAMEO · ~4,100 → ~6</text>
+    <circle cx="810" cy="281" r="9" fill="#ED7100"/><text x="810" y="284" text-anchor="middle" class="badge">7</text>
+  </g>
+  <g class="box">
+    <rect x="838" y="270" width="140" height="52" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="850" y="290" class="b">Compute features</text><text x="850" y="305" class="s">σ · buckets · climatology</text>
+    <circle cx="965" cy="281" r="9" fill="#ED7100"/><text x="965" y="284" text-anchor="middle" class="badge">9</text>
+  </g>
+  <g class="box">
+    <rect x="993" y="270" width="140" height="52" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="1005" y="290" class="b">Score matured</text><text x="1005" y="305" class="s">t+1 from D−1, t+5 from D−5</text>
+    <circle cx="1120" cy="281" r="9" fill="#ED7100"/><text x="1120" y="284" text-anchor="middle" class="badge">10</text>
+  </g>
+  <g class="box">
+    <rect x="993" y="330" width="140" height="46" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="1005" y="348" class="b">Recompute stats</text><text x="1005" y="362" class="s">Beta posterior, 3 ways</text>
+    <circle cx="1120" cy="341" r="9" fill="#ED7100"/><text x="1120" y="344" text-anchor="middle" class="badge">12</text>
+  </g>
+  <g class="box">
+    <rect x="993" y="382" width="140" height="46" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="1005" y="400" class="b">Sweep + calibrate</text><text x="1005" y="414" class="s">grid scan · isotonic refit</text>
+    <circle cx="1120" cy="393" r="9" fill="#ED7100"/><text x="1120" y="396" text-anchor="middle" class="badge">12a/b</text>
+  </g>
+  <g class="box">
+    <rect x="1458" y="270" width="140" height="52" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="1470" y="290" class="b">Write manifest</text><text x="1470" y="305" class="s">LAST — makes run atomic</text>
+    <circle cx="1585" cy="281" r="9" fill="#ED7100"/><text x="1585" y="284" text-anchor="middle" class="badge">19</text>
+  </g>
+  <g class="box">
+    <rect x="1458" y="330" width="140" height="46" fill="#fff" stroke="#ED7100" rx="4"/>
+    <text x="1470" y="348" class="b">Publish dashboard</text><text x="1470" y="362" class="s">+ derived record</text>
+    <circle cx="1585" cy="341" r="9" fill="#ED7100"/><text x="1585" y="344" text-anchor="middle" class="badge">20</text>
+  </g>
+
+  <!-- ===== LANE 3 — MODEL CALLS ===== -->
+  <rect x="34" y="434" width="1572" height="120" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.2"/>
+  <text x="48" y="460" class="lane">Model calls</text><text x="48" y="476" class="lanes">Bedrock via AgentCore</text><text x="48" y="490" class="lanes">Single-shot. No tools,</text>
+  <text x="48" y="503" class="lanes">no loop, no agency</text>
+  <text x="48" y="524" class="lanes" fill="#01705F">13 calls/day total</text>
+
+  <g class="box">
+    <rect x="683" y="452" width="140" height="52" fill="#fff" stroke="#01A88D" rx="4"/>
+    <text x="695" y="472" class="b">Classify + severity</text><text x="695" y="487" class="s">Nova Lite · 1 call</text>
+    <circle cx="810" cy="463" r="9" fill="#01A88D"/><text x="810" y="466" text-anchor="middle" class="badge">8</text>
+  </g>
+  <g class="box">
+    <rect x="993" y="452" width="140" height="52" fill="#fff" stroke="#01A88D" rx="4" stroke-width="2"/>
+    <text x="1005" y="472" class="b">Consolidate wiki</text><text x="1005" y="487" class="s">Nova Premier · 1 call</text>
+    <circle cx="1120" cy="463" r="9" fill="#01A88D"/><text x="1120" y="466" text-anchor="middle" class="badge">11</text>
+  </g>
+  <text x="993" y="522" class="s" fill="#01705F">Errors here compound permanently —</text>
+  <text x="993" y="535" class="s" fill="#01705F">hence the stronger model (ADR-0040)</text>
+
+  <g class="box">
+    <rect x="1303" y="452" width="140" height="52" fill="#fff" stroke="#01A88D" rx="4"/>
+    <text x="1315" y="472" class="b">Predict ×11</text><text x="1315" y="487" class="s">Nova Pro · 1 per instrument</text>
+    <circle cx="1430" cy="463" r="9" fill="#01A88D"/><text x="1430" y="466" text-anchor="middle" class="badge">16</text>
+  </g>
+  <g class="box">
+    <rect x="1303" y="512" width="140" height="34" fill="#fff" stroke="#01A88D" rx="4" stroke-dasharray="4 3"/>
+    <text x="1315" y="526" class="b" font-size="10">Control · shadow</text><text x="1315" y="539" class="s">sampled days · window only</text>
+    <circle cx="1428" cy="521" r="8" fill="#01A88D"/><text x="1428" y="524" text-anchor="middle" class="badge" font-size="8">17·18</text>
+  </g>
+
+  <!-- ===== LANE 4 — NUMERIC ===== -->
+  <rect x="34" y="554" width="1572" height="82" fill="#F0FBF8" stroke="#01A88D" stroke-width="1.2" stroke-dasharray="5 3"/>
+  <text x="48" y="580" class="lane">Numeric forecasters</text><text x="48" y="596" class="lanes">In-process, local weights</text><text x="48" y="610" class="lanes">Tier 1 — not agents</text>
+
+  <g class="box">
+    <rect x="1148" y="566" width="140" height="58" fill="#fff" stroke="#01A88D" rx="4"/>
+    <text x="1160" y="586" class="b">Chronos-2</text><text x="1160" y="600" class="s">11 × 2 configs</text><text x="1160" y="613" class="s">univariate + covariate</text>
+    <circle cx="1275" cy="577" r="9" fill="#01A88D"/><text x="1275" y="580" text-anchor="middle" class="badge">13</text>
+  </g>
+  <g class="box">
+    <rect x="1148" y="566" width="0" height="0" fill="none"/>
+  </g>
+  <g class="box">
+    <rect x="1303" y="566" width="140" height="58" fill="#fff" stroke="#01A88D" rx="4"/>
+    <text x="1315" y="586" class="b">TimesFM 2.5</text><text x="1315" y="600" class="s">11 × 2 configs</text><text x="1315" y="613" class="s">44 forecasts total</text>
+    <circle cx="1430" cy="577" r="9" fill="#01A88D"/><text x="1430" y="580" text-anchor="middle" class="badge">14</text>
+  </g>
+  <text x="993" y="590" class="s">Only the UNIVARIATE forecasts</text>
+  <text x="993" y="603" class="s">reach a prompt (REQ-505).</text>
+  <text x="993" y="616" class="s">Covariate runs are hidden rivals.</text>
+
+  <!-- ===== LANE 5 — ARTEFACTS ===== -->
+  <rect x="34" y="636" width="1572" height="118" fill="#F7FAF2" stroke="#7AA116" stroke-width="1.2"/>
+  <text x="48" y="662" class="lane">Artefacts written</text><text x="48" y="678" class="lanes">S3 · DynamoDB</text><text x="48" y="692" class="lanes">Bitemporal, append-only</text>
+
+  <g font-size="10" fill="#4F6B14">
+    <rect x="373" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="385" y="666">raw/{source}/{date}</text><text x="385" y="681" class="s">never published</text>
+    <rect x="528" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="540" y="666">price · event · macro</text><text x="540" y="681" class="s">knowledge_time stamped</text>
+    <rect x="683" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="695" y="666">events (versioned)</text><text x="695" y="681" class="s">overlay_version in SK</text>
+    <rect x="838" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="850" y="666">features</text><text x="850" y="681" class="s">boundaries stored inline</text>
+    <rect x="993" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="1005" y="666">scores · wiki pages</text><text x="1005" y="681" class="s">observed provenance</text>
+    <rect x="1148" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="1160" y="666">forecast tracks</text><text x="1160" y="681" class="s">4 numeric tracks</text>
+    <rect x="1303" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="1315" y="666">snapshots/ · predictions</text><text x="1315" y="681" class="s">prompt byte-exact</text>
+    <rect x="1458" y="650" width="140" height="40" rx="4" fill="#fff" stroke="#7AA116"/>
+    <text x="1470" y="666">wiki/_runs/{run_id}</text><text x="1470" y="681" class="s">the manifest</text>
+  </g>
+  <text x="218" y="712" class="s" fill="#4F6B14">Wiki pages are written BEFORE prediction reads them — the knowledge-accretion loop working, rather than one day stale.</text>
+  <text x="218" y="726" class="s" fill="#4F6B14">So steps 10–12 and step 16 must not be reordered or parallelised: step 16 reads what step 12 wrote.</text>
+  <text x="1390" y="712" class="s" fill="#4F6B14" font-weight="700">Manifest written last —</text>
+  <text x="1390" y="726" class="s" fill="#4F6B14" font-weight="700">a crash leaves the previous state valid</text>
+
+  <!-- ===== LANE 6 — CONTROLS & GATES ===== -->
+  <rect x="34" y="754" width="1572" height="166" fill="#FEF6F7" stroke="#DD344C" stroke-width="1.2"/>
+  <text x="48" y="780" class="lane">Controls &amp; gates</text><text x="48" y="796" class="lanes">Every one fails the step,</text><text x="48" y="810" class="lanes">never degrades silently</text>
+
+  <g>
+    <path d="M598 772 l40 22 -40 22 -40 -22 z" fill="#fff" stroke="#DD344C" stroke-width="1.4"/>
+    <text x="598" y="791" text-anchor="middle" class="s" font-weight="700">Validation</text>
+    <text x="598" y="802" text-anchor="middle" class="s">passes?</text>
+    <text x="598" y="832" text-anchor="middle" class="s" fill="#B02A3A">no → HALT the run</text>
+    <text x="598" y="845" text-anchor="middle" class="s" fill="#B02A3A">never substitute (REQ-209)</text>
+  </g>
+  <g>
+    <path d="M1373 772 l40 22 -40 22 -40 -22 z" fill="#fff" stroke="#DD344C" stroke-width="1.4"/>
+    <text x="1373" y="791" text-anchor="middle" class="s" font-weight="700">Severity &gt;</text>
+    <text x="1373" y="802" text-anchor="middle" class="s">threshold?</text>
+    <text x="1373" y="832" text-anchor="middle" class="s" fill="#B02A3A">yes → abstention rejected</text>
+    <text x="1373" y="845" text-anchor="middle" class="s" fill="#B02A3A">(REQ-609)</text>
+  </g>
+
+  <g font-size="9.5" fill="#B02A3A">
+    <rect x="838" y="772" width="140" height="36" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="850" y="787" font-size="10" fill="#16191F">Cut-off assertion</text><text x="850" y="800">knowledge_time ≤ cut-off</text>
+    <rect x="838" y="814" width="140" height="34" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="850" y="828" font-size="10" fill="#16191F">L9 UTC ordering</text><text x="850" y="841">source close &lt; target open</text>
+    <rect x="1148" y="772" width="140" height="36" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="1160" y="787" font-size="10" fill="#16191F">Snapshot integrity</text><text x="1160" y="800">prompt rebuilds byte-exact</text>
+    <rect x="1148" y="814" width="140" height="34" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="1160" y="828" font-size="10" fill="#16191F">Citation check</text><text x="1160" y="841">page existed at cut-off</text>
+    <rect x="1458" y="772" width="140" height="36" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="1470" y="787" font-size="10" fill="#16191F">Coherence check</text><text x="1470" y="800">NIFTY vs SENSEX tripwire</text>
+    <rect x="1458" y="814" width="140" height="34" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="1470" y="828" font-size="10" fill="#16191F">Too-good-to-be-true</text><text x="1470" y="841">skill &gt; ceiling fails build</text>
+    <rect x="683" y="772" width="140" height="36" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="695" y="787" font-size="10" fill="#16191F">Overlay version</text><text x="695" y="800">stamped, never in-place</text>
+    <rect x="993" y="772" width="140" height="36" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="1005" y="787" font-size="10" fill="#16191F">Provenance tag</text><text x="1005" y="800">seeded | observed</text>
+    <rect x="993" y="814" width="140" height="34" rx="4" fill="#fff" stroke="#DD344C"/>
+    <text x="1005" y="828" font-size="10" fill="#16191F">No model in score/</text><text x="1005" y="841">asserted in CI</text>
+  </g>
+  <text x="218" y="880" class="s" fill="#B02A3A" font-weight="700">Gate G4 — the leakage harness — must be green before ANY scored prediction.</text>
+  <text x="218" y="894" class="s" fill="#B02A3A">Under forward-only a leaked prediction cannot be re-run. There is no second attempt at a live day (REQ-1212).</text>
+
+  <!-- ===== FLOW ARROWS ===== -->
+  <path class="f" d="M358 296 H370"/>
+  <path class="f" d="M513 296 H525"/>
+  <path class="f" d="M668 296 H680"/>
+  <path class="f" d="M823 296 H835"/>
+  <path class="f" d="M978 296 H990"/>
+  <path class="f" d="M753 322 V449"/>
+  <path class="f" d="M793 504 V520 Q793 528 805 528 H900 Q912 528 912 296 H1130 Q1140 296 1140 286"/>
+  <path class="fg" d="M1063 322 V330"/>
+  <path class="fg" d="M1063 376 V382" marker-end="none"/>
+  <path class="fg" d="M1103 322 V440 Q1103 450 1063 450 V449"/>
+  <path class="fg" d="M1063 504 V510 Q1063 520 1053 520 V330" marker-end="none"/>
+  <path class="f" d="M1133 405 H1240 Q1252 405 1252 415 V562"/>
+  <path class="f" d="M1288 595 H1298"/>
+  <path class="f" d="M1443 595 Q1460 595 1460 560 V520 Q1460 508 1448 508 H1400 Q1388 508 1388 500"/>
+  <path class="f" d="M1443 478 H1452 Q1462 478 1462 468 V330"/>
+  <path class="f" d="M1528 322 V326"/>
+  <text x="1150" y="400" class="s">assemble prompts (15)</text>
+
+  <!-- ===== ERROR HANDLING BAND ===== -->
+  <rect x="34" y="936" width="1572" height="120" rx="5" fill="#FAFBFC" stroke="#98A2B3" stroke-width="1.2"/>
+  <text x="48" y="958" class="h">Failure handling — the rule is: never invent a value; always keep a value that was honestly produced (Design §7)</text>
+
+  <g font-size="10">
+    <rect x="48" y="968" width="296" height="74" rx="4" fill="#FEF6F7" stroke="#DD344C"/>
+    <text x="60" y="986" font-weight="600" fill="#B02A3A">HALT the whole run</text>
+    <text x="60" y="1002" class="s">Ingest validation fails · price or calendar source</text>
+    <text x="60" y="1015" class="s">unavailable · classify or curate call fails after</text>
+    <text x="60" y="1028" class="s">3 retries · missing close at scoring</text>
+    <text x="60" y="1038" class="s" fill="#B02A3A">A missing day is a visible gap; a substituted one is silent.</text>
+
+    <rect x="360" y="968" width="296" height="74" rx="4" fill="#FFFBF6" stroke="#ED7100"/>
+    <text x="372" y="986" font-weight="600" fill="#B35A00">DEGRADE — continue the day</text>
+    <text x="372" y="1002" class="s">One prediction call fails → that instrument is</text>
+    <text x="372" y="1015" class="s">recorded as a missed day, the other ten stand.</text>
+    <text x="372" y="1028" class="s">News or supplementary source unavailable.</text>
+    <text x="372" y="1038" class="s" fill="#B35A00">Eleven calls exist so one failure costs one instrument.</text>
+
+    <rect x="672" y="968" width="296" height="74" rx="4" fill="#FEF6F7" stroke="#DD344C"/>
+    <text x="684" y="986" font-weight="600" fill="#B02A3A">HALT that instrument only</text>
+    <text x="684" y="1002" class="s">The run crosses an instrument's next market</text>
+    <text x="684" y="1015" class="s">open. Record a missed day — never publish late.</text>
+    <text x="684" y="1038" class="s" fill="#B02A3A">Post-open is invalid, not degraded (REQ-614).</text>
+
+    <rect x="984" y="968" width="296" height="74" rx="4" fill="#F7FAF2" stroke="#7AA116"/>
+    <text x="996" y="986" font-weight="600" fill="#4F6B14">RESUME from watermark</text>
+    <text x="996" y="1002" class="s">Crash mid-consolidation. The manifest is</text>
+    <text x="996" y="1015" class="s">unwritten, so the previous wiki state stands;</text>
+    <text x="996" y="1028" class="s">the next run resumes from the watermark.</text>
+    <text x="996" y="1038" class="s" fill="#4F6B14">This is what makes a run atomic (REQ-714).</text>
+
+    <rect x="1296" y="968" width="302" height="74" rx="4" fill="#F7FAFA" stroke="#00A4A6"/>
+    <text x="1308" y="986" font-weight="600" fill="#00767A">ALERT only — keep running</text>
+    <text x="1308" y="1002" class="s">The run exceeds its 60-minute budget without</text>
+    <text x="1308" y="1015" class="s">crossing any market open.</text>
+    <text x="1308" y="1038" class="s" fill="#00767A">A slow run is not a wrong run.</text>
+  </g>
+
+  <!-- ===== FOOTER / LEGEND ===== -->
+  <rect x="34" y="1072" width="1572" height="106" rx="5" fill="#FAFBFC" stroke="#D5DBDB"/>
+  <text x="48" y="1094" class="h">Legend</text>
+  <g transform="translate(48,1104)">
+    <rect width="14" height="14" rx="3" fill="#ED7100"/><text x="21" y="11" class="s">Deterministic — Lambda, no model</text>
+    <rect x="250" width="14" height="14" rx="3" fill="#01A88D"/><text x="271" y="11" class="s">Model call or numeric forecaster</text>
+    <rect x="490" width="14" height="14" rx="3" fill="#7AA116"/><text x="511" y="11" class="s">Artefact written</text>
+    <rect x="660" width="14" height="14" rx="3" fill="#DD344C"/><text x="681" y="11" class="s">Control, gate or hard failure</text>
+    <rect x="890" width="14" height="14" rx="3" fill="#E7157B"/><text x="911" y="11" class="s">Orchestration</text>
+    <circle cx="1050" cy="7" r="8" fill="#ED7100"/><text x="1050" y="11" text-anchor="middle" class="badge">n</text>
+    <text x="1066" y="11" class="s">Step number in SystemDesign §4</text>
+    <path d="M1310 7 h34" class="fg"/><text x="1352" y="11" class="s">Ordering-critical (REQ-1012)</text>
+  </g>
+  <text x="48" y="1146" class="s">Total elapsed: minutes. Total cost: ~$0.26 per run. Thirteen model calls a day — one classify, eleven predict, one curate — and everything else is arithmetic.</text>
+  <text x="48" y="1163" class="s">Steps 12a (correlation sweep) and 12b (calibration refit) produce inputs consumed by the NEXT day's run, not this one.</text>
+</svg>
