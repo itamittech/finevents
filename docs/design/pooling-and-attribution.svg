@@ -63,9 +63,9 @@
 
   <g>
     <rect x="470" y="248" width="272" height="70" rx="4" fill="#FEF3F4" stroke="#DD344C" stroke-width="1.8"/>
-    <text x="606" y="272" text-anchor="middle" font-size="26" font-weight="700" fill="#B02A3A">23.0 years</text>
+    <text x="606" y="272" text-anchor="middle" font-size="26" font-weight="700" fill="#B02A3A">11.8 years</text>
     <text x="606" y="292" text-anchor="middle" class="s" fill="#B02A3A">to detect the agent's contribution</text>
-    <text x="606" y="308" text-anchor="middle" class="s" fill="#B02A3A">sd of the difference = 0.0133</text>
+    <text x="606" y="308" text-anchor="middle" class="s" fill="#B02A3A">11 instruments, one sample a day</text>
   </g>
 
   <rect x="52" y="336" width="690" height="140" rx="4" fill="#fff" stroke="#DD344C" stroke-dasharray="4 3"/>
@@ -98,7 +98,7 @@
     <rect x="1012" y="184" width="150" height="68" rx="4" fill="#fff" stroke="#8C4FFF" stroke-width="2"/>
     <text x="1024" y="206" class="b" font-weight="600">POOLER</text>
     <text x="1024" y="222" class="s">deterministic log-pool</text>
-    <text x="1024" y="236" class="s">weights learned online</text>
+    <text x="1024" y="236" class="s">equal weights (ADR-0051)</text>
     <text x="1024" y="249" class="s" fill="#6B2FD6">arithmetic, not an LLM</text>
   </g>
 
@@ -123,9 +123,9 @@
   <path class="fg" d="M1162 345 H1196"/>
   <g>
     <rect x="1198" y="300" width="312" height="90" rx="4" fill="#E9F8F4" stroke="#01A88D" stroke-width="2"/>
-    <text x="1354" y="332" text-anchor="middle" font-size="30" font-weight="700" fill="#01705F">4.5 years</text>
+    <text x="1354" y="332" text-anchor="middle" font-size="30" font-weight="700" fill="#01705F">2.4 years</text>
     <text x="1354" y="354" text-anchor="middle" class="s" fill="#01705F">same system · same data · same day</text>
-    <text x="1354" y="370" text-anchor="middle" class="s" fill="#01705F">sd of the difference = 0.0041 — 3.2× smaller</text>
+    <text x="1354" y="370" text-anchor="middle" class="s" fill="#01705F">1.9 yr at ~4 scraped samples a day</text>
     <text x="1354" y="384" text-anchor="middle" class="s" fill="#01705F">5× faster, from a better question alone</text>
   </g>
 
@@ -215,5 +215,5 @@
 
   <text x="34" y="998" class="s">Neither change touches ADR-0037 (forward-only), the wiki, the leakage harness or the provenance model. Both supersede parts of ADR-0032 and ADR-0046 — decisions, not edits.</text>
   <text x="34" y="1016" class="s">What pooling does <tspan font-style="italic">not</tspan> fix: individual correlation pages still need ~24 observations. Per-page confidence stays a year-2–3 matter. That is arithmetic and no design change reaches it.</text>
-  <text x="34" y="1044" class="s" fill="#687787">Numbers from docs/analysis/power/ · metals set, event-window measurement, κ = 0.7 · Chronos ρ=0.06, TimesFM ρ=0.055, agent ρ=0.10</text>
+  <text x="34" y="1044" class="s" fill="#687787">Numbers from docs/analysis/power/ · 11 instruments as scoped, κ = 0.5, simple scraped sampling · Chronos ρ=0.06, TimesFM ρ=0.055, agent ρ=0.10. Narrowing to metals is WORSE (5.9 yr) — breadth is what buys independent observations.</text>
 </svg>
