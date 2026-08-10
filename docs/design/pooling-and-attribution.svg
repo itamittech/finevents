@@ -18,7 +18,7 @@
   <rect width="1560" height="1080" fill="#fff"/>
 
   <text x="34" y="42" font-size="22" font-weight="700" fill="#232F3E">Pooling and leave-one-out attribution</text>
-  <text x="34" y="64" class="s" font-size="11.5">Two changes to what the system computes. Neither touches forward-only, the wiki, or the leakage harness. Together: 23 years → 4.5 years, and a product on day 1.</text>
+  <text x="34" y="64" class="s" font-size="11.5">Two changes to what the system computes. Neither touches forward-only, the wiki, or the leakage harness. Together: 11.8 years → 2.4 years, and a product on day 1.</text>
 
   <!-- ================= TODAY ================= -->
   <rect x="34" y="88" width="726" height="404" rx="6" fill="#FEF6F7" stroke="#DD344C" stroke-width="1.5"/>
