@@ -64,3 +64,9 @@ data/
 
 # Python bytecode from the analysis scripts
 __pycache__/
+
+# Stray probe output from research passes — never repo content
+/bbmeta.txt
+/bcb4.json
+/x1.json
+*.probe.json
