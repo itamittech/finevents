@@ -11,7 +11,8 @@
 CURRENT INCREMENT:  0 — Toolchain and walking skeleton
 STATUS:             not started
 LAST LANDED:        — (nothing yet; the specification record is complete, no code exists)
-BLOCKED ON:         T0.13 Python version intersection · T0.12 data-terms questions
+BLOCKED ON:         T0.13 Python version intersection · T0.12 data-terms (3 open)
+RESOLVED:           metals price history — exists, fetched, in data/ (scripts/fetch_metals_history.py)
 ```
 
 **Update this block whenever an increment lands.** It is the answer to "where are we?" and it is the first thing any session reads.

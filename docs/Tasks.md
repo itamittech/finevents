@@ -82,7 +82,8 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 | T3.4 | jugaad-data NSE fetcher | REQ-204 | |
 | T3.5 | FRED covariate fetcher — **five** series: `DGS10`, `DFII10`, `DTWEXBGS`, `VIXCLS`, `DCOILWTICO` | REQ-205 | ADR-0017 is authoritative. Several documents previously enumerated only four while their counts said five |
 | T3.6 | GDELT 2.0 event fetcher | REQ-206 | |
-| T3.7 | Firecrawl fetchers — MCX, economic calendars, news | REQ-207 | JSON-schema extraction |
+| T3.7 | Firecrawl fetchers — SENSEX, spot metals, MCX, economic calendars, news | REQ-207 | JSON-schema extraction |
+| T3.13 | **Decide the metals currency convention.** REQ-201 says gold spot USD/oz; the available free daily history (Bank of Russia) is RUB/gram | REQ-201, REQ-204 | Converting via CBR's own USD/RUB carries **1.09% error against a 1.14% daily signal** — bucket assignment at ±0.5σ would be near-random. Either adopt local-currency series and say so, or find a native-USD daily source (Alpha Vantage `GOLD_SILVER_HISTORY`, free key, untested). **Not blocking now; blocks metals ingest.** Evidence in `DATA_SOURCES.md` |
 | T3.8 | Ingest validation: schema, range plausibility, session continuity | REQ-208 | |
 | T3.9 | Validation failure halts the run; no substituted value ever written | REQ-209 | |
 | T3.10 | Fetch-time stamping at ingest, not derived later | REQ-110 | |
