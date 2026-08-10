@@ -1,6 +1,9 @@
 # ADR-0050: The data-terms gate binds on data publication, not on repository visibility
 
 - **Status:** Accepted
+
+> **Amendment note (added on review):** the **Stooq** question in the list below is **void** — [ADR-0053](0053-remove-stooq-as-a-price-source.md) removed the source. Three data-terms questions remain, not four.
+
 - **Date:** 2026-08-09
 - **Supersedes:** the *timing of the verification gate* in [ADR-0044](0044-licence-and-publication-policy.md). Everything else in ADR-0044 stands unchanged.
 - **Serves:** REQ-1111, REQ-1106, REQ-1107, REQ-1112

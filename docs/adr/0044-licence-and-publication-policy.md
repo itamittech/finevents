@@ -2,6 +2,9 @@
 
 - **Status:** Accepted
 
+> **Amendment note (added on review):** the **Stooq** question in the list below is **void** — [ADR-0053](0053-remove-stooq-as-a-price-source.md) removed the source. Three data-terms questions remain, not four.
+
+
 > **Amendment note (added on review):** the *timing* of the four-question gate below — "before the repository goes public" — is **superseded by [ADR-0050](0050-publication-gate-scoped-to-data.md)**. The gate now binds before the first commit that acquires data or the first publication of derived artefacts, whichever comes first, and is asserted in CI rather than remembered. Everything else in this ADR, including the published/never-published sets, stands unchanged.
 - **Date:** 2026-08-09
 - **Serves:** ADR-0033 (evaluation harness as deliverable), ADR-0014 (pre-commit security), `Product.md`

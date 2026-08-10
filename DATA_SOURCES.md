@@ -9,12 +9,11 @@ Per [ADR-0044](docs/adr/0044-licence-and-publication-policy.md), every source's 
 | Source | Used for | Access | Licence / terms | Attribution required | Status |
 |---|---|---|---|---|---|
 | [GDELT 2.0](https://www.gdeltproject.org/) | Unscheduled world events, Feb 2015→ | BigQuery free tier / file downloads | **CC BY 4.0** | **Yes** — wherever data or derivatives appear | Granularity of attribution ❓ open |
-| [Stooq](https://stooq.com/) | Index and metals OHLCV history | Keyless CSV | Site terms | To confirm | Redistribution of derived aggregates ❓ open |
 | [jugaad-data](https://github.com/jugaad-py/jugaad-data) | NSE index history | Python library | Library MIT; data is NSE's | To confirm | ❓ open |
-| [FRED](https://fred.stlouisfed.org/) | Regime covariates — nominal 10Y (`DGS10`), real 10Y (`DFII10`), dollar index (`DTWEXBGS`), VIX (`VIXCLS`), WTI (`DCOILWTICO`) | Keyless CSV | St. Louis Fed terms; most series are public domain, some are third-party | Varies by series | Terms for derived series ❓ open |
-| [Firecrawl](https://www.firecrawl.dev/) | MCX prices, economic calendars, news articles | API, key in Secrets Manager | Firecrawl ToS; **retrieved content belongs to its publishers** | n/a — content is never redistributed | ✅ policy set |
+| [FRED](https://fred.stlouisfed.org/) | **S&P 500, Nasdaq 100, Dow** (`SP500`, `NASDAQ100`, `DJIA`) + regime covariates — nominal 10Y (`DGS10`), real 10Y (`DFII10`), dollar index (`DTWEXBGS`), VIX (`VIXCLS`), WTI (`DCOILWTICO`) | Keyless CSV | St. Louis Fed terms; most series are public domain, some are third-party | Varies by series | Terms for derived series ❓ open |
+| [Firecrawl](https://www.firecrawl.dev/) | SENSEX, the four spot metals, MCX prices, economic calendars, news articles | API, key in Secrets Manager | Firecrawl ToS; **retrieved content belongs to its publishers** | n/a — content is never redistributed | ✅ policy set |
 | MCX | Indian domestic metal prices | via Firecrawl | Exchange terms | n/a — never redistributed | ✅ policy set |
-| Market calendars (NSE, NYSE) | Session instants in UTC, DST | Maintained in this repo | Ours | — | ✅ |
+| Market calendars (NSE, BSE, NASDAQ, NYSE, MCX) | Session instants in UTC, DST (ADR-0049) | Maintained in this repo | Ours | — | ✅ |
 | Festival / holiday table | Calendar-deterministic factors | Maintained in this repo | Ours | — | ✅ |
 
 ## The publication boundary
@@ -39,7 +38,8 @@ Per [ADR-0044](docs/adr/0044-licence-and-publication-policy.md), every source's 
 
 Tracked as REQ-1111. These are not resolvable by judgement and need actual answers.
 
-1. **Stooq** — do its terms permit redistribution of *derived aggregates* such as volatility estimates and bucket boundaries?
-2. **FRED** — terms for derived series; which FRED series carry third-party restrictions?
-3. **GDELT** — must CC BY 4.0 attribution appear per-record or per-dataset?
-4. **Severity scores** — a model read an article and produced a number. Does that number constitute a derivative work of the article? *This is the genuinely uncertain one.*
+> Stooq's question is **void** — [ADR-0053](docs/adr/0053-remove-stooq-as-a-price-source.md) removed the source, which now serves a bot challenge instead of CSV. Three remain.
+
+1. **FRED** — terms for derived series; which FRED series carry third-party restrictions?
+2. **GDELT** — must CC BY 4.0 attribution appear per-record or per-dataset?
+3. **Severity scores** — a model read an article and produced a number. Does that number constitute a derivative work of the article? *This is the genuinely uncertain one.*

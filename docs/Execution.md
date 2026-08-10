@@ -112,11 +112,11 @@ aws iam simulate-principal-policy --policy-source-arn <dev-exec-role>   --action
 ### 2 — One instrument, end to end
 **Goal.** The first vertical slice: one source, one instrument, all the way through.
 
-**You'll see.** Gold spot prices in the store, each stamped with `knowledge_time`, fetched from Stooq by a Lambda running in dev. An as-of query against real data returns what was knowable on a past date.
+**You'll see.** S&P 500 closes in the store, each stamped with `knowledge_time`, fetched from FRED by a Lambda running in dev. An as-of query against real data returns what was knowable on a past date.
 
 **Verify.** Invoke the ingest function, then query the repository as-of a week ago and confirm it excludes the last week's bars.
 
-**Covers.** T3.3, T3.8–T3.10 · REQ-204, 208, 209, 110.
+**Covers.** T3.3, T3.8–T3.10 · REQ-204, 208, 209, 110. FRED, not Stooq (ADR-0053).
 **Not yet.** Other sources, other instruments, calendars, validation beyond the basics.
 **Size.** 2–3 days.
 

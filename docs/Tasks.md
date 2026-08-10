@@ -36,7 +36,7 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 | T0.9a | **Forward-only lint** — no call site outside `harness/` and the Lane A calibration path constructs an `AsOfRepository` with an `as_of` earlier than today; no replay entry point exists at any scope | REQ-601 | Same AST walk and module graph as T0.9, so write it in the same pass. **This is the only mechanical enforcement of ADR-0037**, the project's largest decision — until it exists, forward-only is aspirational rather than asserted |
 | T0.10 | Traceability check, three assertions: every **Accepted** ADR referenced by ≥1 REQ; every REQ carrying a verification code; **every REQ reachable from a task** | REQ-006 | The third fails today on the REQs listed under "Requirement coverage gaps" below. Fix the requirements, never weaken the check. "Accepted" scopes out superseded ADRs like 0006 |
 | T0.11 | **Clear the ten pre-build verification items** in [`aws-architecture.md`](design/aws-architecture.md) § "Verification needed before build" | — | Do not restate the list here; it drifts. Includes whether Bedrock Batch Inference supports prompt caching, which underwrites both the backfill line and the caching credit |
-| T0.12 | **Clear the four data-terms questions**, asserted in CI as a precondition on Phase 3 and on T12.16 | REQ-1111 | ADR-0050 rebinds the gate: it blocks **data**, not repository visibility. An open question in `DATA_SOURCES.md` blocks the fetcher for that source |
+| T0.12 | **Clear the three data-terms questions**, asserted in CI as a precondition on Phase 3 and on T12.16 | REQ-1111 | ADR-0050 rebinds the gate: it blocks **data**, not repository visibility. An open question in `DATA_SOURCES.md` blocks the fetcher for that source |
 | T0.13 | **Choose the toolchain**: Python version, packaging/lockfile, test runner, AWS mocking, CI platform | — | The Python version is the one irreversible choice — it must satisfy Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image. Verify that intersection **before** T0.8 |
 | T0.14 | *(settled by [ADR-0050](adr/0050-publication-gate-scoped-to-data.md) — the repo stays public; the gate moved to T0.12)* | — | |
 | T0.15 | `Contributing.md` — including `pre-commit install` as a required setup step | REQ-1117 | ADR-0014 names this consequence explicitly; the hooks do nothing uninstalled |
@@ -78,7 +78,7 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 |---|---|---|---|
 | T3.1 | Market calendars as **UTC instants** for **NSE, BSE, NASDAQ, NYSE, MCX** (both sessions) + the ADR-0049 synthetic convention for OTC spot metals | REQ-211 | Input to the L9 test. Five venues, not two. MCX evening close overlaps the US session — the asymmetric case REQ-1204 must cover. Missing entry = hard CI failure |
 | T3.2 | Festival/holiday table with 12-month forward coverage asserted | REQ-210 | |
-| T3.3 | Stooq price fetcher | REQ-204 | |
+| T3.3 | FRED index fetcher — `SP500`, `NASDAQ100`, `DJIA` | REQ-204 | Replaces the Stooq fetcher (ADR-0053). Free tier gives ~10y for SP500/DJIA — short of GDELT's Feb-2015 start, so the seed for those two begins 2016 |
 | T3.4 | jugaad-data NSE fetcher | REQ-204 | |
 | T3.5 | FRED covariate fetcher — **five** series: `DGS10`, `DFII10`, `DTWEXBGS`, `VIXCLS`, `DCOILWTICO` | REQ-205 | ADR-0017 is authoritative. Several documents previously enumerated only four while their counts said five |
 | T3.6 | GDELT 2.0 event fetcher | REQ-206 | |

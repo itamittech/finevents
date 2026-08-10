@@ -3,7 +3,7 @@
 **Status:** Baseline v1
 **Date:** 2026-08-09
 **Governed by:** [ADR-0001](adr/0001-spec-driven-development-with-adrs.md) — no code for a feature until its requirement exists and is numbered
-**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0052](adr/README.md)
+**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0053](adr/README.md)
 
 ## How to read this
 
@@ -81,7 +81,7 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-201 | The system acquires prices for 11 instruments: NIFTY 50, SENSEX, S&P 500, Nasdaq, Dow, gold spot USD/oz, silver, platinum, palladium, MCX gold INR, MCX silver INR. | ADR-0009, 0003 | `I` |
 | REQ-202 | Gold is tracked at both USD/oz spot and MCX INR as separate series. | ADR-0003 | `I` |
 | REQ-203 | Individual equities are **not** ingested in v1. | ADR-0009 | `R` |
-| REQ-204 | Price history is acquired from Stooq (CSV) and jugaad-data (NSE), both keyless. | ADR-0010 | `I` |
+| REQ-204 | Prices are acquired from **FRED** (`SP500`, `NASDAQ100`, `DJIA` — keyless), **jugaad-data** (NIFTY 50), and **Firecrawl** (SENSEX, the four spot metals, MCX gold and silver). Sources are chosen for permissive terms, never for a scraper's ability to reach them. | ADR-0053, 0010 | `I` |
 | REQ-205 | **Five** regime covariates are acquired from FRED, keyless: nominal 10Y yield (`DGS10`), 10Y TIPS real yield (`DFII10`), trade-weighted dollar index (`DTWEXBGS`), VIX (`VIXCLS`), WTI crude (`DCOILWTICO`). The set and its order are fixed — REQ-406 makes the regime block byte-identical across all 11 prompts, so the field count is a wire shape baked into every prompt snapshot and both numeric covariate arrays. | ADR-0017 | `I` |
 | REQ-206 | Events are acquired from GDELT 2.0 (Feb 2015→present). | ADR-0007 | `I` |
 | REQ-207 | MCX prices, economic-calendar consensus and actuals, and news articles are acquired through Firecrawl using JSON-schema extraction. | ADR-0002, 0012 | `I` |
@@ -316,7 +316,7 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-1108 | Source URLs and fetch timestamps are published so a third party can re-acquire material under their own terms. | ADR-0044 | `R` |
 | REQ-1109 | `DATA_SOURCES.md` records every source's licence and attribution obligation, updated whenever a source is added. | ADR-0044 | `CI` |
 | REQ-1110 | GDELT attribution appears wherever its data or derivatives are published. | ADR-0044 | `R` |
-| REQ-1111 | Four data-terms questions clear before **whichever comes first**: the first commit adding a fetcher for the affected source (Phase 3), or the first publication of derived artefacts (T12.16). Asserted in CI — an open question in `DATA_SOURCES.md` blocks both. The questions: Stooq redistribution of derived aggregates, FRED terms for derived series, GDELT attribution granularity, and whether model-derived severity scores constitute a derivative work of the source article. **Repository visibility is not the gate** (ADR-0050); the risk is in the data, and none is present. | ADR-0050, 0044 | `CI` |
+| REQ-1111 | **Three** data-terms questions clear before **whichever comes first**: the first commit adding a fetcher for the affected source (Phase 3), or the first publication of derived artefacts (T12.16). Asserted in CI — an open question in `DATA_SOURCES.md` blocks both. The questions: FRED terms for derived series, GDELT attribution granularity, and whether model-derived severity scores constitute a derivative work of the source article. **Repository visibility is not the gate** (ADR-0050); the risk is in the data, and none is present. | ADR-0050, 0044 | `CI` |
 | REQ-1113b | Until question 4 is answered by someone qualified, severity scores are published **only as aggregates joined to event categories** — never row-joined to an article identifier, URL or headline. Stricter than ADR-0044 permits, deliberately, so a legal question does not block the build. | ADR-0050 | `CI` |
 | REQ-1112 | Publication of the derived record is a standing obligation, not a one-off release. | ADR-0044 | `R` |
 

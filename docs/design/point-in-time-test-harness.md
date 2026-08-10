@@ -279,5 +279,5 @@ The schema is not negotiable up front. `knowledge_time` cannot be retrofitted on
 ## Open questions
 
 - What is the right value for the too-good-to-be-true ceiling? Too low and it fires constantly; too high and it never fires. Needs calibrating against the first months of live results.
-- Where exactly does `knowledge_time` come from for Stooq CSV, which publishes no ingestion timestamp? A conservative documented estimate is the fallback.
+- ~~Where exactly does `knowledge_time` come from for Stooq CSV?~~ **Closed with the source** ([ADR-0053](../adr/0053-remove-stooq-as-a-price-source.md)). Firecrawl-acquired prices take fetch time, which is the conservative and correct choice.
 - ~~How long is the tuning period, and what closes it?~~ **Settled by [ADR-0045](../adr/0045-tuning-window.md):** 60 trading days, ending when the configuration freezes — which is when the ADR-0039 shadow A/B concludes. Results within it are published labelled `tuning` but excluded from headline skill. No extension.

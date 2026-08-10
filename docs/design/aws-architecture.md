@@ -18,7 +18,7 @@
 
 | Boundary | What it means here |
 |---|---|
-| **Outside AWS** | GDELT (via BigQuery on GCP), Stooq, FRED, jugaad-data, Firecrawl. All reached by **outbound HTTPS only** — nothing external has an inbound path into the account. |
+| **Outside AWS** | GDELT (via BigQuery on GCP), FRED, jugaad-data, Firecrawl. All reached by **outbound HTTPS only** — nothing external has an inbound path into the account. |
 | **AWS Cloud** | Everything the project runs. |
 | **Region — us-east-1** | Single region. No cross-region replication, no multi-region failover; a region outage is a missed day, which under forward-only is a visible gap rather than a corruption. |
 | **Account** | One account, three environment stacks. **IAM is the only boundary** between dev and the production learning history (ADR-0024) — hence env-prefixed resources and explicit denies on prod. |
@@ -34,7 +34,7 @@ Putting the pipeline in a VPC would buy nothing and cost a great deal in proport
 
 | If a VPC were added | Monthly |
 |---|---|
-| NAT gateway (needed for Lambda-in-VPC to reach Firecrawl, FRED, Stooq, BigQuery) | ~$32 + data processing |
+| NAT gateway (needed for Lambda-in-VPC to reach Firecrawl, FRED, BigQuery) | ~$32 + data processing |
 | Interface VPC endpoints for Bedrock, Secrets Manager, SSM, DynamoDB… | ~$7 each |
 
 A NAT gateway alone roughly **doubles the entire system's cost** against the $16–33/month budget, to isolate components that have no network surface to isolate. The security boundary that actually matters here is IAM, and that is where the effort goes (REQ-1003).
@@ -49,7 +49,7 @@ flowchart TB
     subgraph sources["Data sources"]
         direction LR
         GD["GDELT 2.0<br/>events, Feb 2015→"]
-        ST["Stooq / FRED / jugaad<br/>prices, regime, NSE"]
+        ST["FRED / jugaad<br/>indices, regime, NSE"]
         FC["Firecrawl<br/>news, MCX, calendars"]
     end
 
@@ -168,7 +168,7 @@ Estimates. Token and CPU figures are calculated, not measured. Defaults per ADR-
 | ├ Lambda | ~200 short invocations/day, incl. the nightly correlation sweep (ADR-0041) | $0.52 |
 | ├ Firecrawl | free tier, or Hobby | $0.00–16.00 |
 | ├ BigQuery — GDELT | free tier, 1TB/month | $0.00 |
-| └ Stooq, FRED, jugaad-data | keyless public sources | $0.00 |
+| └ FRED, jugaad-data | keyless public sources | $0.00 |
 | **Container runtime** | | **$0.50** |
 | ├ AgentCore Runtime | ~60s active CPU, ~600s × 4GB session | $0.30 |
 | └ Chronos + TimesFM | 44 forecasts/day, ~30s CPU, in-process | $0.05 |

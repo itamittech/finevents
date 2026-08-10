@@ -1,6 +1,9 @@
 # ADR-0010: Permit free keyless sources alongside Firecrawl
 
 - **Status:** Accepted
+
+> **Amendment note (added on review):** **Stooq is removed** by [ADR-0053](0053-remove-stooq-as-a-price-source.md) — it now returns a JavaScript bot challenge rather than CSV. Its role passes to FRED (US indices), jugaad-data (NIFTY) and Firecrawl (SENSEX, metals, MCX). The reasoning below stands except where it names Stooq.
+
 - **Date:** 2026-08-09
 - **Amends:** ADR-0002 (which declared Firecrawl the *sole* acquisition layer)
 - **Serves:** Historical backfill (ADR-0007), daily price ingest

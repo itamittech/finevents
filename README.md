@@ -6,7 +6,7 @@ FinEvents collects financial instrument prices and world events daily, maintains
 
 A negative answer is a valid and publishable outcome. The design is built so that a null result is believable.
 
-> **Status: pre-implementation.** The design phase is complete — 52 ADRs, requirements, design and a build plan. No code has been written yet. See [Tasks.md](docs/Tasks.md) for the build order.
+> **Status: pre-implementation.** The design phase is complete — 53 ADRs, requirements, design and a build plan. No code has been written yet. See [Tasks.md](docs/Tasks.md) for the build order.
 
 ## What makes this different
 

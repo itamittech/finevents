@@ -40,7 +40,7 @@ flowchart TB
     subgraph src["Sources — free or free-tier"]
         direction LR
         GD["GDELT 2.0<br/>events"]
-        PX["Stooq · jugaad · FRED<br/>prices, regime"]
+        PX["FRED · jugaad<br/>indices, regime"]
         FC["Firecrawl<br/>news · MCX · calendars"]
     end
 
@@ -192,7 +192,7 @@ One Step Functions execution, fired by EventBridge after the US close, trading-d
 | # | Step | Runs on | Model | Writes |
 |---|---|---|---|---|
 | 1 | Declare cut-off timestamp | Lambda | — | run record |
-| 2 | Fetch prices — Stooq, jugaad-data, MCX | Lambda | — | `raw/` |
+| 2 | Fetch prices — FRED, jugaad-data, Firecrawl (SENSEX, metals, MCX) | Lambda | — | `raw/` |
 | 3 | Fetch events — GDELT 2.0 | Lambda | — | `raw/` |
 | 4 | Fetch calendar consensus + actuals, news | Lambda (Firecrawl) | — | `raw/` |
 | 5 | Fetch regime covariates — FRED | Lambda | — | `raw/` |

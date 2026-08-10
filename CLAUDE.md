@@ -32,7 +32,7 @@ The toolchain is **not yet chosen** — no Python version, packaging tool, test 
 
 | Path | What it is |
 |---|---|
-| `docs/adr/README.md` | Index of all 52 ADRs, standing risks, open decisions. **Start here.** |
+| `docs/adr/README.md` | Index of all 53 ADRs, standing risks, open decisions. **Start here.** |
 | `docs/Requirement.md` | **188** numbered REQ-ids. **No code for a feature without one.** |
 | `docs/Design.md` | Module layout, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | Build order, dependencies, and the hard leakage gate |
@@ -44,7 +44,7 @@ The toolchain is **not yet chosen** — no Python version, packaging tool, test 
 | `docs/design/prediction-contract.md` | Prompt blocks, output schema, validation rules |
 | `docs/Product.md` | Positioning, prior art, non-goals |
 | `README.md` | Public-facing summary — written, and currently the most accurate short description |
-| `DATA_SOURCES.md` | Per-source licence and attribution; four data-terms questions still open |
+| `DATA_SOURCES.md` | Per-source licence and attribution; three data-terms questions still open |
 | `LICENSE`, `NOTICE` | Apache 2.0 (ADR-0044) |
 | `ProjectSummary.txt` | The original brief, with a status block mapping each point to where it landed |
 

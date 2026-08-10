@@ -31,10 +31,10 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0004](0004-step-functions-for-orchestration.md) | Step Functions for daily pipeline orchestration | Accepted | 2026-08-09 | Pipeline needs sub-minute or reactive triggering |
 | [0005](0005-llm-wiki-as-knowledge-layer.md) | Karpathy LLM Wiki pattern as the knowledge layer | Amended by 0026 | 2026-08-09 | Wiki exceeds ~500 pages or retrieval degrades |
 | [0006](0006-streamlit-frontend-with-exit-criteria.md) | Streamlit frontend, with defined exit criteria | Superseded by 0020 | 2026-08-09 | — |
-| [0007](0007-bootstrap-with-historical-backfill.md) | Bootstrap with historical backfill (GDELT 2.0 + free price history) | Accepted | 2026-08-09 | No out-of-sample value beyond climatology |
+| [0007](0007-bootstrap-with-historical-backfill.md) | Bootstrap with historical backfill (GDELT 2.0 + free price history) | Amended by 0053 | 2026-08-09 | No out-of-sample value beyond climatology |
 | [0008](0008-volatility-relative-movement-buckets.md) | Volatility-relative buckets, 1-day and 5-day horizons | Accepted | 2026-08-09 | RPS never beats climatology, or flat bucket >80% |
 | [0009](0009-scope-indices-and-metals-first.md) | Scope v1 to indices and metals; defer equities | Accepted | 2026-08-09 | Loop beats climatology (promote equities to v2) |
-| [0010](0010-permit-free-keyless-sources-alongside-firecrawl.md) | Permit free keyless sources alongside Firecrawl (amends 0002) | Accepted | 2026-08-09 | A free source starts requiring registration |
+| [0010](0010-permit-free-keyless-sources-alongside-firecrawl.md) | Permit free keyless sources alongside Firecrawl (amends 0002) | Amended by 0053 | 2026-08-09 | A free source starts requiring registration |
 | [0011](0011-cameo-substrate-with-financial-relevance-overlay.md) | CAMEO substrate with financial relevance overlay | Accepted | 2026-08-09 | Severity uncorrelated with realised volatility |
 | [0012](0012-scrape-economic-calendars-for-consensus.md) | Scrape public economic calendars for consensus | Accepted | 2026-08-09 | Consensus history unavailable beyond ~2 years |
 | [0013](0013-permit-abstention-with-tracked-coverage.md) | Permit abstention, with coverage tracked | **Superseded by 0048** | 2026-08-09 | — |
@@ -77,6 +77,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0050](0050-publication-gate-scoped-to-data.md) | The data-terms gate binds on **data publication, not repository visibility** (supersedes 0044's gate timing) | Accepted | 2026-08-09 | Any of the four data-terms questions resolves unfavourably |
 | [0051](0051-pooled-forecast-as-product-output.md) | **A pooled forecast is the product output** (supersedes 0032's no-combination rule) | Accepted | 2026-08-09 | The pool underperforms the best single track over a full measurement period |
 | [0052](0052-leave-one-out-attribution.md) | **Leave-one-out contribution is the primary skill endpoint** (amends 0046) | Accepted | 2026-08-09 | The pooled forecast is withdrawn or its composition changes materially |
+| [0053](0053-remove-stooq-as-a-price-source.md) | **Remove Stooq as a price source** — it now serves a bot challenge (amends 0007, 0010) | Accepted | 2026-08-09 | A free source with permissive terms and daily metals history appears |
 
 ## The forward-only turn
 
@@ -169,7 +170,7 @@ Tracked across ADRs, not owned by any single one:
 | Source | Path | Covers |
 |---|---|---|
 | GDELT 2.0 | Direct (BigQuery/files) | Unscheduled geopolitical events, Feb 2015→ |
-| Stooq | Direct (CSV) | Index and metals OHLCV history |
+| FRED | Direct (keyless CSV) | S&P 500, Nasdaq 100, Dow — and the five regime covariates |
 | jugaad-data | Direct (library) | NSE index history |
 | FRED | Direct (keyless CSV) | Regime covariates: real yields, dollar index, VIX, oil |
 | Festival/holiday table | Repo, maintained | Calendar-deterministic factors |

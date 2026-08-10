@@ -37,7 +37,7 @@
   </g>
   <g transform="translate(50,216)">
     <rect class="card" width="220" height="50"/><rect width="4" height="50" fill="#8C4FFF" rx="2"/>
-    <text x="16" y="21" class="t">Stooq · jugaad-data</text><text x="16" y="37" class="s">Keyless CSV / library · price history</text>
+    <text x="16" y="21" class="t">FRED · jugaad-data</text><text x="16" y="37" class="s">Keyless CSV / library · price history</text>
   </g>
   <g transform="translate(50,274)">
     <rect class="card" width="220" height="50"/><rect width="4" height="50" fill="#8C4FFF" rx="2"/>

@@ -315,8 +315,8 @@
     <text x="1026" y="901" text-anchor="end" class="s" fill="#B02A3A" font-weight="700">blocks T0.8</text>
 
     <rect x="48" y="918" width="988" height="30" rx="3" fill="#fff" stroke="#DD344C"/>
-    <text x="58" y="931" class="m" font-weight="600">Four data-terms questions (T0.12)</text>
-    <text x="58" y="943">Stooq · FRED · GDELT attribution · whether model-derived severity is a derivative work. Question 4 is legal, not technical.</text>
+    <text x="58" y="931" class="m" font-weight="600">Three data-terms questions (T0.12)</text>
+    <text x="58" y="943">FRED · GDELT attribution · whether model-derived severity is a derivative work. Question 4 is legal, not technical.</text>
     <text x="1026" y="937" text-anchor="end" class="s" fill="#B02A3A" font-weight="700">blocks Phase 3</text>
 
     <rect x="48" y="954" width="988" height="30" rx="3" fill="#fff" stroke="#DD344C"/>
