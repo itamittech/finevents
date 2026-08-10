@@ -1,0 +1,893 @@
+<title>How SAM Actually Deploys — and whether it travels</title>
+
+<style>
+  :root {
+    --paper:      #F2F4F7;
+    --card:       #FFFFFF;
+    --ink:        #141A24;
+    --ink-soft:   #4A5568;
+    --ink-faint:  #8592A6;
+    --rule:       #D5DBE3;
+    --local:      #0B6E77;
+    --local-wash: #0B6E7714;
+    --cloud:      #5B48CC;
+    --cloud-wash: #5B48CC14;
+    --warn:       #9C5B06;
+    --warn-wash:  #9C5B0614;
+
+    --measure: 68ch;
+
+    --sans: ui-sans-serif, "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:      #0D1219;
+      --card:       #151C26;
+      --ink:        #E5EBF3;
+      --ink-soft:   #A3B0C2;
+      --ink-faint:  #6B7A8D;
+      --rule:       #28323F;
+      --local:      #4FC5CE;
+      --local-wash: #4FC5CE1A;
+      --cloud:      #A093FF;
+      --cloud-wash: #A093FF1A;
+      --warn:       #E0A548;
+      --warn-wash:  #E0A5481A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0D1219;
+    --card:       #151C26;
+    --ink:        #E5EBF3;
+    --ink-soft:   #A3B0C2;
+    --ink-faint:  #6B7A8D;
+    --rule:       #28323F;
+    --local:      #4FC5CE;
+    --local-wash: #4FC5CE1A;
+    --cloud:      #A093FF;
+    --cloud-wash: #A093FF1A;
+    --warn:       #E0A548;
+    --warn-wash:  #E0A5481A;
+  }
+
+  :root[data-theme="light"] {
+    --paper:      #F2F4F7;
+    --card:       #FFFFFF;
+    --ink:        #141A24;
+    --ink-soft:   #4A5568;
+    --ink-faint:  #8592A6;
+    --rule:       #D5DBE3;
+    --local:      #0B6E77;
+    --local-wash: #0B6E7714;
+    --cloud:      #5B48CC;
+    --cloud-wash: #5B48CC14;
+    --warn:       #9C5B06;
+    --warn-wash:  #9C5B0614;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--measure); margin: 0 auto; }
+  .bleed { max-width: 1000px; margin-inline: auto; }
+
+  /* ---- masthead ---- */
+  header {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 56px 0 28px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: clamp(30px, 5vw, 46px);
+    letter-spacing: -0.028em;
+    line-height: 1.05;
+    text-wrap: balance;
+    margin: 0 0 16px;
+  }
+  .standfirst {
+    font-size: 19px;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  /* ---- headings ---- */
+  h2 {
+    font-family: var(--sans);
+    font-weight: 650;
+    font-size: 25px;
+    letter-spacing: -0.018em;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 56px 0 4px;
+  }
+  h2 + .dek {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    margin: 0 0 22px;
+  }
+  h3 {
+    font-family: var(--sans);
+    font-weight: 620;
+    font-size: 17px;
+    letter-spacing: -0.008em;
+    margin: 34px 0 8px;
+  }
+  p { margin: 0 0 16px; text-wrap: pretty; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.855em;
+    background: var(--cloud-wash);
+    padding: 0.1em 0.36em;
+    border-radius: 4px;
+    word-break: break-word;
+  }
+
+  strong { font-weight: 600; }
+
+  /* ---- figure ---- */
+  figure { margin: 30px auto 8px; }
+  .figscroll { overflow-x: auto; }
+  figure svg { display: block; width: 100%; min-width: 720px; height: auto; }
+  figcaption {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin-top: 14px;
+    max-width: 74ch;
+  }
+
+  /* SVG semantic hues — teal is your machine, violet is AWS. */
+  .s-local   { fill: var(--local); }
+  .s-cloud   { fill: var(--cloud); }
+  .s-ink     { fill: var(--ink); }
+  .s-soft    { fill: var(--ink-soft); }
+  .s-faint   { fill: var(--ink-faint); }
+  .s-warn    { fill: var(--warn); }
+  .p-local   { fill: var(--local-wash); stroke: var(--local); }
+  .p-cloud   { fill: var(--cloud-wash); stroke: var(--cloud); }
+  .box       { fill: var(--card); stroke: var(--rule); }
+  .box-hot   { fill: var(--warn-wash); stroke: var(--warn); }
+  .ln        { stroke: var(--ink-faint); fill: none; }
+  .ln-hot    { stroke: var(--warn); fill: none; }
+  .divider   { stroke: var(--ink-faint); fill: none; }
+
+  /* ---- stage list ---- */
+  .stages { list-style: none; padding: 0; margin: 24px 0 0; }
+  .stages > li {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 0 16px;
+    padding: 16px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding-top: 4px;
+    color: var(--ink-faint);
+  }
+  .stages h4 {
+    font-family: var(--sans);
+    font-weight: 620;
+    font-size: 16px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .stages p { margin: 0; font-size: 16px; color: var(--ink-soft); }
+  .where {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .where.local { color: var(--local); background: var(--local-wash); }
+  .where.cloud { color: var(--cloud); background: var(--cloud-wash); }
+
+  /* ---- tables ---- */
+  .tscroll { overflow-x: auto; margin: 22px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td {
+    text-align: left;
+    padding: 11px 14px 11px 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 620;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom-width: 1.5px;
+  }
+  td:first-child { font-family: var(--sans); font-weight: 560; white-space: nowrap; padding-right: 22px; }
+  .verdict { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+  .no  { color: var(--warn); }
+  .part { color: var(--cloud); }
+  .yes { color: var(--local); }
+
+  /* ---- pull quote ---- */
+  .pull {
+    border-left: 3px solid var(--local);
+    background: var(--local-wash);
+    padding: 18px 22px;
+    margin: 28px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .pull p:last-child { margin-bottom: 0; }
+
+  .caveat {
+    border-left: 3px solid var(--warn);
+    background: var(--warn-wash);
+    padding: 18px 22px;
+    margin: 28px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .caveat p:last-child { margin-bottom: 0; }
+
+  /* ---- side-by-side comparison ---- */
+  .vs { margin: 26px 0 8px; }
+  .vs-scenario {
+    font-family: var(--sans);
+    font-weight: 620;
+    font-size: 16px;
+    margin: 0 0 4px;
+  }
+  .vs-note {
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+    max-width: 72ch;
+  }
+  .vs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+  .pane {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: var(--card);
+    overflow: hidden;
+  }
+  .pane.sam { border-color: var(--local); }
+  .pane-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .pane.sam .pane-head { background: var(--local-wash); }
+  .pane-name {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 640;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .pane.sam .pane-name { color: var(--local); }
+  .pane-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .pane pre {
+    margin: 0;
+    padding: 14px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    tab-size: 2;
+  }
+  .pane pre code { background: none; padding: 0; font-size: inherit; }
+  .c { color: var(--ink-faint); font-style: italic; }
+  .k { color: var(--cloud); }
+  .gen { color: var(--warn); font-weight: 600; }
+  .breaks {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0 0;
+    padding: 12px 16px;
+    border-radius: 6px;
+    background: var(--warn-wash);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .breaks b { color: var(--warn); font-weight: 620; white-space: nowrap; }
+  .breaks p { margin: 0; }
+
+  hr.soft {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 40px 0;
+  }
+
+  @media (max-width: 760px) {
+    .vs-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  footer {
+    max-width: var(--measure);
+    margin: 72px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+  }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .stages > li { grid-template-columns: 24px 1fr; gap: 0 12px; }
+  }
+</style>
+
+<header>
+  <p class="eyebrow">FinEvents · increment 0 · reference</p>
+  <h1>How SAM actually deploys</h1>
+  <p class="standfirst">
+    The conversion from SAM to CloudFormation does not happen on your machine. Knowing
+    exactly where it happens explains most of what else is confusing about this pipeline.
+  </p>
+</header>
+
+<div class="bleed">
+  <h2>The one thing worth internalising</h2>
+  <p class="dek">local vs. remote — where the template changes shape</p>
+</div>
+
+<div class="wrap">
+  <p>
+    Running <code>sam build</code> on the FinEvents template produced
+    <code>.aws-sam/build/template.yaml</code>. That file still declares
+    <code>Type: AWS::Serverless::Function</code> and still carries
+    <code>Transform: AWS::Serverless-2016-10-31</code> at the top. Nothing was converted.
+  </p>
+  <p>
+    SAM is a <strong>CloudFormation macro</strong>. The expansion runs inside AWS, after your
+    template has been uploaded. The SAM CLI's job is to get the template and the code there —
+    not to translate them.
+  </p>
+</div>
+
+<figure class="bleed">
+  <div class="figscroll">
+    <svg viewBox="0 0 960 320" role="img"
+         aria-label="Six-stage deploy pipeline. Three stages run on your machine and leave the resource type unchanged as AWS::Serverless::Function, only rewriting CodeUri. After the CreateChangeSet API call crosses into AWS, the SAM transform expands the type into AWS::Lambda::Function.">
+
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/>
+        </marker>
+      </defs>
+
+      <!-- region panels -->
+      <rect class="p-local" x="16" y="34" width="454" height="248" rx="10" stroke-width="1"/>
+      <rect class="p-cloud" x="490" y="34" width="454" height="248" rx="10" stroke-width="1"/>
+
+      <text class="s-local" x="16" y="24" font-family="ui-monospace, monospace"
+            font-size="11" letter-spacing="1.6">YOUR MACHINE</text>
+      <text class="s-cloud" x="490" y="24" font-family="ui-monospace, monospace"
+            font-size="11" letter-spacing="1.6">AWS</text>
+
+      <!-- boundary -->
+      <line class="divider" x1="480" y1="14" x2="480" y2="300"
+            stroke-width="1" stroke-dasharray="3 5"/>
+
+      <!-- ================= stage boxes, row 1 ================= -->
+      <rect class="box" x="31"  y="56" width="132" height="54" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="97" y="79" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">template.yaml</text>
+      <text class="s-faint" x="97" y="96" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11">you write it</text>
+
+      <rect class="box" x="177" y="56" width="132" height="54" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="243" y="79" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">sam build</text>
+      <text class="s-faint" x="243" y="96" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11">stage the code</text>
+
+      <rect class="box" x="323" y="56" width="132" height="54" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="389" y="79" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">sam deploy</text>
+      <text class="s-faint" x="389" y="96" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11">zip, upload to S3</text>
+
+      <rect class="box-hot" x="505" y="56" width="132" height="54" rx="7" stroke-width="1.4"/>
+      <text class="s-warn" x="571" y="79" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" font-weight="600">SAM transform</text>
+      <text class="s-warn" x="571" y="96" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11">macro expands</text>
+
+      <rect class="box" x="651" y="56" width="132" height="54" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="717" y="79" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">changeset</text>
+      <text class="s-faint" x="717" y="96" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11">a plan, not an act</text>
+
+      <rect class="box" x="797" y="56" width="132" height="54" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="863" y="79" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12">execute</text>
+      <text class="s-faint" x="863" y="96" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11">provision the DAG</text>
+
+      <!-- ================= arrows ================= -->
+      <line class="ln" x1="165" y1="83" x2="175" y2="83" stroke-width="1.2" marker-end="url(#ar)"/>
+      <line class="ln" x1="311" y1="83" x2="321" y2="83" stroke-width="1.2" marker-end="url(#ar)"/>
+
+      <!-- the crossing -->
+      <line class="ln-hot" x1="457" y1="83" x2="503" y2="83" stroke-width="1.6" marker-end="url(#ar)"/>
+      <text class="s-warn" x="480" y="46" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10">CreateChangeSet</text>
+
+      <line class="ln" x1="639" y1="83" x2="649" y2="83" stroke-width="1.2" marker-end="url(#ar)"/>
+      <line class="ln" x1="785" y1="83" x2="795" y2="83" stroke-width="1.2" marker-end="url(#ar)"/>
+      <text class="s-faint" x="717" y="126" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="10">you approve</text>
+
+      <!-- ================= row 2: what the template says ================= -->
+      <text class="s-faint" x="31" y="160" font-family="ui-sans-serif, sans-serif" font-size="10.5"
+            letter-spacing="0.8">WHAT THE TEMPLATE SAYS AT EACH STEP</text>
+
+      <rect class="box" x="31"  y="172" width="132" height="86" rx="6" stroke-width="1"/>
+      <text class="s-faint" x="41" y="190" font-family="ui-monospace, monospace" font-size="9.5">CodeUri:</text>
+      <text class="s-local" x="41" y="204" font-family="ui-monospace, monospace" font-size="10">src/lambda/hello/</text>
+      <text class="s-faint" x="41" y="226" font-family="ui-monospace, monospace" font-size="9.5">Type:</text>
+      <text class="s-ink" x="41" y="240" font-family="ui-monospace, monospace" font-size="10">::Serverless::</text>
+
+      <rect class="box" x="177" y="172" width="132" height="86" rx="6" stroke-width="1"/>
+      <text class="s-faint" x="187" y="190" font-family="ui-monospace, monospace" font-size="9.5">CodeUri:</text>
+      <text class="s-local" x="187" y="204" font-family="ui-monospace, monospace" font-size="10">HelloFn</text>
+      <text class="s-faint" x="187" y="226" font-family="ui-monospace, monospace" font-size="9.5">Type:</text>
+      <text class="s-ink" x="187" y="240" font-family="ui-monospace, monospace" font-size="10">::Serverless::</text>
+
+      <rect class="box" x="323" y="172" width="132" height="86" rx="6" stroke-width="1"/>
+      <text class="s-faint" x="333" y="190" font-family="ui-monospace, monospace" font-size="9.5">CodeUri:</text>
+      <text class="s-local" x="333" y="204" font-family="ui-monospace, monospace" font-size="10">s3://…/&lt;sha&gt;</text>
+      <text class="s-faint" x="333" y="226" font-family="ui-monospace, monospace" font-size="9.5">Type:</text>
+      <text class="s-ink" x="333" y="240" font-family="ui-monospace, monospace" font-size="10">::Serverless::</text>
+
+      <rect class="box-hot" x="505" y="172" width="132" height="86" rx="6" stroke-width="1.4"/>
+      <text class="s-faint" x="515" y="190" font-family="ui-monospace, monospace" font-size="9.5">Code:</text>
+      <text class="s-cloud" x="515" y="204" font-family="ui-monospace, monospace" font-size="10">S3Bucket / S3Key</text>
+      <text class="s-faint" x="515" y="226" font-family="ui-monospace, monospace" font-size="9.5">Type:</text>
+      <text class="s-warn" x="515" y="240" font-family="ui-monospace, monospace" font-size="10" font-weight="600">::Lambda::</text>
+
+      <!-- the point -->
+      <line class="ln" x1="163" y1="215" x2="175" y2="215" stroke-width="1" stroke-dasharray="2 3"/>
+      <line class="ln" x1="309" y1="215" x2="321" y2="215" stroke-width="1" stroke-dasharray="2 3"/>
+      <line class="ln-hot" x1="457" y1="215" x2="503" y2="215" stroke-width="1.6" marker-end="url(#ar)"/>
+
+      <text class="s-soft" x="243" y="278" text-anchor="middle"
+            font-family="ui-sans-serif, sans-serif" font-size="11">
+        three local steps — the type never changes
+      </text>
+      <text class="s-warn" x="700" y="278" text-anchor="middle"
+            font-family="ui-sans-serif, sans-serif" font-size="11" font-weight="600">
+        the expansion happens here, server-side
+      </text>
+    </svg>
+  </div>
+  <figcaption>
+    The SAM CLI rewrites <code>CodeUri</code> twice and never touches <code>Type</code>. Only after
+    the <code>CreateChangeSet</code> call crosses into AWS does the macro turn
+    <code>AWS::Serverless::Function</code> into <code>AWS::Lambda::Function</code>. This is why
+    <code>sam validate --lint</code> needs no credentials — it checks grammar, and grammar is local.
+  </figcaption>
+</figure>
+
+<div class="wrap">
+  <ol class="stages">
+    <li>
+      <span class="num">01</span>
+      <div>
+        <h4>Author <span class="where local">local</span></h4>
+        <p>You write <code>template.yaml</code>. <code>Globals</code>, <code>Conditions</code> and
+        <code>!If</code> are all still unresolved text at this point.</p>
+      </div>
+    </li>
+    <li>
+      <span class="num">02</span>
+      <div>
+        <h4><code>sam build</code> <span class="where local">local</span></h4>
+        <p>Copies each function's source into <code>.aws-sam/build/&lt;LogicalId&gt;/</code> and points
+        <code>CodeUri</code> there. Where a <code>requirements.txt</code> exists, dependencies install
+        into that directory for the target runtime and architecture.</p>
+      </div>
+    </li>
+    <li>
+      <span class="num">03</span>
+      <div>
+        <h4><code>sam deploy</code>, packaging half <span class="where local">local</span></h4>
+        <p>Zips the build directory, uploads it to S3, and rewrites <code>CodeUri</code> to the object
+        URI. CloudFormation cannot read your disk, so the code must be in S3 before the API call —
+        that is the entire reason the artifact bucket exists.</p>
+      </div>
+    </li>
+    <li>
+      <span class="num">04</span>
+      <div>
+        <h4>The transform <span class="where cloud">in aws</span></h4>
+        <p>CloudFormation sees the <code>Transform</code> declaration and runs the macro.
+        <code>AWS::Serverless::Function</code> becomes <code>AWS::Lambda::Function</code>;
+        <code>Globals</code> flattens into every function. Resources you wrote natively — the log group,
+        the IAM role — pass through untouched.</p>
+      </div>
+    </li>
+    <li>
+      <span class="num">05</span>
+      <div>
+        <h4>Changeset <span class="where cloud">in aws</span></h4>
+        <p>A diff between desired and current state. Nothing exists yet. This is also where
+        <code>CAPABILITY_NAMED_IAM</code> is enforced: a role with a name <em>you</em> chose could shadow
+        an existing one, so AWS demands explicit consent rather than inferring it.</p>
+      </div>
+    </li>
+    <li>
+      <span class="num">06</span>
+      <div>
+        <h4>Execute <span class="where cloud">in aws</span></h4>
+        <p>CloudFormation builds a dependency graph from your intrinsic functions — not from file
+        order. <code>HelloFn</code> references <code>!GetAtt HelloFnRole.Arn</code>, so the role
+        provisions first; the log group has no references and goes in parallel. <code>!Sub</code>,
+        <code>!Ref</code> and <code>!If</code> all resolve here.</p>
+      </div>
+    </li>
+  </ol>
+
+  <div class="caveat">
+    <p><strong>Rollback is not deletion.</strong> A failed update reverts to the last good state
+    automatically. A failed <em>first</em> create has no good state to return to, so you get
+    <code>ROLLBACK_COMPLETE</code> — a zombie stack that blocks retrying under the same name until you
+    delete it. That is the one you are most likely to meet.</p>
+  </div>
+
+  <h2>Side by side</h2>
+  <p class="dek">the same infrastructure, written both ways</p>
+
+  <p>
+    SAM is a <strong>superset</strong> of CloudFormation — every valid CloudFormation template is a
+    valid SAM template, and your own <code>template.yaml</code> mixes both freely. So the question is
+    only what the shorthand saves. Three cases, in ascending order of how much it matters.
+  </p>
+</div>
+
+<div class="bleed">
+
+  <section class="vs">
+    <h3 class="vs-scenario">1 · Shared defaults across every function</h3>
+    <p class="vs-note">
+      FinEvents will run roughly fifteen Lambdas, all on the same runtime and architecture.
+      CloudFormation has no inheritance mechanism at all.
+    </p>
+    <div class="vs-grid">
+      <div class="pane sam">
+        <div class="pane-head">
+          <span class="pane-name">SAM</span>
+          <span class="pane-count">declared once</span>
+        </div>
+<pre><code>Globals:
+  Function:
+    Runtime: python3.13
+    Architectures: [arm64]
+    Timeout: 10
+    MemorySize: 128
+    Environment:
+      Variables:
+        FINEVENTS_ENV: !Ref Environment
+
+<span class="c"># every function inherits all of it</span></code></pre>
+      </div>
+      <div class="pane">
+        <div class="pane-head">
+          <span class="pane-name">CloudFormation</span>
+          <span class="pane-count">× 15 functions</span>
+        </div>
+<pre><code>IngestFn:
+  Properties:
+    Runtime: python3.13
+    Architectures: [arm64]
+    Timeout: 10
+    <span class="c"># …and 3 more lines</span>
+
+ClassifyFn:
+  Properties:
+    Runtime: python3.13   <span class="c"># again</span>
+    <span class="c"># …and 13 more functions</span></code></pre>
+      </div>
+    </div>
+    <div class="breaks">
+      <b>Failure mode →</b>
+      <p>Drift. One function quietly ends up on a different runtime or memory size, and nothing tells
+      you. With <code>Globals</code> that divergence is impossible to express by accident.</p>
+    </div>
+  </section>
+
+  <hr class="soft">
+
+  <section class="vs">
+    <h3 class="vs-scenario">2 · A scheduled function — the FinEvents daily run</h3>
+    <p class="vs-note">
+      One <code>Events</code> block versus three hand-wired resources. This is T11.4, so it is the
+      case you will actually hit next.
+    </p>
+    <div class="vs-grid">
+      <div class="pane sam">
+        <div class="pane-head">
+          <span class="pane-name">SAM</span>
+          <span class="pane-count">1 resource · 10 lines</span>
+        </div>
+<pre><code>DailyRunFn:
+  Type: AWS::Serverless::Function
+  Properties:
+    CodeUri: src/lambda/daily/
+    Handler: app.handler
+    Events:
+      Nightly:
+        Type: Schedule
+        Properties:
+          Schedule: cron(0 21 ? * MON-FRI *)</code></pre>
+      </div>
+      <div class="pane">
+        <div class="pane-head">
+          <span class="pane-name">CloudFormation</span>
+          <span class="pane-count">3 resources · 28 lines</span>
+        </div>
+<pre><code>DailyRunFn:
+  Type: AWS::Lambda::Function
+  Properties:
+    Code:
+      S3Bucket: !Ref ArtifactBucket  <span class="c"># you</span>
+      S3Key: daily/9f2c1b.zip        <span class="c"># wire</span>
+    Handler: app.handler             <span class="c"># these</span>
+    Runtime: python3.13
+    Role: !GetAtt DailyRunFnRole.Arn
+
+<span class="gen">NightlyRule:</span>
+  Type: AWS::Events::Rule
+  Properties:
+    ScheduleExpression: cron(0 21 ? * MON-FRI *)
+    State: ENABLED
+    Targets:
+      - Arn: !GetAtt DailyRunFn.Arn
+        Id: DailyRunTarget
+
+<span class="gen">NightlyInvokePermission:</span>
+  Type: AWS::Lambda::Permission
+  Properties:
+    FunctionName: !GetAtt DailyRunFn.Arn
+    Action: lambda:InvokeFunction
+    Principal: events.amazonaws.com
+    SourceArn: !GetAtt NightlyRule.Arn</code></pre>
+      </div>
+    </div>
+    <div class="breaks">
+      <b>Failure mode →</b>
+      <p>Forget the <code>Lambda::Permission</code> and the schedule fires into a wall — EventBridge
+      logs failed invocations and the function never runs. Nothing in the template is invalid, so
+      deployment succeeds and the daily run silently doesn't happen. Under forward-only, a missed
+      day cannot be re-run.</p>
+    </div>
+  </section>
+
+  <hr class="soft">
+
+  <section class="vs">
+    <h3 class="vs-scenario">3 · An HTTP endpoint — the <code>api/</code> module</h3>
+    <p class="vs-note">
+      The widest gap. Four lines of <code>Events</code> expand into a full API Gateway REST stack.
+    </p>
+    <div class="vs-grid">
+      <div class="pane sam">
+        <div class="pane-head">
+          <span class="pane-name">SAM</span>
+          <span class="pane-count">1 resource · 10 lines</span>
+        </div>
+<pre><code>PredictionsFn:
+  Type: AWS::Serverless::Function
+  Properties:
+    CodeUri: src/lambda/api/
+    Handler: app.handler
+    Events:
+      Get:
+        Type: Api
+        Properties:
+          Path: /predictions/{instrument}
+          Method: get</code></pre>
+      </div>
+      <div class="pane">
+        <div class="pane-head">
+          <span class="pane-name">CloudFormation</span>
+          <span class="pane-count">7 resources · ~70 lines</span>
+        </div>
+<pre><code><span class="c"># each written out in full:</span>
+
+AWS::Lambda::Function
+<span class="gen">AWS::ApiGateway::RestApi</span>
+<span class="gen">AWS::ApiGateway::Resource</span>      <span class="c"># /predictions</span>
+<span class="gen">AWS::ApiGateway::Resource</span>      <span class="c"># /{instrument}</span>
+<span class="gen">AWS::ApiGateway::Method</span>        <span class="c"># + integration URI</span>
+<span class="gen">AWS::ApiGateway::Deployment</span>    <span class="c"># DependsOn: Method</span>
+<span class="gen">AWS::ApiGateway::Stage</span>
+<span class="gen">AWS::Lambda::Permission</span>
+
+<span class="c"># plus the integration ARN, hand-built</span>
+<span class="c"># with !Sub across region + account</span></code></pre>
+      </div>
+    </div>
+    <div class="breaks">
+      <b>Failure mode →</b>
+      <p>Omit <code>DependsOn</code> on the <code>Deployment</code> and CloudFormation may create it
+      before the method exists — you get a deployed API with no routes, and a 403 that looks like an
+      auth problem. It is the single most-reported CloudFormation footgun, and SAM removes the
+      opportunity to make it.</p>
+    </div>
+  </section>
+
+  <hr class="soft">
+</div>
+
+<div class="wrap">
+  <h3>The fourth difference, which isn't in the template at all</h3>
+  <p>
+    <code>CodeUri: src/lambda/hello/</code> is a path on your disk. Raw CloudFormation only accepts
+    <code>Code: {S3Bucket, S3Key}</code>, so you own the whole pipeline: build the zip with wheels for
+    the <em>target</em> platform, upload it, and compute a key that changes whenever the content does.
+  </p>
+  <p>
+    That last part bites hardest. Reuse the same <code>S3Key</code> and CloudFormation sees no diff,
+    reports a successful deploy, and leaves the old code running. Your change simply doesn't ship.
+    <code>sam build</code> and <code>sam deploy</code> hash the artifact and rewrite the key for you —
+    which is also why they cross-compile correctly for <code>arm64</code> from a Windows x86 host.
+  </p>
+
+  <div class="pull">
+    <p>
+      Every one of these failure modes is <strong>silent</strong>: a successful deploy that doesn't do
+      what you wrote. That's the real argument for SAM over raw CloudFormation — not fewer lines, but
+      fewer places to be quietly wrong.
+    </p>
+  </div>
+
+  <h3>Where SAM earns nothing</h3>
+  <p>
+    In <code>template.yaml</code> as it stands today. One function, an explicit role, no
+    <code>Events</code>, and a <code>Globals</code> block serving a single function — converting it to
+    raw CloudFormation would cost about ten extra lines. Right now the value is entirely
+    <code>sam build</code> and <code>sam local invoke</code>. The template shorthand starts paying at
+    T11.4.
+  </p>
+
+  <h2>Is SAM cloud-agnostic?</h2>
+  <p class="dek">short answer: no — but the question hides a better one</p>
+
+  <p>
+    SAM is AWS-bound at every layer. It is a macro for CloudFormation, which is an AWS service; every
+    resource type is <code>AWS::*</code>; and the CLI speaks only to CloudFormation. There is no Azure
+    or GCP mode, and there is no plan for one.
+  </p>
+  <p>
+    But "which IaC tool" is the least important portability decision you will make. Here is the
+    landscape, with what each one actually buys:
+  </p>
+
+  <div class="tscroll">
+    <table>
+      <thead>
+        <tr><th>Tool</th><th>Portable?</th><th>What that means in practice</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AWS SAM</td>
+          <td class="verdict no">AWS only</td>
+          <td>A CloudFormation macro. Shorthand for serverless resources — that is its whole scope.</td>
+        </tr>
+        <tr>
+          <td>CloudFormation</td>
+          <td class="verdict no">AWS only</td>
+          <td>The engine underneath. SAM, CDK and Amplify all end up here.</td>
+        </tr>
+        <tr>
+          <td>AWS CDK</td>
+          <td class="verdict no">AWS only</td>
+          <td>Real languages, but it <em>synthesises to CloudFormation</em>. The sibling projects CDKTF
+          and cdk8s target other backends; AWS CDK itself does not.</td>
+        </tr>
+        <tr>
+          <td>ARM / Bicep</td>
+          <td class="verdict no">Azure only</td>
+          <td>Azure's equivalent of CloudFormation, with Bicep as its SAM-like shorthand.</td>
+        </tr>
+        <tr>
+          <td>Terraform / OpenTofu</td>
+          <td class="verdict part">tool, not config</td>
+          <td>One language and one workflow across every provider — but you still write
+          <code>aws_lambda_function</code> or <code>azurerm_linux_function_app</code>. Your <em>skill</em>
+          transfers; your <em>code</em> does not.</td>
+        </tr>
+        <tr>
+          <td>Pulumi</td>
+          <td class="verdict part">tool, not config</td>
+          <td>Same bargain as Terraform, expressed in general-purpose languages.</td>
+        </tr>
+        <tr>
+          <td>Crossplane</td>
+          <td class="verdict part">tool, not config</td>
+          <td>Same again, driven through Kubernetes. Adds a control plane you now have to run.</td>
+        </tr>
+        <tr>
+          <td>Serverless Framework</td>
+          <td class="verdict part">nominally multi</td>
+          <td>Advertises several providers; AWS is the only first-class one in practice.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pull">
+    <p>
+      <strong>No mainstream IaC tool gives you portable configuration.</strong> They give you a portable
+      <em>language</em> over provider-specific resources. Moving clouds means rewriting the resource
+      definitions either way — Terraform just spares you learning a second syntax while you do it.
+    </p>
+  </div>
+
+  <h3>What lock-in actually costs FinEvents</h3>
+  <p>
+    Close to nothing extra, because the binding decisions were made above the IaC layer. This pipeline
+    runs on Bedrock (Nova Lite, Pro and Premier), AgentCore Runtime, Step Functions, DynamoDB and
+    Athena. None of those has a drop-in equivalent on Azure or GCP — the model IDs alone are AWS-specific,
+    and ADR-0027 already treats them as configuration precisely because they change.
+  </p>
+  <p>
+    Rewriting <code>template.yaml</code> in Terraform would produce a portable dialect describing an
+    unportable architecture. The honest reading is that SAM costs you a syntax you would have to
+    abandon anyway, and buys a shorter template plus first-class local invocation. That trade is why
+    ADR-0015 chose it.
+  </p>
+
+  <h3>When you would reach for Terraform instead</h3>
+  <p>
+    Three conditions, none of which hold here today: you are provisioning across more than one cloud
+    and want one workflow; you need resources CloudFormation supports late or not at all; or your team
+    already knows HCL and the switching cost is negative. Multi-cloud <em>ambition</em> is not on that
+    list — portability you never exercise is a cost you pay every day for a benefit you never collect.
+  </p>
+</div>
+
+<footer>
+  FinEvents · increment 0 · toolchain and walking skeleton<br>
+  Verified against .aws-sam/build/template.yaml on 2026-08-10 · ADR-0015 (SAM) · ADR-0024 (environments) · ADR-0054 (toolchain)
+</footer>

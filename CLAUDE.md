@@ -62,6 +62,7 @@ Increment 0 is built and locally green; it lands when the first `sam deploy` run
 | `DATA_SOURCES.md` | Per-source licence and attribution; three data-terms questions still open |
 | `LICENSE`, `NOTICE` | Apache 2.0 (ADR-0044) |
 | `ProjectSummary.txt` | The original brief, with a status block mapping each point to where it landed |
+| `docs/techstack/` | **Non-normative** reference notes on how the chosen tools work. Explains mechanics; decides nothing. If a note disagrees with an ADR, the ADR wins and the note is stale — never cite one as authority |
 
 ADRs are **immutable once accepted**. To change a decision, write a superseding ADR — never edit an accepted one's Decision section. Status-line and amendment-note updates at the top are the sanctioned exception.
 
