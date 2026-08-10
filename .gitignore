@@ -51,3 +51,16 @@ Thumbs.db
 docs/analysis/power/fred/
 docs/analysis/power/*.npy
 docs/analysis/power/results.txt
+
+# Acquired price/market data — fetched locally, never committed (ADR-0044, REQ-1107).
+# Commit the FETCHER, not the data. If a source is public-domain or CC-BY, that is a
+# deliberate exception recorded in DATA_SOURCES.md, not a default.
+data/
+**/data/
+!data/README.md
+!docs/analysis/**
+*.csv
+!docs/**/*.csv
+
+# Python bytecode from the analysis scripts
+__pycache__/
