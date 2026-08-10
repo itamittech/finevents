@@ -36,15 +36,22 @@ KNOWN LIMITATIONS — read before relying on this
    published (REQ-1106, ADR-0050), that must be checked and recorded in DATA_SOURCES.md.
 4. A dependency on one national central bank is an availability risk worth naming.
 """
+
 from __future__ import annotations
-import csv, io, re, sys, urllib.request, urllib.error
-from datetime import date, timedelta
+
+import csv
+import io
+import re
+import sys
+import urllib.error
+import urllib.request
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "data"
 UA = {"User-Agent": "FinEvents-research/0.1 (+https://github.com/itamittech/finevents)"}
 CBR_METALS = {"1": "gold", "2": "silver", "3": "platinum", "4": "palladium"}
-START = date(2015, 1, 1)   # GDELT 2.0 begins Feb 2015; a month of run-up for sigma
+START = date(2015, 1, 1)  # GDELT 2.0 begins Feb 2015; a month of run-up for sigma
 
 
 def get(url: str, encoding: str = "utf-8") -> str:
@@ -65,16 +72,25 @@ def fetch_cbr_metals(end: date) -> list[dict]:
     rows: list[dict] = []
     pat = re.compile(r'<Record Date="([^"]+)" Code="(\d)"><Buy>([\d,]+)</Buy><Sell>([\d,]+)</Sell>')
     for a, b in chunks(START, end):
-        url = ("https://www.cbr.ru/scripts/xml_metall.asp"
-               f"?date_req1={a:%d/%m/%Y}&date_req2={b:%d/%m/%Y}")
+        url = (
+            "https://www.cbr.ru/scripts/xml_metall.asp"
+            f"?date_req1={a:%d/%m/%Y}&date_req2={b:%d/%m/%Y}"
+        )
         try:
             xml = get(url, "cp1251")
         except urllib.error.URLError as e:
-            print(f"    ! {a:%Y-%m} {e}", file=sys.stderr); continue
+            print(f"    ! {a:%Y-%m} {e}", file=sys.stderr)
+            continue
         for d, code, buy, sell in pat.findall(xml):
             dd, mm, yy = d.split(".")
-            rows.append({"date": f"{yy}-{mm}-{dd}", "metal": CBR_METALS[code],
-                         "buy_rub_g": buy.replace(",", "."), "sell_rub_g": sell.replace(",", ".")})
+            rows.append(
+                {
+                    "date": f"{yy}-{mm}-{dd}",
+                    "metal": CBR_METALS[code],
+                    "buy_rub_g": buy.replace(",", "."),
+                    "sell_rub_g": sell.replace(",", "."),
+                }
+            )
         print(f"    {a:%Y-%m-%d}..{b:%Y-%m-%d}  {len(rows):>6} rows", end="\r", flush=True)
     return rows
 
@@ -83,23 +99,32 @@ def fetch_cbr_usdrub(end: date) -> list[dict]:
     rows: list[dict] = []
     pat = re.compile(r'<Record Date="([^"]+)"[^>]*><Nominal>(\d+)</Nominal><Value>([\d,]+)</Value>')
     for a, b in chunks(START, end):
-        url = ("https://www.cbr.ru/scripts/XML_dynamic.asp"
-               f"?date_req1={a:%d/%m/%Y}&date_req2={b:%d/%m/%Y}&VAL_NM_RQ=R01235")
+        url = (
+            "https://www.cbr.ru/scripts/XML_dynamic.asp"
+            f"?date_req1={a:%d/%m/%Y}&date_req2={b:%d/%m/%Y}&VAL_NM_RQ=R01235"
+        )
         try:
             xml = get(url, "cp1251")
         except urllib.error.URLError as e:
-            print(f"    ! {a:%Y-%m} {e}", file=sys.stderr); continue
+            print(f"    ! {a:%Y-%m} {e}", file=sys.stderr)
+            continue
         for d, nom, val in pat.findall(xml):
             dd, mm, yy = d.split(".")
-            rows.append({"date": f"{yy}-{mm}-{dd}",
-                         "usd_rub": f"{float(val.replace(',', '.')) / int(nom):.4f}"})
+            rows.append(
+                {
+                    "date": f"{yy}-{mm}-{dd}",
+                    "usd_rub": f"{float(val.replace(',', '.')) / int(nom):.4f}",
+                }
+            )
     return rows
 
 
 def fetch_boe_gold() -> list[dict]:
-    url = ("https://www.bankofengland.co.uk/boeapps/iadb/fromshowcolumns.asp"
-           "?csv.x=yes&Datefrom=01/Jan/1979&Dateto=31/Dec/2026"
-           "&SeriesCodes=XUDLGPD&CSVF=TN&UsingCodes=Y&VPD=Y&VFD=N")
+    url = (
+        "https://www.bankofengland.co.uk/boeapps/iadb/fromshowcolumns.asp"
+        "?csv.x=yes&Datefrom=01/Jan/1979&Dateto=31/Dec/2026"
+        "&SeriesCodes=XUDLGPD&CSVF=TN&UsingCodes=Y&VPD=Y&VFD=N"
+    )
     txt = get(url)
     if not txt.lstrip().upper().startswith("DATE"):
         print("    ! BoE returned HTML, not CSV — skipped", file=sys.stderr)
@@ -107,8 +132,12 @@ def fetch_boe_gold() -> list[dict]:
     out = []
     for r in csv.DictReader(io.StringIO(txt)):
         try:
-            out.append({"date": f"{__import__('datetime').datetime.strptime(r['DATE'], '%d %b %Y'):%Y-%m-%d}",
-                        "gold_usd_oz": r["XUDLGPD"]})
+            out.append(
+                {
+                    "date": f"{datetime.strptime(r['DATE'], '%d %b %Y'):%Y-%m-%d}",
+                    "gold_usd_oz": r["XUDLGPD"],
+                }
+            )
         except (ValueError, KeyError):
             continue
     return out
@@ -116,9 +145,10 @@ def fetch_boe_gold() -> list[dict]:
 
 def fetch_nbp_gold(end: date) -> list[dict]:
     rows = []
-    for a, b in chunks(START, end, days=350):   # NBP caps a request at 367 days
+    for a, b in chunks(START, end, days=350):  # NBP caps a request at 367 days
         try:
             import json
+
             txt = get(f"https://api.nbp.pl/api/cenyzlota/{a:%Y-%m-%d}/{b:%Y-%m-%d}/?format=json")
             rows += [{"date": r["data"], "gold_pln_g": r["cena"]} for r in json.loads(txt)]
         except Exception as e:
@@ -128,12 +158,14 @@ def fetch_nbp_gold(end: date) -> list[dict]:
 
 def write(name: str, rows: list[dict]) -> None:
     if not rows:
-        print(f"  {name:<28} EMPTY — not written"); return
+        print(f"  {name:<28} EMPTY — not written")
+        return
     OUT.mkdir(exist_ok=True)
     p = OUT / name
     with p.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
-        w.writeheader(); w.writerows(rows)
+        w.writeheader()
+        w.writerows(rows)
     ds = sorted(r["date"] for r in rows)
     print(f"  {name:<28} {len(rows):>7} rows   {ds[0]} -> {ds[-1]}")
 

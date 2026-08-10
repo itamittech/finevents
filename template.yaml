@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+# FinEvents — walking skeleton (Execution.md increment 0).
+#
+# This stack deliberately does nothing useful. It exists to prove the deploy
+# loop works before anything that matters is written: one Lambda that returns a
+# payload, and the IAM boundary that must exist *before* anything can cross it.
+#
+# What it must NOT do: write to any store. Increment 1 owns the bitemporal
+# schema, and `runs` is one of its stores. A skeleton that wrote a run record
+# would violate the rule the next increment exists to establish —
+# `knowledge_time` cannot be reconstructed after the fact.
+#
+# Serves: REQ-1001 (one-command deploy), REQ-1002 (three per-environment stacks
+# in us-east-1), REQ-1003 (prefix-scoped IAM with explicit denies).
+# Decided by: ADR-0015 (SAM), ADR-0024 (environments), ADR-0054 (Python 3.13).
+
+Description: FinEvents walking skeleton — deploy loop and IAM boundary only.
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, uat, prod]
+    Description: >-
+      Environment prefix. ADR-0024: every resource carries it, without
+      exception — a resource without a prefix is a bug, because IAM is the only
+      boundary between dev and the production learning history.
+
+Conditions:
+  # Non-prod roles carry the explicit deny. Prod does not deny itself.
+  IsNonProd: !Not [!Equals [!Ref Environment, prod]]
+
+Globals:
+  Function:
+    Runtime: python3.13          # ADR-0054
+    Architectures: [arm64]       # matches the AgentCore container target
+    Timeout: 10
+    MemorySize: 128
+    Environment:
+      Variables:
+        FINEVENTS_ENV: !Ref Environment
+
+Resources:
+  # --- T11.2 -----------------------------------------------------------------
+  HelloFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "finevents-${Environment}-HelloFn"
+      CodeUri: src/lambda/hello/
+      Handler: app.handler
+      Role: !GetAtt HelloFnRole.Arn
+      Description: Returns a payload. Writes nothing. Increment 0 only.
+
+  HelloLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/finevents-${Environment}-HelloFn"
+      RetentionInDays: 14
+
+  # --- T11.3 — the boundary, before anything can cross it --------------------
+  HelloFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "finevents-${Environment}-HelloFn-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: logs-own-group-only
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub
+                  - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LG}:*"
+                  - LG: !Sub "/aws/lambda/finevents-${Environment}-HelloFn"
+
+        # ADR-0024 control 2. An explicit deny cannot be accidentally widened by
+        # a permissive allow elsewhere — which is the whole point, since these
+        # roles will accumulate allows as the pipeline grows.
+        #
+        # The production ARNs named here do not exist yet. That is deliberate:
+        # the deny must predate the resource, or there is a window in which a
+        # dev role can reach production data.
+        - !If
+          - IsNonProd
+          - PolicyName: explicit-deny-on-prod
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Sid: DenyProdDynamoDB
+                  Effect: Deny
+                  Action: dynamodb:*
+                  Resource:
+                    - !Sub "arn:${AWS::Partition}:dynamodb:*:${AWS::AccountId}:table/finevents-prod-*"
+                    - !Sub "arn:${AWS::Partition}:dynamodb:*:${AWS::AccountId}:table/finevents-prod-*/*"
+                - Sid: DenyProdS3
+                  Effect: Deny
+                  Action: s3:*
+                  Resource:
+                    - !Sub "arn:${AWS::Partition}:s3:::finevents-prod-*"
+                    - !Sub "arn:${AWS::Partition}:s3:::finevents-prod-*/*"
+                - Sid: DenyProdStateAndSecrets
+                  Effect: Deny
+                  Action: [states:*, secretsmanager:*, ssm:*]
+                  Resource:
+                    - !Sub "arn:${AWS::Partition}:states:*:${AWS::AccountId}:stateMachine:finevents-prod-*"
+                    - !Sub "arn:${AWS::Partition}:secretsmanager:*:${AWS::AccountId}:secret:finevents/prod/*"
+                    - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/finevents/prod/*"
+          - !Ref AWS::NoValue
+
+Outputs:
+  HelloFnName:
+    Description: Invoke with `sam remote invoke`
+    Value: !Ref HelloFn
+  HelloFnRoleArn:
+    Description: >-
+      Policy source for `aws iam simulate-principal-policy`. Simulating
+      dynamodb:PutItem against a finevents-prod-* table ARN must return
+      explicitDeny.
+    Value: !GetAtt HelloFnRole.Arn
+  LogGroup:
+    Value: !Ref HelloLogGroup

@@ -243,7 +243,7 @@ Per-forecast latency and per-call token counts are calculated, not measured. Fig
 - [ ] Confirm **AgentCore availability and SAM coverage** in us-east-1 — if SAM cannot express AgentCore resources, the single-command deploy fragments again.
 - [ ] Confirm whether **Bedrock Batch Inference supports prompt caching** — if not, batching and caching are mutually exclusive per stage.
 - [ ] Confirm **Chronos-2's maximum context length**, which fixes the rolling-window size N.
-- [ ] Confirm **TimesFM 2.5's licence** before it enters a public repo's build.
+- [x] Confirm **TimesFM 2.5's licence** before it enters a public repo's build. — **Apache-2.0**, compatible with this repository's own licence (ADR-0044). Cleared 2026-08-10 by [ADR-0054](../adr/0054-toolchain.md). Note the naming trap: TimesFM 2.5 is a *model checkpoint*; the PyPI distribution serving it is `timesfm` 2.0.2.
 - [ ] Verify **deterministic seeding** for both numeric models — without it, Lane A truncated replay breaks.
 - [ ] Measure **actual post-filter event volume** — the ~5,000 figure drives the classification estimate and the seed's density.
 - [ ] Establish **pre-training cutoffs** for Chronos and TimesFM. **Downgraded by ADR-0037** — no longer needed to caveat agent results, since live targets are contamination-free. Still needed to label Lane A calibration and to interpret any live Lane A underperformance.

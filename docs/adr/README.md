@@ -39,7 +39,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0012](0012-scrape-economic-calendars-for-consensus.md) | Scrape public economic calendars for consensus | Accepted | 2026-08-09 | Consensus history unavailable beyond ~2 years |
 | [0013](0013-permit-abstention-with-tracked-coverage.md) | Permit abstention, with coverage tracked | **Superseded by 0048** | 2026-08-09 | — |
 | [0014](0014-security-pre-commit-docs-in-ci.md) | Security pre-commit, documentation in CI | Accepted | 2026-08-09 | Secret reaches public repo, or >20% doc exemptions |
-| [0015](0015-aws-sam-for-infrastructure.md) | AWS SAM for infrastructure as code | Accepted | 2026-08-09 | Template >1,000 lines, or divergence params can't express |
+| [0015](0015-aws-sam-for-infrastructure.md) | AWS SAM for infrastructure as code | Accepted — one consequence invalidated by 0020 | 2026-08-09 | Template >1,000 lines, or divergence params can't express |
 | [0016](0016-bitemporal-data-model-with-as-of-gateway.md) | Bitemporal data model with as-of gateway | Amended by 0026 | 2026-08-09 | Truncated replay finds leakage the gateway should stop |
 | [0017](0017-environmental-factors-as-covariates.md) | Calendar, seasonal and regime factors as covariates | Accepted | 2026-08-09 | Conditional climatology no better than naive |
 | [0018](0018-record-and-replay-llm-responses.md) | Record and replay LLM responses for deterministic testing | Accepted | 2026-08-09 | Re-recording becomes routine in most PRs |
@@ -78,6 +78,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0051](0051-pooled-forecast-as-product-output.md) | **A pooled forecast is the product output** (supersedes 0032's no-combination rule) | Accepted | 2026-08-09 | The pool underperforms the best single track over a full measurement period |
 | [0052](0052-leave-one-out-attribution.md) | **Leave-one-out contribution is the primary skill endpoint** (amends 0046) | Accepted | 2026-08-09 | The pooled forecast is withdrawn or its composition changes materially |
 | [0053](0053-remove-stooq-as-a-price-source.md) | **Remove Stooq as a price source** — it now serves a bot challenge (amends 0007, 0010) | Accepted | 2026-08-09 | A free source with permissive terms and daily metals history appears |
+| [0054](0054-toolchain.md) | **Python 3.13, uv, pytest, moto, GitHub Actions** — closes T0.13; the wheel intersection turned out not to bind | Accepted | 2026-08-10 | A dependency ships no `cp313` aarch64 wheel, or Lambda dates the 3.13 runtime |
 
 ## The forward-only turn
 

@@ -1,0 +1,91 @@
+# CI on pull request — ADR-0014.
+#
+# Hooks are convenience and are bypassable by design. **CI is the gate.** This
+# workflow re-runs the identical hook set over the whole tree (REQ-1104), so a
+# `--no-verify` commit is caught here rather than merged.
+#
+# Gate G0 (Tasks.md) is green when the `gates` job passes.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"   # ADR-0054
+
+jobs:
+  gates:
+    name: Gate G0 — security, boundaries, traceability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the docs-currency check diffs against the merge base
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install toolchain
+        run: uv sync --frozen --group dev
+
+      # REQ-1104 — the same validation as the hooks, run over everything.
+      # `--all-files` is what makes a bypassed hook detectable.
+      - name: Re-run every pre-commit hook
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
+      # T0.6 / REQ-1103, REQ-1116 and T0.6b / REQ-1115.
+      # Pull requests only: there is no PR body on a push to main.
+      - name: Documentation currency and PR traceability
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: uv run python tools/check_docs_currency.py --base origin/${{ github.base_ref }}
+
+      # REQ-005 — every commit on the branch, not just the tip.
+      - name: Commit author identity
+        if: github.event_name == 'pull_request'
+        run: |
+          bad=$(git log --format='%ae' origin/${{ github.base_ref }}..HEAD \
+                | sort -u | grep -v '^itamittech@gmail\.com$' || true)
+          if [ -n "$bad" ]; then
+            echo "REQ-005: commits authored by $bad; expected itamittech@gmail.com"
+            exit 1
+          fi
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install toolchain
+        run: uv sync --frozen --group dev
+      - name: pytest
+        # `aws` marks tests needing real credentials; CI has none by design.
+        run: uv run pytest -m "not aws" --cov --cov-report=term-missing
+
+  infrastructure:
+    name: SAM template validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      # Linting needs no credentials; deploying does, and does not happen here.
+      - name: sam validate --lint
+        run: sam validate --lint --template template.yaml --region us-east-1

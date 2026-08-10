@@ -3,7 +3,7 @@
 **Status:** Baseline v1
 **Date:** 2026-08-09
 **Governed by:** [ADR-0001](adr/0001-spec-driven-development-with-adrs.md) — no code for a feature until its requirement exists and is numbered
-**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0053](adr/README.md)
+**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0054](adr/README.md)
 
 ## How to read this
 
@@ -176,7 +176,7 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-705 | **All statistics are computed in code.** No model writes a hit rate, an observation count, or a confidence value. | ADR-0034 | `CI` |
 | REQ-706 | Confidence is a Beta-Binomial posterior over the evidence list, reported as a credible interval. | ADR-0034 | `U` |
 | REQ-707 | Statistics are computed **three ways** — seeded-only, observed-only, combined — and all three are stored and displayed. | ADR-0038 | `U`, `CI` |
-| REQ-708 | Every evidence row carries `source: seeded | observed`. A row with no tag fails validation. | ADR-0038 | `CI` |
+| REQ-708 | Every evidence row carries `source: seeded \| observed`. A row with no tag fails validation. | ADR-0038 | `CI` |
 | REQ-709 | Every evidence consumer is tag-aware. A consumer that ignores provenance fails a CI assertion. | ADR-0038 | `CI` |
 | REQ-710 | Pages must record disconfirming evidence. A page with confirmations only fails review. | ADR-0011, 0005 | `R` |
 | REQ-711 | The wiki seed is a deterministic join over classified historical events and realised movements. It involves **no model call**. | ADR-0038 | `U` |
@@ -284,7 +284,7 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-1003 | Resource names are environment-prefixed; IAM is prefix-scoped with **explicit denies** on production resources. | ADR-0024 | `CI` |
 | REQ-1004 | The daily run is orchestrated by Step Functions, fired by EventBridge Scheduler after the US close, trading-day aware. | ADR-0004 | `I` |
 | REQ-1005 | Ingest, validation, filtering, feature computation, scoring, statistics, the sweep and calibration run on Lambda. No model call occurs in any of them. | ADR-0004 | `CI` |
-| REQ-1006 | Model calls and the two numeric models run on AgentCore Runtime. | ADR-0028, 0041 | `I` |
+| REQ-1006 | Model calls and the two numeric models run on AgentCore Runtime. | ADR-0028, 0041, 0019 | `I` |
 | REQ-1007 | Model IDs are SSM parameters per role — `model/classify`, `model/reason/predict`, `model/reason/curate`. **No model ID appears in application code.** | ADR-0027, 0040 | `CI` |
 | REQ-1008 | All three configured models are asserted available with access granted at deploy time, not discovered at runtime. | ADR-0027 | `CI` |
 | REQ-1009 | The baseline-blind control always uses the same model as the primary predictor. A mismatch fails deployment. | ADR-0040 | `CI` |
@@ -304,12 +304,12 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 | REQ-1101 | A pre-commit hook runs a security scan and blocks commits containing credentials or environment files. | ADR-0014 | `CI` |
 | REQ-1102 | The same hook blocks any commit touching a `raw/` path or adding content matching the scraped-payload signature. | ADR-0044 | `CI` |
 | REQ-1103 | **Documentation currency is checked in CI on the pull request**, not post-commit — a post-commit hook fires after the commit exists and can only warn (ADR-0014). Changes under mapped source paths require corresponding documentation changes; the path→doc mapping lives in config, never hardcoded. | ADR-0014 | `CI` |
-| REQ-1104 | CI runs the same validation as the hooks, and verifies the hooks ran. Hooks are a convenience and are bypassable by design; CI is the gate. | ADR-0014 | `CI` |
-| REQ-1113 | The pre-commit hook runs Python SAST (bandit) and blocks on high-severity findings. | ADR-0014 | `CI` |
-| REQ-1114 | The pre-commit hook runs a dependency vulnerability scan (pip-audit) and blocks on known CVEs. | ADR-0014 | `CI` |
+| REQ-1104 | CI runs the same validation as the hooks, and verifies the hooks ran. Hooks are a convenience and are bypassable by design; CI is the gate. | ADR-0014, 0054 | `CI` |
+| REQ-1113 | The pre-commit hook runs Python SAST (bandit) and blocks on high-severity findings. | ADR-0014, 0054 | `CI` |
+| REQ-1114 | The pre-commit hook runs a dependency vulnerability scan (pip-audit) and blocks on known CVEs. | ADR-0014, 0054 | `CI` |
 | REQ-1115 | CI blocks merge unless the pull request references at least one REQ-id or ADR, enforcing ADR-0001's traceability chain. | ADR-0014, 0001 | `CI` |
 | REQ-1116 | A `docs: n/a — <reason>` marker in the PR body satisfies REQ-1103 for genuinely doc-free changes. The exemption is recorded and its rate is reviewable — without a sanctioned escape, contributors reach for `--no-verify`, which disables every check rather than the one that did not apply. | ADR-0014 | `CI` |
-| REQ-1117 | Pre-commit hooks stay fast enough that bypassing them is not tempting. Anything slow belongs in CI. Speed is a security property here, not a convenience. | ADR-0014 | `R` |
+| REQ-1117 | Pre-commit hooks stay fast enough that bypassing them is not tempting. Anything slow belongs in CI. Speed is a security property here, not a convenience. | ADR-0014, 0054 | `R` |
 | REQ-1105 | Code is licensed Apache 2.0, with a NOTICE file. | ADR-0044 | `R` |
 | REQ-1106 | Published: the prediction record, scores, all ladder rungs, wiki pages, run manifests, event classifications, severity scores, the steering audit, and calibration maps. | ADR-0044 | `CI` |
 | REQ-1107 | Never published: anything under `raw/`, scraped article text in whole or excerpt, MCX or calendar page content, and Firecrawl payloads. | ADR-0044 | `CI` |

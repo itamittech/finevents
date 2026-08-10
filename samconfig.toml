@@ -1,0 +1,57 @@
+# SAM deployment configuration — ADR-0024.
+#
+# Three environments, three stacks, one account, us-east-1. The region is not a
+# preference: Bedrock model availability for Nova Lite / Pro / Premier and
+# AgentCore Runtime are both scoped to it (aws-architecture.md).
+#
+#   sam deploy --config-env dev
+#
+# Note that a locally configured default region (`aws configure get region`) does
+# NOT apply here — the region is pinned per environment so a misconfigured
+# workstation cannot create a stack in the wrong place.
+
+version = 0.1
+
+[default.global.parameters]
+stack_name = "finevents-dev"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+# --- dev ---------------------------------------------------------------------
+[dev.deploy.parameters]
+stack_name = "finevents-dev"
+region = "us-east-1"
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=dev"
+resolve_s3 = true
+confirm_changeset = true
+fail_on_empty_changeset = false
+tags = "project=finevents environment=dev"
+
+# --- uat ---------------------------------------------------------------------
+[uat.deploy.parameters]
+stack_name = "finevents-uat"
+region = "us-east-1"
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=uat"
+resolve_s3 = true
+confirm_changeset = true
+fail_on_empty_changeset = false
+tags = "project=finevents environment=uat"
+
+# --- prod --------------------------------------------------------------------
+# `confirm_changeset` stays true here permanently. The production learning
+# history is the one irreplaceable asset in the system (ADR-0024) — months of
+# accumulated agent knowledge and dated prediction records cannot be
+# reconstructed, and under forward-only there is no second attempt at a live day.
+[prod.deploy.parameters]
+stack_name = "finevents-prod"
+region = "us-east-1"
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=prod"
+resolve_s3 = true
+confirm_changeset = true
+fail_on_empty_changeset = false
+tags = "project=finevents environment=prod"

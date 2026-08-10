@@ -22,9 +22,24 @@ The builder is one person who wants to stay in control without being overwhelmed
 
 ## Project status
 
-Pre-implementation, but the design phase has produced a substantial record. The git repository exists (commits authored correctly as `itamittech@gmail.com`, remote `github.com/itamittech/finevents`, **currently public**). There is no source code, no build system and no test suite. There are therefore no build/lint/test commands to document — record the real ones here as soon as the first code lands; do not invent them in the meantime.
+Increment 0 is built and locally green; it lands when the first `sam deploy` runs. The git repository exists (commits authored as `itamittech@gmail.com`, remote `github.com/itamittech/finevents`, **currently public**).
 
-The toolchain is **not yet chosen** — no Python version, packaging tool, test runner or CI platform is decided anywhere. Do not assume one; see Tasks.md T0.13 — the Python version must satisfy Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image, and that intersection is the one irreversible choice.
+**The toolchain is decided — [ADR-0054](docs/adr/0054-toolchain.md).** Python 3.13, uv with a committed `uv.lock`, pytest (+ Hypothesis for the `P`-coded requirements), moto for unit-layer AWS fakes, GitHub Actions for CI. The wheel intersection that T0.13 treated as the one irreversible choice was **measured and does not bind**: 3.12, 3.13 and 3.14 all resolve to an identical pin set.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `uv sync --group dev` | Install the toolchain |
+| `uv run pytest` | Test suite. `-m "not aws"` excludes anything needing real credentials |
+| `uv run pre-commit run --all-files` | All 10 hooks over the tree — what CI runs (REQ-1104) |
+| `uv run ruff check .` | Lint. `docs/analysis/**` is excluded — one-off research scripts |
+| `uv run python tools/check_boundaries.py` | ADR-0004 import rules + ADR-0037 forward-only |
+| `uv run python tools/check_traceability.py` | The five traceability assertions over the spec |
+| `sam validate --lint --template template.yaml --region us-east-1` | Infrastructure |
+| `sam build --parameter-overrides Environment=dev` then `sam deploy --config-env dev` | Deploy |
+
+**`tools/check_boundaries.py` is the only mechanical enforcement of ADR-0037.** Do not weaken its allowlists to make a change pass — widening `AS_OF_ALLOWED` is a design decision that needs an ADR reference in the same commit.
 
 **Read these before proposing anything:**
 
@@ -32,7 +47,7 @@ The toolchain is **not yet chosen** — no Python version, packaging tool, test 
 
 | Path | What it is |
 |---|---|
-| `docs/adr/README.md` | Index of all 53 ADRs, standing risks, open decisions. **Start here.** |
+| `docs/adr/README.md` | Index of all 54 ADRs, standing risks, open decisions. **Start here.** |
 | `docs/Requirement.md` | **188** numbered REQ-ids. **No code for a feature without one.** |
 | `docs/Design.md` | Module layout, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | Build order, dependencies, and the hard leakage gate |

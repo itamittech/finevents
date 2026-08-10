@@ -1,0 +1,96 @@
+# Pre-commit hooks — ADR-0014.
+#
+# These are a CONVENIENCE. They are bypassable by design (`--no-verify`), which
+# is why CI re-runs the identical set on the pull request (REQ-1104). CI is the
+# gate; this is the fast feedback.
+#
+# REQ-1117 makes speed a security property: a slow hook gets bypassed, and a
+# bypassed hook protects nothing. Anything expensive is scoped to the files that
+# can actually trigger it.
+#
+# Install with:  pre-commit install
+# (Contributing.md lists this as a required setup step — the hooks do nothing
+# uninstalled.)
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      # T0.4 / REQ-1101 — credential entropy detection.
+      - id: gitleaks
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      # T0.6a / REQ-1113 — Python SAST, blocking on high severity.
+      # `-lll` is HIGH. REQ-1113 says high, so this matches the requirement
+      # rather than exceeding it: at MEDIUM, bandit's B310 fires on every
+      # `urlopen` against a hardcoded source URL, which is what the fetchers are
+      # for. A gate that cries wolf on normal work gets bypassed, and REQ-1117
+      # makes that a security property, not a comfort.
+      - id: bandit
+        args: ["-q", "-lll", "-r"]
+        files: ^(src|tools|scripts)/
+        exclude: ^tests/
+
+  - repo: local
+    hooks:
+      # T0.4 / REQ-1101 — the pattern rule beside gitleaks: whole files that are
+      # never legitimate content, and AWS-shaped ids below an entropy threshold.
+      - id: check-secrets
+        name: environment files and credential patterns
+        entry: python tools/check_secrets.py
+        language: system
+        pass_filenames: true
+
+      # T0.5 / REQ-1102 — the scraped-payload signature (Design §9).
+      # Silent failure, permanent once public.
+      - id: check-payload-signature
+        name: scraped-payload signature
+        entry: python tools/check_payload_signature.py
+        language: system
+        pass_filenames: true
+
+      # T0.9 + T0.9a / REQ-104, REQ-1005, REQ-601 — ADR-0004's import boundary
+      # and ADR-0037's forward-only rule. The only mechanical enforcement of
+      # forward-only that exists.
+      - id: check-boundaries
+        name: import boundaries and forward-only
+        entry: python tools/check_boundaries.py
+        language: system
+        files: ^src/finevents/.*\.py$
+        pass_filenames: false
+
+      # T0.10 / REQ-006, REQ-003 — the traceability chain.
+      - id: check-traceability
+        name: traceability chain
+        entry: python tools/check_traceability.py
+        language: system
+        files: ^docs/.*\.md$
+        pass_filenames: false
+
+      # REQ-005 — commits are authored as itamittech@gmail.com. The repository is
+      # intended to be open source; a commit from the wrong identity is not
+      # rewritable once pushed.
+      - id: check-author
+        name: commit author identity
+        entry: python tools/check_author.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # T0.6a / REQ-1114 — dependency CVE gate. Scoped to lockfile changes so it
+      # stays off the common path (REQ-1117).
+      - id: check-dependencies
+        name: dependency vulnerabilities
+        entry: python tools/check_dependencies.py
+        language: system
+        files: ^(uv\.lock|pyproject\.toml)$
+        pass_filenames: false

@@ -1,0 +1,49 @@
+# Source-path -> documentation mapping for the CI-on-PR currency check.
+#
+# REQ-1103 requires this mapping to live in config and never be hardcoded, so
+# that adding a module does not mean editing the checker.
+#
+# Semantics: if a pull request changes any file matching `sources`, it must also
+# change at least one file matching `docs`. Rules are independent — a PR
+# touching several source areas must satisfy every rule it triggers.
+#
+# The escape hatch is `docs: n/a — <reason>` in the PR body (REQ-1116). It exists
+# so that a genuinely doc-free change has a sanctioned exit; without one,
+# contributors reach for `--no-verify`, which disables every check rather than
+# the one that did not apply.
+
+[[rule]]
+name = "module behaviour"
+sources = ["src/finevents/**/*.py"]
+docs = ["docs/Design.md", "docs/Requirement.md", "docs/adr/*.md"]
+why = "Behaviour changes must land with the spec that describes them (REQ-004)."
+
+[[rule]]
+name = "leakage harness"
+sources = ["src/finevents/harness/**/*.py"]
+docs = ["docs/design/point-in-time-test-harness.md", "docs/Requirement.md"]
+why = "The threat model is the document the harness is measured against."
+
+[[rule]]
+name = "prediction path"
+sources = ["src/finevents/predict/**/*.py"]
+docs = ["docs/design/prediction-contract.md", "docs/Design.md"]
+why = "Prompt blocks, output schema and validation rules are specified there."
+
+[[rule]]
+name = "ingest and data sources"
+sources = ["src/finevents/ingest/**/*.py", "scripts/fetch_*.py"]
+docs = ["DATA_SOURCES.md", "docs/Design.md"]
+why = "Per-source licence and attribution must track the fetchers (REQ-1109, REQ-1110)."
+
+[[rule]]
+name = "infrastructure"
+sources = ["template.yaml", "samconfig.toml", "infra/**"]
+docs = ["docs/design/aws-architecture.md", "docs/design/aws-architecture-diagram.svg"]
+why = "Service topology and the cost model are authoritative in that document; the SVG is updated in the same commit as the design it depicts."
+
+[[rule]]
+name = "enforced checks"
+sources = ["tools/check_*.py", ".pre-commit-config.yaml", ".github/workflows/*.yml"]
+docs = ["docs/Tasks.md", "docs/adr/0014-security-pre-commit-docs-in-ci.md", "docs/adr/*.md"]
+why = "The gates are specified in ADR-0014 and enumerated in Tasks.md Gate G0."

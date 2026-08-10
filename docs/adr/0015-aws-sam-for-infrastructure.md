@@ -1,8 +1,14 @@
 # ADR-0015: AWS SAM for infrastructure as code
 
-- **Status:** Accepted
+- **Status:** Accepted — **one consequence invalidated by [ADR-0020](0020-static-spa-frontend.md)**
 - **Date:** 2026-08-09
 - **Serves:** Deployment, environment separation (project summary CI section)
+
+> **Amendment note (2026-08-10):** the decision stands; one of its stated consequences does not.
+>
+> **The frontend is no longer outside SAM's scope.** This ADR excludes the frontend because Streamlit needs a container that SAM does not model well, and concludes that "two deployment paths exist … so the deploy story is not literally one command for the whole system." [ADR-0020](0020-static-spa-frontend.md) replaced Streamlit with a **static SPA on S3 + CloudFront**, which CloudFormation models natively — bucket, distribution, OAC and invalidation are all ordinary resources. The two-path consequence and the one-command caveat are therefore withdrawn, and a single-stack deploy is recoverable. Whether to fold the frontend into this template or keep it as a separate stack is an open choice for T12.x, not a constraint imposed by the tooling.
+>
+> Everything else below — the three verbosity conventions, the parameterised environments, and the revisit trigger — is unaffected. The original decision text is preserved unedited.
 
 ## Context
 

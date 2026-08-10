@@ -1,0 +1,58 @@
+[project]
+name = "finevents"
+version = "0.0.0"
+description = "A daily pipeline that learns the correlation between world events and instrument prices."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = "==3.13.*"
+
+# Runtime dependencies are added by the increment that first needs them.
+# Increment 0 deliberately has none: it deploys a Lambda that returns a payload
+# and writes to no store (Execution.md, increment 0).
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/itamittech/finevents"
+
+[dependency-groups]
+# Tooling only. Kept out of `dependencies` so nothing here can reach a Lambda.
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "hypothesis>=6.120",       # the P-coded requirements in Requirement.md
+    "moto[dynamodb,s3]>=5.0",  # unit-layer AWS fakes; Docker Compose is the integration layer (Design 8)
+    "boto3>=1.35",
+    "ruff>=0.8",
+    "bandit>=1.8",             # T0.6a, REQ-1113
+    "pip-audit>=2.7",          # T0.6a, REQ-1114
+    "pre-commit>=4.0",         # T0.15, REQ-1117
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/finevents"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: requires the Docker Compose stack (Design 8)",
+    "aws: requires real AWS credentials; excluded from CI",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# One-off research scripts, written before the toolchain existed and kept as
+# evidence for the power analysis they produced. Reformatting them would churn
+# the record without improving it.
+exclude = ["docs/analysis/**"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.coverage.run]
+source = ["src/finevents"]

@@ -1,6 +1,6 @@
 # FinEvents — Execution
 
-**Status:** Not started. Increment 0 is next.
+**Status:** Increment 0 built and locally green; awaiting the first deploy.
 **Governs:** how work is sequenced and handed over. Read with [Tasks.md](Tasks.md), which holds the full task detail.
 
 ---
@@ -9,11 +9,21 @@
 
 ```
 CURRENT INCREMENT:  0 — Toolchain and walking skeleton
-STATUS:             not started
-LAST LANDED:        — (nothing yet; the specification record is complete, no code exists)
-BLOCKED ON:         T0.13 Python version intersection · T0.12 data-terms (3 open)
-RESOLVED:           metals price history — exists, fetched, in data/ (scripts/fetch_metals_history.py)
+STATUS:             built, locally verified, NOT YET DEPLOYED
+LAST LANDED:        — (increment 0 lands when `sam deploy` has run against the dev stack)
+BLOCKED ON:         nothing to build. The remaining step is a deploy the builder runs.
+                    T0.12 data-terms (3 open) still gates increment 4, not this one.
+RESOLVED:           T0.13 Python version — ADR-0054. The intersection does not bind.
+                    T0.16 scraped-payload signature — already defined in Design §9.
+                    TimesFM 2.5 licence (Apache-2.0) — one of the ten pre-build items.
+                    metals price history — exists, fetched, in data/
 ```
+
+**What is green locally.** `uv run pytest` (49 tests), `uv run pre-commit run --all-files`
+(10 hooks), `sam validate --lint`, `sam build`. Gate G0's checks all exist and pass.
+
+**What is not yet proven.** The deploy loop itself — the point of the increment. Nothing
+has touched AWS. See the Verify block below; the deploy is the builder's to run.
 
 **Update this block whenever an increment lands.** It is the answer to "where are we?" and it is the first thing any session reads.
 
@@ -80,16 +90,37 @@ Sizes are for one person, and are the honest estimate rather than the hopeful on
 **Deliberately writes to no store.** Increment 1 owns the schema, and `runs` is one of its stores — a skeleton that writes a run record would violate the very rule the next increment exists to establish.
 
 **Verify.**
+
+Locally, no AWS account needed:
 ```bash
-sam deploy --config-env dev && sam remote invoke HelloFn --stack-name finevents-dev
-aws logs tail /aws/lambda/finevents-dev-HelloFn --since 5m
-# and prove the IAM boundary exists before anything can cross it:
-aws iam simulate-principal-policy --policy-source-arn <dev-exec-role>   --action-names dynamodb:PutItem --resource-arns <a prod table ARN>   # expect explicitDeny
+uv sync --group dev && uv run pytest && uv run pre-commit run --all-files
+sam validate --lint --template template.yaml --region us-east-1
 ```
 
-**Covers.** T0.4–T0.16, and the minimum of T11.1/T11.2 pulled forward.
+Then the deploy loop itself:
+```bash
+sam build --parameter-overrides Environment=dev
+sam deploy --config-env dev
+sam remote invoke HelloFn --stack-name finevents-dev --region us-east-1
+aws logs tail /aws/lambda/finevents-dev-HelloFn --since 5m --region us-east-1
+```
+
+And prove the IAM boundary exists **before** anything can cross it:
+```bash
+aws iam simulate-principal-policy --region us-east-1 --action-names dynamodb:PutItem --policy-source-arn "$(aws cloudformation describe-stacks --stack-name finevents-dev --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='HelloFnRoleArn'].OutputValue" --output text)" --resource-arns "arn:aws:dynamodb:us-east-1:$(aws sts get-caller-identity --query Account --output text):table/finevents-prod-predictions" --query 'EvaluationResults[0].EvalDecision'
+```
+Expect `"explicitDeny"`. The production table named there does not exist, which is the
+point — the deny must predate the resource, or there is a window in which a dev role can
+reach production data.
+
+> **Note on region.** `samconfig.toml` pins `us-east-1` per ADR-0024. A locally configured
+> default region does not apply, so a misconfigured workstation cannot create the stack in
+> the wrong place. Pass `--region us-east-1` on the bare `aws` calls above.
+
+**Covers.** T0.4–T0.16, and the minimum of T11.1/T11.2/T11.3 pulled forward.
 **Not yet.** Any pipeline logic at all. This increment deliberately does nothing useful.
-**Size.** 2–3 days, most of it the Python version intersection (T0.13).
+**Size.** 2–3 days estimated. T0.13 — expected to dominate — took under an hour, because
+the intersection turned out not to bind.
 
 > The wheel intersection — Chronos-2 ∩ TimesFM 2.5 ∩ SAM Lambda runtimes ∩ AgentCore base image — is the one irreversible choice in the whole build. Get it wrong and increment 9 forces a rebuild of everything below it.
 

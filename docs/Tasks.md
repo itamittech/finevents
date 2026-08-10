@@ -37,10 +37,10 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 | T0.10 | Traceability check, three assertions: every **Accepted** ADR referenced by ≥1 REQ; every REQ carrying a verification code; **every REQ reachable from a task** | REQ-006 | The third fails today on the REQs listed under "Requirement coverage gaps" below. Fix the requirements, never weaken the check. "Accepted" scopes out superseded ADRs like 0006 |
 | T0.11 | **Clear the ten pre-build verification items** in [`aws-architecture.md`](design/aws-architecture.md) § "Verification needed before build" | — | Do not restate the list here; it drifts. Includes whether Bedrock Batch Inference supports prompt caching, which underwrites both the backfill line and the caching credit |
 | T0.12 | **Clear the three data-terms questions**, asserted in CI as a precondition on Phase 3 and on T12.16 | REQ-1111 | ADR-0050 rebinds the gate: it blocks **data**, not repository visibility. An open question in `DATA_SOURCES.md` blocks the fetcher for that source |
-| T0.13 | **Choose the toolchain**: Python version, packaging/lockfile, test runner, AWS mocking, CI platform | — | The Python version is the one irreversible choice — it must satisfy Chronos-2 wheels ∩ TimesFM 2.5 wheels ∩ SAM Lambda runtimes ∩ AgentCore base image. Verify that intersection **before** T0.8 |
+| T0.13 | ✅ **Choose the toolchain**: Python version, packaging/lockfile, test runner, AWS mocking, CI platform | — | **Done 2026-08-10 — [ADR-0054](adr/0054-toolchain.md).** Python 3.13, uv, pytest, moto, GitHub Actions. The intersection was measured rather than assumed and **does not bind**: 3.12, 3.13 and 3.14 all resolve to an identical pin set on `aarch64-manylinux_2_28`, because both forecasting packages ship pure-Python wheels and `torch` 2.13 covers `cp310`–`cp314`. 3.13 wins on exposure, not capability |
 | T0.14 | *(settled by [ADR-0050](adr/0050-publication-gate-scoped-to-data.md) — the repo stays public; the gate moved to T0.12)* | — | |
 | T0.15 | `Contributing.md` — including `pre-commit install` as a required setup step | REQ-1117 | ADR-0014 names this consequence explicitly; the hooks do nothing uninstalled |
-| T0.16 | Define the **scraped-payload signature** in Design §9 | REQ-1102 | Blocks T0.5 — referenced four times across the doc set, defined nowhere |
+| T0.16 | ✅ Define the **scraped-payload signature** in Design §9 | REQ-1102 | **Already done** — [Design §9](Design.md) defines every rule and both carve-outs. T0.5 implements it in `tools/check_payload_signature.py`, and `tests/tools/test_payload_signature.py` tests each rule for firing *and* each carve-out for not firing |
 
 **Gate G0:** T0.4–T0.7 (incl. T0.6a, T0.6b), T0.9 and T0.9a green.
 
@@ -212,6 +212,8 @@ This is also a gate on *running live*, not on *building* — and the distinction
 | T9.9 | Six-rung ladder scored on identical days | REQ-806 | |
 | T9.10 | Shuffle test | REQ-1208 | |
 | T9.11 | **Too-good-to-be-true trip fails the build** | REQ-1209 | A strong result is more likely a bug than a discovery |
+| T9.12 | **Pooled forecast** — logarithmic pooling of every available track, equally weighted, deterministic, no model call; stored and scored as a track | REQ-922 | Added by T0.10: [ADR-0051](adr/0051-pooled-forecast-as-product-output.md) was accepted after this phase was written and was owned by no task. Reported as the **product output**, never as the agent's skill |
+| T9.13 | **Leave-one-out contribution** per track — `pool(all)` minus `pool(all except track)` on identical days | REQ-923 | Added by T0.10, same reason: [ADR-0052](adr/0052-leave-one-out-attribution.md). This is the **primary** skill endpoint; ADR-0046's head-to-head becomes secondary. Depends on T9.12 |
 
 ---
 
@@ -221,7 +223,7 @@ This is also a gate on *running live*, not on *building* — and the distinction
 |---|---|---|---|
 | T10.1 | Block 6b computation — reliability, directional balance, departure discipline, RPS by severity | REQ-810 | |
 | T10.2 | **Assert no model writes any part of block 6b** | REQ-811 | |
-| T10.3 | Isotonic map: fit, renormalise, cross-validate | REQ-812 | Design §4.5 |
+| T10.3 | Isotonic map: fit, renormalise, cross-validate | REQ-812, REQ-615 | Design §4.5. REQ-615: abstained horizons are excluded from the **fit** but still count in the **score** — the map describes the agent's own forecasts, the ladder describes the whole record |
 | T10.4 | Sample gate — below it, rung 6 equals rung 5, reported ungated | REQ-813 | |
 | T10.5 | Map versioned per run and stored with the manifest | REQ-814 | |
 | T10.6 | Rung 6 reported, never as the agent's skill; 5→6 gap as the headline | REQ-809 | |
@@ -265,7 +267,7 @@ This is also a gate on *running live*, not on *building* — and the distinction
 | T12.13 | Humans cannot write evidence rows — asserted | REQ-914 | |
 | T12.14 | Bulk-correction refusal above N | REQ-915 | |
 | T12.15 | Steering audit log | REQ-916 | |
-| T12.16 | Publication pipeline for derived data; raw-content boundary asserted | REQ-1106, REQ-1107, REQ-917 | |
+| T12.16 | Publication pipeline for derived data; raw-content boundary asserted | REQ-1106, REQ-1107, REQ-917, REQ-1113b | REQ-1113b: until data-terms question 4 is answered, severity scores publish **only as aggregates joined to event categories** — never row-joined to an article identifier, URL or headline (ADR-0050) |
 | T12.17 | Source URLs and fetch timestamps published | REQ-1108 | |
 | T12.18 | **Package `harness/` as an independently installable artefact** with its own README, so it can be run against a third-party predictor | REQ-1105 | [Product.md](Product.md) and ADR-0033 both call the evaluation harness a **first-class deliverable, co-equal with the pipeline** — and until now it had no task, no packaging boundary and no consumer-facing interface. Half the stated product |
 

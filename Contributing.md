@@ -10,13 +10,32 @@ If you take one thing from this file: **no code is written for a feature before 
 
 ## Setup
 
+You need [uv](https://docs.astral.sh/uv/) and Python 3.13 ([ADR-0054](docs/adr/0054-toolchain.md)).
+
 ```bash
-pre-commit install
+uv sync --group dev
+uv run pre-commit install
 ```
 
-**Do this before your first commit.** The hooks do nothing until installed, and the checks they run are the ones that cannot be recovered from after the fact — a credential that reaches history is compromised whether or not it is later removed, and this repository is intended to be public.
+**Install the hooks before your first commit.** They do nothing until installed, and the checks they run are the ones that cannot be recovered from after the fact — a credential that reaches history is compromised whether or not it is later removed, and this repository is intended to be public.
 
-The toolchain (Python version, packaging, test runner, CI platform) is chosen in Tasks.md T0.13 and recorded in `CLAUDE.md` once it lands. Until then there is nothing else to install.
+Deploying needs the [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) as well:
+
+```bash
+uv tool install aws-sam-cli
+```
+
+## Everyday commands
+
+| Command | What it does |
+|---|---|
+| `uv run pytest` | The test suite. `-m "not aws"` excludes anything needing real credentials |
+| `uv run pre-commit run --all-files` | Every hook over the whole tree — what CI runs |
+| `uv run python tools/check_boundaries.py` | ADR-0004's import rules and ADR-0037's forward-only rule |
+| `uv run python tools/check_traceability.py` | The four traceability assertions over the spec |
+| `uv run ruff check .` | Lint |
+| `sam validate --lint --template template.yaml --region us-east-1` | Infrastructure |
+| `sam deploy --config-env dev` | Deploy to the dev stack in `us-east-1` |
 
 ## What runs where, and why
 
