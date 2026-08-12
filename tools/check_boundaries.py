@@ -56,6 +56,25 @@ REPLAY_TOKENS = ("backtest", "replay", "rewind", "time_travel", "historical_run"
 # as_of values that are self-evidently "now" and so cannot look backwards.
 NOW_NAMES = {"now", "utcnow", "today", "now_utc"}
 
+# --- REQ-109: the wall clock is reachable from exactly one file --------------
+#
+# ADR-0016 requires that in Lane A calibration the only time is the injected
+# as_of. `repository/clock.py` provides that as `now()` over a bound Clock; this
+# rule stops anything else reaching around it. Without the lint the abstraction
+# is a convention that a single `from datetime import datetime` defeats, and the
+# resulting bug — a trailing window silently anchored on real time — produces a
+# plausible number rather than an error.
+WALL_CLOCK_CALLS = {
+    ("datetime", "now"),
+    ("datetime", "utcnow"),
+    ("datetime", "today"),
+    ("date", "today"),
+    ("time", "time"),
+}
+
+# The one file allowed to read the real clock, as a path relative to the package.
+CLOCK_MODULE = ("repository", "clock.py")
+
 
 @dataclass(frozen=True)
 class Violation:
@@ -75,6 +94,39 @@ def _module_of(path: Path) -> str:
     except ValueError:
         return ""
     return rel.parts[0] if len(rel.parts) > 1 else ""
+
+
+def _is_clock_module(path: Path) -> bool:
+    """True for the single file permitted to call the wall clock."""
+    try:
+        rel = path.resolve().relative_to(PACKAGE_ROOT.resolve())
+    except ValueError:
+        return False
+    return rel.parts[-len(CLOCK_MODULE) :] == CLOCK_MODULE
+
+
+def _wall_clock_call(node: ast.Call) -> tuple[str, str] | None:
+    """(receiver, method) when this call reads real time, else None.
+
+    Resolves the receiver to its last attribute name, so `datetime.now()`,
+    `datetime.datetime.now()` and `dt.datetime.now()` all report `datetime`
+    while `clock.now()` and `self._clock.now()` report their own names and are
+    left alone — the abstraction is the sanctioned path, not the target.
+    """
+    func = node.func
+    if not isinstance(func, ast.Attribute):
+        return None
+
+    receiver = func.value
+    if isinstance(receiver, ast.Name):
+        name = receiver.id
+    elif isinstance(receiver, ast.Attribute):
+        name = receiver.attr
+    else:
+        return None
+
+    pair = (name, func.attr)
+    return pair if pair in WALL_CLOCK_CALLS else None
 
 
 def _is_boto_factory(node: ast.Call) -> bool:
@@ -114,9 +166,26 @@ def check_file(path: Path) -> list[Violation]:
         return [Violation(path, exc.lineno or 0, "parse", f"cannot parse: {exc.msg}")]
 
     module = _module_of(path)
+    clock_exempt = _is_clock_module(path)
     found: list[Violation] = []
 
     for node in ast.walk(tree):
+        # --- REQ-109: no wall clock outside repository/clock.py ---
+        if isinstance(node, ast.Call) and not clock_exempt:
+            wall_clock = _wall_clock_call(node)
+            if wall_clock is not None:
+                receiver, method = wall_clock
+                found.append(
+                    Violation(
+                        path,
+                        node.lineno,
+                        "wall-clock",
+                        f"{receiver}.{method}() reads real time. Use "
+                        f"finevents.repository.clock.now(), which resolves through the "
+                        f"bound Clock — ADR-0016, REQ-109",
+                    )
+                )
+
         # --- ADR-0004 ---
         if isinstance(node, ast.Call) and _is_boto_factory(node):
             service = _service_arg(node)

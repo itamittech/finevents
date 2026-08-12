@@ -30,6 +30,11 @@ Parameters:
 Conditions:
   # Non-prod roles carry the explicit deny. Prod does not deny itself.
   IsNonProd: !Not [!Equals [!Ref Environment, prod]]
+  # ADR-0024 control 3: the production learning history is protected
+  # independently of IAM. Months of accumulated agent knowledge and dated
+  # prediction records cannot be reconstructed, and under forward-only there is
+  # no second attempt at a live day.
+  IsProd: !Equals [!Ref Environment, prod]
 
 Globals:
   Function:
@@ -114,7 +119,242 @@ Resources:
                     - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/finevents/prod/*"
           - !Ref AWS::NoValue
 
+  # === T1.6 — stores, per Design §3 ========================================
+  #
+  # Every table is on-demand (REQ-112), encrypted, and point-in-time recoverable.
+  #
+  # `DeletionPolicy: Retain` and `UpdateReplacePolicy: Retain` are set on ALL
+  # environments, not just prod. A dev table holds the evidence that dev ran
+  # correctly, and `sam delete` on the wrong stack is a two-word mistake. Retain
+  # leaves an orphan to clean up by hand — the recoverable failure — instead of
+  # deleting a record that forward-only cannot regenerate.
+  #
+  # Every table shares the bitemporal key shape from Design §3: a composite
+  # `pk`/`sk` of strings, with `event_time` and `knowledge_time` as non-key
+  # attributes on every item (REQ-101). Non-key attributes are deliberately not
+  # declared — DynamoDB is schemaless below the keys, and declaring them here
+  # would imply an enforcement the table does not provide. REQ-101 is enforced
+  # by `finevents.repository.records`, which is the only writer.
+
+  PredictionsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "finevents-${Environment}-predictions"
+      BillingMode: PAY_PER_REQUEST
+      # pk `{env}#{instrument}`, sk `{as_of}#{track}#{horizon}`
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - {Key: finevents:store, Value: predictions}
+
+  ScoresTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "finevents-${Environment}-scores"
+      BillingMode: PAY_PER_REQUEST
+      # pk `{env}#{instrument}`, sk `{matured_on}#{track}#{horizon}#{revision}`
+      # — revision 0 is the original, >=1 a revised close (REQ-804).
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - {Key: finevents:store, Value: scores}
+
+  RunsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "finevents-${Environment}-runs"
+      BillingMode: PAY_PER_REQUEST
+      # pk `{env}`, sk `{run_id}` — run_id is `{YYYY-MM-DD}T{HHMMSS}Z`, which is
+      # lexicographically sortable. "The latest manifest" and crash recovery both
+      # resolve by that ordering (Design §3, §7).
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - {Key: finevents:store, Value: runs}
+
+  SteeringTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "finevents-${Environment}-steering"
+      BillingMode: PAY_PER_REQUEST
+      # pk `{env}`, sk `{ts}#{actor}#{verb}` — the audit log (REQ-916)
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - {Key: finevents:store, Value: steering}
+
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "finevents-${Environment}-events"
+      BillingMode: PAY_PER_REQUEST
+      # pk `{env}#{event_date}`, sk `{event_id}#{overlay_version}` — the overlay
+      # version is in the sort key so a rescore appends rather than overwrites
+      # (REQ-305, REQ-306).
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - {Key: finevents:store, Value: events}
+
+  CandidateEventsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "finevents-${Environment}-candidate-events"
+      BillingMode: PAY_PER_REQUEST
+      # pk `{env}#{run_id}`, sk `{event_id}` — post-pre-filter, pre-classification.
+      # Kept because the recall floor (REQ-302) is calibrated against what the
+      # filter discarded, so the discards are evidence, not waste.
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - {Key: finevents:store, Value: candidate_events}
+
+  FeaturesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "finevents-${Environment}-features"
+      BillingMode: PAY_PER_REQUEST
+      # pk `{env}#{instrument}`, sk `{as_of}`. This is the **audit copy**, not the
+      # scoring source — REQ-402 duplicates bucket boundaries inline on each
+      # prediction so a later change to the σ window cannot retroactively alter a
+      # past score.
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      DeletionProtectionEnabled: !If [IsProd, true, false]
+      Tags:
+        - {Key: finevents:store, Value: features}
+
+  # --- S3, per the Design §3 prefix map --------------------------------------
+  #
+  # One bucket carrying the prefixes, rather than a bucket per prefix: they share
+  # one lifecycle and one access boundary, and ADR-0024's environment prefix is
+  # already in the bucket name.
+  #
+  # Versioning is on (REQ-111). It is what makes the wiki's page history
+  # recoverable and what ADR-0026's run manifests point into.
+  DataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "finevents-${Environment}-data-${AWS::AccountId}"
+      VersioningConfiguration: {Status: Enabled}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+            BucketKeyEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ObjectOwnership: BucketOwnerEnforced}]
+      Tags:
+        - {Key: finevents:store, Value: data}
+
+  # Refuse any request that is not TLS. Without this, an object can be read over
+  # plain HTTP and the encryption above protects only the disk.
+  DataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt DataBucket.Arn
+              - !Sub "${DataBucket.Arn}/*"
+            Condition:
+              Bool: {"aws:SecureTransport": "false"}
+
 Outputs:
+  PredictionsTableName:
+    Value: !Ref PredictionsTable
+  ScoresTableName:
+    Value: !Ref ScoresTable
+  RunsTableName:
+    Value: !Ref RunsTable
+  SteeringTableName:
+    Value: !Ref SteeringTable
+  EventsTableName:
+    Value: !Ref EventsTable
+  CandidateEventsTableName:
+    Value: !Ref CandidateEventsTable
+  FeaturesTableName:
+    Value: !Ref FeaturesTable
+  DataBucketName:
+    Description: >-
+      Carries the Design §3 prefixes — raw/, wiki/, snapshots/, parquet/,
+      cassettes/, calibration/, published/. Versioning on (REQ-111).
+    Value: !Ref DataBucket
+
   HelloFnName:
     Description: Invoke with `sam remote invoke`
     Value: !Ref HelloFn

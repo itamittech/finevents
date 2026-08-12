@@ -1,6 +1,6 @@
 # FinEvents — Execution
 
-**Status:** Increment 0 built and locally green; awaiting the first deploy.
+**Status:** Increments 0 and 1 built and locally green; both await the first deploy.
 **Governs:** how work is sequenced and handed over. Read with [Tasks.md](Tasks.md), which holds the full task detail.
 
 ---
@@ -8,22 +8,28 @@
 ## ▶ WHERE WE ARE
 
 ```
-CURRENT INCREMENT:  0 — Toolchain and walking skeleton
-STATUS:             built, locally verified, NOT YET DEPLOYED
-LAST LANDED:        — (increment 0 lands when `sam deploy` has run against the dev stack)
-BLOCKED ON:         nothing to build. The remaining step is a deploy the builder runs.
-                    T0.12 data-terms (3 open) still gates increment 4, not this one.
+CURRENT INCREMENT:  1 — Bitemporal foundation
+STATUS:             built, locally verified. Code complete; T1.6's stores are declared,
+                    not deployed.
+LAST LANDED:        — (increment 0 still lands on its first `sam deploy`)
+BLOCKED ON:         nothing to build. Deployment is deferred by the builder's decision.
+                    T0.12 data-terms (3 open) gates increment 4.
 RESOLVED:           T0.13 Python version — ADR-0054. The intersection does not bind.
                     T0.16 scraped-payload signature — already defined in Design §9.
+                    T1.1–T1.5 — bitemporal core, append-only writes, as-of gateway,
+                    frozen clock, and the property tests over REQ-105–108 + REQ-407.
                     TimesFM 2.5 licence (Apache-2.0) — one of the ten pre-build items.
                     metals price history — exists, fetched, in data/
 ```
 
-**What is green locally.** `uv run pytest` (49 tests), `uv run pre-commit run --all-files`
-(10 hooks), `sam validate --lint`, `sam build`. Gate G0's checks all exist and pass.
+**What is green locally.** `uv run pytest` — **89 tests**, of which 27 are the repository
+suite. `uv run pre-commit run --all-files` — 10 hooks. `sam validate --lint` and
+`sam build`. Gate G0's checks pass; Gate G1's T1.4 is green.
 
-**What is not yet proven.** The deploy loop itself — the point of the increment. Nothing
-has touched AWS. See the Verify block below; the deploy is the builder's to run.
+**What is not yet proven.** The deploy loop. Nothing has touched AWS, by decision — the
+seven tables and the versioned bucket are declared in `template.yaml` and validated, but
+no store exists yet. **Nothing has been written to any store, so REQ-101's
+non-retrofittable guarantee is still intact and unspent.**
 
 **Update this block whenever an increment lands.** It is the answer to "where are we?" and it is the first thing any session reads.
 
@@ -131,10 +137,20 @@ the intersection turned out not to bind.
 
 **You'll see.** You write a record, query it as-of two different timestamps, and get two different answers. Property tests pass over randomly generated as-of values.
 
-**Verify.** `pytest tests/repository -q` — and read the boundary-equality test specifically, because an off-by-one there is the likeliest bug in the project and the least likely to be noticed.
+**Verify.**
+```bash
+uv run pytest tests/repository -q
+```
+
+Then read [`tests/repository/test_boundary_equality.py`](../tests/repository/test_boundary_equality.py) specifically — an off-by-one there is the likeliest bug in the project and the least likely to be noticed. The file has a header explaining why, and each test pins one side of the boundary at a fixed instant so a failure names the exact relation that broke.
+
+To see the two-answers property directly rather than through a test:
+```bash
+uv run pytest tests/repository/test_append_only.py::test_a_revision_is_a_new_vintage_and_both_remain_readable -v
+```
 
 **Covers.** T1.1–T1.6 · REQ-101–113, REQ-407.
-**Not yet.** Any real data.
+**Not yet.** Any real data. `prices()`, `covariates()` and `page()` raise `StoreNotYetAvailable` naming the increment that builds their store — an empty result there would be indistinguishable from "no data yet" at every call site downstream.
 **Size.** 3–4 days.
 
 > **Nothing may write to any store before this lands.** `knowledge_time` cannot be reconstructed after the fact — for several sources the information is simply gone. This is the one increment where "we'll fix it later" has no meaning.

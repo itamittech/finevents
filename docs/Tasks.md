@@ -50,12 +50,12 @@ Ordered by dependency, not by preference. Three orderings are **not negotiable**
 
 | # | Task | REQ | Notes |
 |---|---|---|---|
-| T1.1 | Bitemporal schema across all stores; `knowledge_time` derivation documented per source | REQ-101, REQ-103 | **Not retrofittable. Do this first.** |
-| T1.2 | Append-only write path; no in-place updates | REQ-102 | |
-| T1.3 | `AsOfRepository` implementing the Design §2 protocol | REQ-104 | |
-| T1.4 | Property tests: no record past `as_of`; monotonicity; empty-history; explicit boundary equality | REQ-105–108 | Boundary equality is the likeliest bug and the least likely to be noticed |
-| T1.5 | Frozen clock for Lane A mode — wall-clock access raises | REQ-109 | |
-| T1.6 | DynamoDB tables and S3 prefixes per Design §3; versioning and Prod deletion protection | REQ-111–113 | |
+| T1.1 | ✅ Bitemporal schema across all stores; `knowledge_time` derivation documented per source | REQ-101, REQ-103 | **Not retrofittable. Do this first.** Done — `finevents/repository/records.py`; derivation per source in [knowledge-time-derivation.md](design/knowledge-time-derivation.md), with the conservative fallback stated |
+| T1.2 | ✅ Append-only write path; no in-place updates | REQ-102 | Done — the put carries `attribute_not_exists` on both keys, so an overwrite raises instead of succeeding quietly. `append_all` deliberately avoids `batch_writer`, which cannot carry the condition |
+| T1.3 | ✅ `AsOfRepository` implementing the Design §2 protocol | REQ-104 | Done. Methods whose store arrives later raise `StoreNotYetAvailable` naming the increment, rather than returning empty |
+| T1.4 | ✅ Property tests: no record past `as_of`; monotonicity; empty-history; explicit boundary equality | REQ-105–108, REQ-407 | Boundary equality is the likeliest bug and the least likely to be noticed — pinned at fixed instants in `test_boundary_equality.py` **and** generated in `test_asof_properties.py` |
+| T1.5 | ✅ Frozen clock for Lane A mode — wall-clock access raises | REQ-109 | Done twice over: `repository/clock.py` provides the abstraction, and `check_boundaries.py` forbids `datetime.now()`/`date.today()`/`time.time()` anywhere under `src/finevents/` except that one file. The runtime half alone is defeated by a single import |
+| T1.6 | ◐ DynamoDB tables and S3 prefixes per Design §3; versioning and Prod deletion protection | REQ-111–113 | **Declared and validated, not deployed.** Seven tables and the versioned bucket are in `template.yaml`; `DeletionPolicy: Retain` is set on **all** environments, not just prod, because `sam delete` on the wrong stack is a two-word mistake |
 
 **Gate G1:** T1.4 green, T0.9 passing against real modules.
 
