@@ -8,7 +8,7 @@ Per [ADR-0044](docs/adr/0044-licence-and-publication-policy.md), every source's 
 
 | Source | Used for | Access | Licence / terms | Attribution required | Status |
 |---|---|---|---|---|---|
-| [GDELT 2.0](https://www.gdeltproject.org/) | Unscheduled world events, Feb 2015→ | BigQuery free tier / file downloads | **CC BY 4.0** | **Yes** — wherever data or derivatives appear | Granularity of attribution ❓ open |
+| [GDELT 2.0](https://www.gdeltproject.org/) | Unscheduled world events, Feb 2015→ | BigQuery free tier / file downloads | **CC BY 4.0**; site grants unrestricted use with citation | **Yes** — dataset-level | ✅ answered 2026-08-13 — `scripts/gdelt_events.py` fetches |
 | [Bank of Russia](https://www.cbr.ru/) | **Daily gold, silver, platinum, palladium** — `xml_metall.asp`, RUB/gram, 2015→present. Plus USD/RUB from the same API | Keyless XML | **Terms not yet verified** | To confirm | ✅ fetches; ⚠ see note |
 | [Bank of England](https://www.bankofengland.co.uk/boeapps/database/) | Gold USD/oz daily, series `XUDLGPD`, 1979→2017 | Keyless CSV | BoE IADB terms | To confirm | ⚠ **discontinued 2017-05-26** — cross-check only |
 | [NBP](https://api.nbp.pl/) | Gold PLN/gram daily, 2013→present | Keyless JSON | NBP open API | To confirm | ✅ fetches; independent cross-check |
@@ -67,7 +67,7 @@ from 2011). This is an open decision, not a settled one.
 Tracked as REQ-1111. These are not resolvable by judgement and need actual answers.
 
 > Stooq's question is **void** — [ADR-0053](docs/adr/0053-remove-stooq-as-a-price-source.md) removed the source, which now serves a bot challenge instead of CSV.
-> FRED's question is **answered** (2026-08-13, below). **Two remain: GDELT attribution granularity, and whether a severity score is a derivative work.**
+> FRED's question is **answered** (2026-08-13, below). GDELT's is **answered** (2026-08-13, below). **One remains: whether a severity score is a derivative work.**
 
 1. ~~**FRED** — terms for derived series; which FRED series carry third-party restrictions?~~
    **✅ Answered 2026-08-13, from FRED's own series pages.**
@@ -85,5 +85,18 @@ Tracked as REQ-1111. These are not resolvable by judgement and need actual answe
    **Scope of this answer.** It settles which series are restricted. It does **not** settle whether a published artefact derived from `VIXCLS` is a derivative work — that is the same shape as question 3 below, which ADR-0050 already declines to answer and handles with a conservative default. Acquisition and local model input are a *use*; publication is a separate act and is not cleared here.
 
    **Recorded decision (2026-08-13):** this is a non-commercial technical proof of concept, and [ADR-0050](docs/adr/0050-publication-gate-scoped-to-data.md) already scopes the gate to *publishing* data rather than using it. All five series are therefore acquired for local model input. Publishing `VIXCLS` values, or any artefact from which the series could be reconstructed, remains blocked pending question 3.
-2. **GDELT** — must CC BY 4.0 attribution appear per-record or per-dataset?
+2. ~~**GDELT** — must CC BY 4.0 attribution appear per-record or per-dataset?~~
+   **✅ Answered 2026-08-13, from GDELT's own site.** The [about page](https://www.gdeltproject.org/about.html)
+   states all GDELT datasets are *"available for unlimited and unrestricted use for any
+   academic, commercial, or governmental use of any kind without fee"*, with
+   redistribution permitted and attribution by citation. CC BY 4.0 §3(a) itself requires
+   attribution only *"in any reasonable manner"* — never per-record.
+
+   **Recorded decision (2026-08-13): dataset-level attribution**, carried in three
+   places — this file, the dashboard's events section, and the emitted
+   `ui/data/events.js` payload itself. Raw GDELT rows stay in the gitignored `data/`
+   tree; what is published is the deterministic shortlist (event metadata plus source
+   URLs, REQ-1108) with the attribution line embedded. This unblocks the GDELT fetcher
+   under T0.12. Question 3 (severity scores as derivative works) is unaffected and
+   remains open.
 3. **Severity scores** — a model read an article and produced a number. Does that number constitute a derivative work of the article? *This is the genuinely uncertain one.*

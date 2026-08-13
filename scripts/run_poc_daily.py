@@ -75,6 +75,15 @@ def refetch() -> None:
             raise SystemExit(
                 f"{fetcher} failed ({result.returncode}) — refusing to run on stale data"
             )
+    # The event shortlist (P8b) refreshes too, but non-fatally: prices are the
+    # spine of every seal, events are context until P8c reads them — a news-feed
+    # hiccup must not stop the day's forecasts from sealing.
+    print("fetching via gdelt_events.py ...", flush=True)
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "gdelt_events.py")], cwd=ROOT, check=False
+    )
+    if result.returncode != 0:
+        print("  gdelt_events.py failed — the event shortlist may be stale; sealing continues")
 
 
 def sealed_horizons(

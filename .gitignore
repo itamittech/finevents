@@ -79,6 +79,7 @@ ui/data/*
 !ui/data/results_silver.js
 !ui/data/latest.js
 !ui/data/live.js
+!ui/data/events.js
 
 # Python bytecode from the analysis scripts
 __pycache__/

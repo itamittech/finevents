@@ -124,6 +124,14 @@
   .story li { display: flex; gap: .85rem; padding: .5rem 0; border-bottom: 1px solid #eeeae0; font-size: .9rem; }
   .story li:last-child { border-bottom: 0; }
   .story .tag { flex: 0 0 auto; font-size: .7rem; font-weight: 700; color: var(--accent); letter-spacing: .06em; padding-top: .15rem; min-width: 5.4rem; }
+  .evdate { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 1rem 0 .1rem; }
+  .ev { display: flex; gap: .55rem; align-items: baseline; padding: .32rem 0; border-bottom: 1px solid #eeeae0; font-size: .88rem; flex-wrap: wrap; }
+  .ev:last-child { border-bottom: 0; }
+  .ev b { white-space: nowrap; }
+  .ev .who { color: #4c493f; }
+  .ev .m { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+  .ev a { color: var(--accent); text-decoration: none; font-size: .8rem; white-space: nowrap; }
+  .ev a:hover { text-decoration: underline; }
   .story p { color: #4c493f; }
   .story b { color: var(--ink); }
   #tooltip {
@@ -172,6 +180,7 @@
 <script src="./data/results_silver.js"></script>
 <script src="./data/prices_silver.js"></script>
 <script src="./data/live.js"></script>
+<script src="./data/events.js"></script>
 <script>
 "use strict";
 const REG = window.POC_REGISTRY || {};
@@ -830,6 +839,45 @@ function latest() {
   return wrap;
 }
 
+function eventsFeed() {
+  const E = window.POC_EVENTS;
+  const wrap = el("section", null);
+  wrap.appendChild(el("h2", { text: "The week's events — filtered by code, no model" }));
+
+  if (!E || !E.days || !E.days.length) {
+    wrap.appendChild(el("p", { class: "note", text:
+      "No event shortlist yet. The deterministic feed builds it:" }));
+    wrap.appendChild(el("div", { class: "empty", style: "margin-top:.6rem; padding:1rem" },
+      el("code", { text: "uv run python scripts/gdelt_events.py" })));
+    return wrap;
+  }
+
+  const roots = Object.values(E.filter.roots).join(", ").toLowerCase();
+  wrap.appendChild(el("p", { class: "note", text:
+    `A pure code filter — no model involved: world events whose type is one of [${roots}], ` +
+    `with at least ${E.filter.min_mentions} media mentions, the most-mentioned event per type ` +
+    `and country each day, capped at ${E.filter.cap_per_day}. Small enough to read all of it ` +
+    "and judge the filter. This is the raw material the reasoning rung (P8c) will read." }));
+
+  for (const day of E.days) {
+    wrap.appendChild(el("div", { class: "evdate", text: day.date }));
+    for (const e of day.events) {
+      const severity = e.goldstein <= -8 ? "var(--bad)" : e.goldstein <= -5 ? "#d9a441" : "#8d887b";
+      const line = el("div", { class: "ev" },
+        el("span", { class: "dot", style: `background:${severity}; flex:0 0 auto; align-self:center` }),
+        el("b", { text: e.label }),
+        el("span", { class: "who", text: e.actors + (e.place ? " — " + e.place : "") }),
+        el("span", { class: "m", text: e.mentions.toLocaleString("en-US") + " mentions" }));
+      const a = el("a", { href: e.url, target: "_blank", rel: "noopener", text: "source ↗" });
+      line.appendChild(a);
+      wrap.appendChild(line);
+    }
+  }
+
+  wrap.appendChild(el("div", { class: "note", style: "margin-top:.8rem", text: E.attribution }));
+  return wrap;
+}
+
 function liveTrack() {
   const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
   const wrap = el("section", null);
@@ -1154,6 +1202,7 @@ function render() {
   c.appendChild(priceChart());
   c.appendChild(dayByDay());
   const l = latest(); if (l) c.appendChild(l);
+  c.appendChild(eventsFeed());
   c.appendChild(liveTrack());
   c.appendChild(ladder());
   c.appendChild(chart());
