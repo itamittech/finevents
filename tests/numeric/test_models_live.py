@@ -80,8 +80,40 @@ def test_chronos_univariate(panel, chronos) -> None:
     assert out.context_length == CONTEXT
     assert out.horizons == (1, 5)
     assert all(len(row) == len(QUANTILE_LEVELS) for row in out.values.values())
-    # A forecast should land within a plausible neighbourhood of the last close.
-    assert 0.5 < out.median(1) / panel.target.values[-1] < 2.0
+
+
+# --- anchoring: the forecast is for *tomorrow*, not for the start of the context
+
+
+@pytest.mark.parametrize("which", ["chronos", "timesfm"])
+@pytest.mark.parametrize("with_covariates", [False, True])
+def test_the_forecast_is_anchored_to_the_end_of_the_context(
+    panel, chronos, timesfm, which, with_covariates
+) -> None:
+    """A one-day-ahead median must sit near the last close, not near the oldest.
+
+    This caught a real bug. `return_backcast=True` — required by TimesFM's XReg —
+    prepends the reconstructed context to the returned array, so reading from the
+    front yields a forecast for the *start* of the window. Against a series that
+    had since doubled, that scored like a model with no skill rather than raising.
+
+    A fake cannot catch this: the shape only changes inside the real library.
+    Three σ at t+1 is a wide band and still excludes being off by a year.
+    """
+    forecaster = chronos if which == "chronos" else timesfm
+    covariates = _covariates(panel) if with_covariates else None
+
+    out = forecaster.forecast(panel.target, covariates, HORIZONS)
+
+    last_close = panel.target.values[-1]
+    oldest_in_context = panel.target.values[-out.context_length]
+    ratio = out.median(1) / last_close
+
+    assert 0.90 < ratio < 1.10, (
+        f"{out.track} median {out.median(1):.1f} against last close {last_close:.1f} "
+        f"(oldest in context {oldest_in_context:.1f}) — a one-day forecast this far "
+        f"from the anchor means the wrong rows were read"
+    )
 
 
 def test_chronos_covariate_informed(panel, chronos) -> None:

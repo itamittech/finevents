@@ -38,8 +38,37 @@ against history is one of three explicitly permitted uses of history (T6.12).
 | P1 | Collect gold + covariates; answer FRED terms | ✅ 10 series in `data/`, fetchers committed |
 | **P2** | **Validate, align as-of, σ and buckets** | ✅ **done — `scripts/prepare_gold_poc.py`** |
 | **P3** | **Chronos-2 and TimesFM, univariate + covariate-informed** | ✅ **done** — install measured, both wrappers behind one `Forecaster`, all four tracks byte-identical on repeat (REQ-507) |
-| P4 | Quantile → bucket (REQ-508), RPS vs climatology | next |
-| P5 | Report on full history **and** the 145-day clean window | |
+| **P4** | **Quantile → bucket (REQ-508), RPS vs climatology** | ✅ **done** — six rungs scored on 143 unseen days. **The result is a null; see below** |
+| P5 | The daily runner — fetch, forecast, seal, score what matured | next |
+| P6 | Schedule it locally | |
+| P7 | The dashboard | |
+
+### The first result — a null, 2026-08-13
+
+Six rungs, 143 unseen days in the contamination-free window, RPS (lower is better):
+
+| rung | t+1 | t+5 |
+|---|---|---|
+| `timesfm_uni` | **0.1392** | 0.1455 |
+| `chronos_uni` | 0.1401 | **0.1407** |
+| **`climatology`** | **0.1428** | **0.1443** |
+| `timesfm_cov` | 0.1442 | 0.1593 |
+| `chronos_cov` | 0.1492 | 0.1568 |
+| `all_flat` | 0.1783 | 0.1871 |
+
+**Every model rung is statistically indistinguishable from climatology.** The 95% intervals
+overlap heavily; the ~0.003 edge at t+1 is far inside the noise. Neither foundation model
+beats a naive historical frequency on rouble gold.
+
+**Covariates made it worse in all four comparisons** — `cov` scored above `uni` for both
+models at both horizons. Individually each gap is within noise; 4-for-4 in the same
+direction is worth watching rather than concluding from.
+
+`all_flat` is clearly worst, which is the sanity check working: the scoring can tell a bad
+forecast from an average one.
+
+This is the outcome the P3 plan named in advance as *"not a failure"*. It arrives before
+the other nine-tenths of the system was built assuming otherwise.
 
 **The contamination boundary is the result.** Chronos-2 and TimesFM 2.5 were pre-trained
 on corpora closing before 2026 — neither publishes an exact cutoff, which is still an open

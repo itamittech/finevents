@@ -127,7 +127,7 @@ class TimesFMForecaster:
             _, quantiles = self.model.forecast(
                 horizon=prediction_length, inputs=[np.asarray(target)]
             )
-            grid = np.asarray(quantiles)[0][:, _FIRST_DECILE_INDEX:]
+            grid = _forecast_rows(np, quantiles, prediction_length)[:, _FIRST_DECILE_INDEX:]
 
         values = {h: tuple(float(v) for v in grid[h - 1]) for h in horizons}
 
@@ -141,27 +141,39 @@ class TimesFMForecaster:
         )
 
 
-def _quantiles_from_covariate_call(np: Any, point: Any, quantiles: Any, horizon: int) -> Any:
-    """Normalise `forecast_with_covariates` output to [horizon, 9 deciles].
+def _forecast_rows(np: Any, quantiles: Any, horizon: int) -> Any:
+    """The `horizon` forecast rows, whatever else the array carries.
 
-    The covariate path returns the XReg-adjusted point forecast; when it does not
-    also return a full quantile grid, the base model's spread is re-centred on the
-    adjusted point. Re-centring rather than substituting keeps the *width* of the
-    distribution honest — XReg adjusts the level, not the uncertainty.
+    **`return_backcast=True` prepends the reconstructed context.** XReg requires
+    that flag, and it changes the shape of the *univariate* call too: the array
+    becomes `[1, padded_context + horizon, 10]` rather than `[1, horizon, 10]`.
+
+    Reading from the front then silently returns a reconstruction of the *oldest*
+    part of the context — a forecast for two years ago, presented as tomorrow.
+    It does not raise, it does not warn, and against a series that has since
+    doubled it scores exactly like a model with no skill. Slice from the end.
     """
     grid = np.asarray(quantiles)
-    if grid.ndim == 3 and grid.shape[-1] >= _FIRST_DECILE_INDEX + len(QUANTILE_LEVELS):
-        return grid[0][:, _FIRST_DECILE_INDEX : _FIRST_DECILE_INDEX + len(QUANTILE_LEVELS)]
+    if grid.ndim != 3:
+        raise ValueError(
+            f"expected a 3-D quantile array, got shape {grid.shape}; a bucket "
+            "distribution cannot be built without a quantile grid"
+        )
+    if grid.shape[1] < horizon:
+        raise ValueError(f"only {grid.shape[1]} rows returned for horizon {horizon}")
+    return grid[0][-horizon:]
 
-    adjusted = np.asarray(point)[0][:horizon]
-    if grid.ndim == 3:
-        base = grid[0][:horizon, _FIRST_DECILE_INDEX:]
-        centre = grid[0][:horizon, _MEAN_INDEX][:, None]
-        return base - centre + adjusted[:, None]
 
-    # No quantile information at all — a degenerate distribution would be a lie,
-    # so refuse rather than fabricate a spread.
-    raise ValueError(
-        "TimesFM's covariate call returned no quantile grid; a bucket distribution "
-        "cannot be built from a point forecast without inventing a spread"
-    )
+def _quantiles_from_covariate_call(np: Any, point: Any, quantiles: Any, horizon: int) -> Any:
+    """Normalise `forecast_with_covariates` output to [horizon, 9 deciles]."""
+    rows = _forecast_rows(np, quantiles, horizon)
+    if rows.shape[-1] >= _FIRST_DECILE_INDEX + len(QUANTILE_LEVELS):
+        return rows[:, _FIRST_DECILE_INDEX : _FIRST_DECILE_INDEX + len(QUANTILE_LEVELS)]
+
+    # The XReg-adjusted point forecast, with the base model's spread re-centred on
+    # it. Re-centring rather than substituting keeps the *width* honest — XReg
+    # adjusts the level, not the uncertainty.
+    adjusted = np.asarray(point)[0][-horizon:]
+    base = rows[:, _FIRST_DECILE_INDEX:]
+    centre = rows[:, _MEAN_INDEX][:, None]
+    return base - centre + adjusted[:, None]
