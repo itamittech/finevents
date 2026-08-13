@@ -37,12 +37,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from finevents.features.panel import Panel, Series, align  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
+    Bucket,
     buckets_for,
     climatology,
 )
 from finevents.numeric import Chronos2Forecaster, TimesFMForecaster  # noqa: E402
 from finevents.numeric.buckets import flat_distribution, to_bucket_probabilities  # noqa: E402
-from finevents.score.rps import ranked_probability_score, summarise  # noqa: E402
+from finevents.score.rps import (  # noqa: E402
+    by_outcome,
+    compare_paired,
+    ranked_probability_score,
+    summarise,
+)
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 HORIZONS = (1, 5)
@@ -112,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     forecasters = [(chronos, False), (chronos, True), (timesfm, False), (timesfm, True)]
 
     scores: dict[tuple[str, int], list[float]] = {}
+    outcomes: dict[int, list] = {h: [] for h in HORIZONS}
     started = time.perf_counter()
 
     for n, i in enumerate(cut_offs, 1):
@@ -124,6 +131,7 @@ def main(argv: list[str] | None = None) -> int:
         for horizon in HORIZONS:
             edges = buckets_for(history, horizon)
             realised = edges.assign(math.log(closes[i + horizon] / closes[i]))
+            outcomes[horizon].append(realised)
 
             distributions = {
                 "all_flat": flat_distribution(),
@@ -154,25 +162,37 @@ def main(argv: list[str] | None = None) -> int:
             (summarise(track, h, values) for (track, h), values in scores.items() if h == horizon),
             key=lambda s: s.mean,
         )
-        bar = next(r for r in rows if r.track == "climatology")
+        baseline = scores[("climatology", horizon)]
 
-        print(f"t+{horizon}   RPS over {rows[0].n} unseen days   (lower is better)")
-        print(f"  {'rung':<14}{'mean':>8}{'95% interval':>22}   vs climatology")
+        print(f"t+{horizon}   {rows[0].n} unseen days   RPS, lower is better\n")
+        head = "vs climatology, PAIRED per day"
+        print(f"  {'rung':<14}{'mean':>8}    {head:<34}{'days won':>10}")
         for r in rows:
-            lo, hi = r.interval95
             if r.track == "climatology":
-                verdict = "— the bar"
-            elif r.beats(bar):
-                verdict = "BEATS IT"
-            elif bar.beats(r):
-                verdict = "loses"
-            else:
-                verdict = "indistinguishable"
-            print(f"  {r.track:<14}{r.mean:>8.4f}{f'[{lo:.4f}, {hi:.4f}]':>22}   {verdict}")
-        print()
+                print(f"  {r.track:<14}{r.mean:>8.4f}    {'— the bar':<34}{'':>10}")
+                continue
+            c = compare_paired(
+                r.track, "climatology", horizon, scores[(r.track, horizon)], baseline
+            )
+            lo, hi = c.interval95
+            cell = f"{c.mean_difference:+.4f} [{lo:+.4f}, {hi:+.4f}] {c.verdict}"
+            print(f"  {r.track:<14}{r.mean:>8.4f}    {cell:<34}{c.wins}/{c.n:>4}")
 
-    print("`indistinguishable` means the 95% intervals overlap. A lower mean inside")
-    print("an overlapping interval is not evidence of skill.")
+        print("\n  by what actually happened  (mean RPS; ~60% of days are flat)")
+        buckets_seen = sorted(by_outcome(baseline, outcomes[horizon]))
+        header = "".join(f"{Bucket(b).label:>14}" for b in buckets_seen)
+        print(f"  {'rung':<14}{header}")
+        for r in rows:
+            split = by_outcome(scores[(r.track, horizon)], outcomes[horizon])
+            cells = "".join(f"{sum(split[b]) / len(split[b]):>14.4f}" for b in buckets_seen)
+            print(f"  {r.track:<14}{cells}")
+        seen = by_outcome(baseline, outcomes[horizon])
+        counts = "".join(f"{len(seen[b]):>14}" for b in buckets_seen)
+        print(f"  {'n days':<14}{counts}\n")
+
+    print("The paired column is the sharper test: every rung sees identical days, so")
+    print("the day-to-day outcome noise cancels instead of swamping the difference.")
+    print("`days won` counts days the rung scored strictly better than climatology.")
     return 0
 
 

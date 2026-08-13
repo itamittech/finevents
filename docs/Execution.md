@@ -43,32 +43,48 @@ against history is one of three explicitly permitted uses of history (T6.12).
 | P6 | Schedule it locally | |
 | P7 | The dashboard | |
 
-### The first result — a null, 2026-08-13
+### The first result — 2026-08-13, revised after switching to a paired test
 
-Six rungs, 143 unseen days in the contamination-free window, RPS (lower is better):
+Six rungs, 143 unseen days in the contamination-free window. RPS, lower is better.
 
-| rung | t+1 | t+5 |
-|---|---|---|
-| `timesfm_uni` | **0.1392** | 0.1455 |
-| `chronos_uni` | 0.1401 | **0.1407** |
-| **`climatology`** | **0.1428** | **0.1443** |
-| `timesfm_cov` | 0.1442 | 0.1593 |
-| `chronos_cov` | 0.1492 | 0.1568 |
-| `all_flat` | 0.1783 | 0.1871 |
+**Aggregate — paired per-day differences against climatology** (the sharper test; every
+rung sees identical days, so outcome noise cancels rather than swamping the signal):
 
-**Every model rung is statistically indistinguishable from climatology.** The 95% intervals
-overlap heavily; the ~0.003 edge at t+1 is far inside the noise. Neither foundation model
-beats a naive historical frequency on rouble gold.
+| rung | t+1 mean | vs climatology | t+5 mean | vs climatology |
+|---|---|---|---|---|
+| `chronos_uni` | 0.1401 | −0.0027, n.d. | **0.1407** | −0.0036, n.d. |
+| `timesfm_uni` | **0.1392** | −0.0036, n.d. | 0.1455 | +0.0012, n.d. |
+| `climatology` | 0.1428 | — the bar | 0.1443 | — the bar |
+| `chronos_cov` | 0.1492 | +0.0064, n.d. | 0.1568 | **+0.0125 worse** |
+| `timesfm_cov` | 0.1442 | +0.0014, n.d. | 0.1593 | **+0.0150 worse** |
+| `all_flat` | 0.1783 | **+0.0355 worse** | 0.1871 | **+0.0428 worse** |
 
-**Covariates made it worse in all four comparisons** — `cov` scored above `uni` for both
-models at both horizons. Individually each gap is within noise; 4-for-4 in the same
-direction is worth watching rather than concluding from.
+*n.d. = no detectable difference; the 95% interval of the per-day difference includes zero.*
 
-`all_flat` is clearly worst, which is the sanity check working: the scoring can tell a bad
-forecast from an average one.
+**Conditioned on what actually happened — the aggregate was hiding this** (t+1):
 
-This is the outcome the P3 plan named in advance as *"not a failure"*. It arrives before
-the other nine-tenths of the system was built assuming otherwise.
+| rung | large down | small down | flat | small up | large up |
+|---|---|---|---|---|---|
+| `chronos_uni` | **0.333** | **0.153** | 0.048 | **0.163** | **0.369** |
+| `timesfm_uni` | **0.325** | **0.144** | 0.051 | **0.163** | **0.370** |
+| `climatology` | 0.419 | 0.188 | **0.014** | 0.173 | 0.407 |
+| *n days* | 11 | 25 | 64 | 31 | 12 |
+
+**The models beat climatology on every category of day where the price moved, and lose
+badly on the 64 days where it did not.** Climatology's flat-day score of 0.014 is nearly
+perfect — it says "flat" and is usually right — and that one column drags the mean.
+
+So the aggregate null is a statement about **calibration, not about absence of signal**. The
+models spread probability wider than climatology; that costs them on quiet days and pays on
+moving ones, and it nets to a wash. They are not noise.
+
+**Two things only the paired test could resolve:** both covariate tracks are *detectably
+worse* than climatology at t+5, and `all_flat` is detectably worse at both horizons. The
+unpaired overlap test called all three "indistinguishable" — it was simply too blunt.
+
+**What cannot be concluded.** You do not know in advance which days will move, so
+"use the model on moving days" is not a strategy. The conditional table is evidence that
+the models carry information about movement magnitude, not a trading rule.
 
 **The contamination boundary is the result.** Chronos-2 and TimesFM 2.5 were pre-trained
 on corpora closing before 2026 — neither publishes an exact cutoff, which is still an open
