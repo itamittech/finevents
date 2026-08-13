@@ -75,8 +75,9 @@ jobs:
       - name: Install toolchain
         run: uv sync --frozen --group dev
       - name: pytest
-        # `aws` marks tests needing real credentials; CI has none by design.
-        run: uv run pytest -m "not aws" --cov --cov-report=term-missing
+        # `aws` needs real credentials; `slow` needs 1.34 GB of model weights.
+        # Neither belongs in CI, and both are exercised locally.
+        run: uv run pytest -m "not aws and not slow" --cov --cov-report=term-missing
 
   infrastructure:
     name: SAM template validation
