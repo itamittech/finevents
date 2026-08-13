@@ -132,7 +132,7 @@ def report_buckets(panel: Panel, as_of: date) -> None:
         print(f"        small up     r <  {b.edges[3]:+.6f}   ({pct[3]:+.2f}%)")
         print("        large up     otherwise")
 
-        freq = climatology(closes, horizon, b)
+        freq = climatology(closes, horizon)
         readable = "  ".join(f"{Bucket(i).label}={p:.3f}" for i, p in enumerate(freq))
         print(f"        climatology over {len(closes)} sessions:  {readable}\n")
 

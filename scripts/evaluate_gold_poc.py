@@ -39,7 +39,8 @@ from finevents.features.panel import Panel, Series, align  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
     Bucket,
     buckets_for,
-    climatology,
+    climatology_from_buckets,
+    historical_buckets,
 )
 from finevents.numeric import Chronos2Forecaster, TimesFMForecaster  # noqa: E402
 from finevents.numeric.buckets import flat_distribution, to_bucket_probabilities  # noqa: E402
@@ -117,6 +118,12 @@ def main(argv: list[str] | None = None) -> int:
     timesfm = TimesFMForecaster(context_length=args.context)
     forecasters = [(chronos, False), (chronos, True), (timesfm, False), (timesfm, True)]
 
+    # Computed once over the full series and sliced per cut-off. Each entry
+    # depends only on data up to its own index, so the prefix at cut-off i is
+    # exactly what recomputing there would give — at O(n) instead of O(n²).
+    print("precomputing the climatology bucket history...", flush=True)
+    history_buckets = {h: historical_buckets(closes, h) for h in HORIZONS}
+
     scores: dict[tuple[str, int], list[float]] = {}
     outcomes: dict[int, list] = {h: [] for h in HORIZONS}
     started = time.perf_counter()
@@ -135,7 +142,9 @@ def main(argv: list[str] | None = None) -> int:
 
             distributions = {
                 "all_flat": flat_distribution(),
-                "climatology": climatology(history, horizon, edges),
+                "climatology": climatology_from_buckets(
+                    [b for end, b in history_buckets[horizon] if end <= i]
+                ),
             }
             for forecaster, with_covariates in forecasters:
                 out = forecaster.forecast(

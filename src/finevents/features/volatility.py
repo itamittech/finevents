@@ -25,6 +25,7 @@ reading (60 *returns*, so 60+h closes) is equally natural and differs by ~1%.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import IntEnum
 
@@ -146,20 +147,57 @@ def buckets_for(closes: tuple[float, ...], horizon: int) -> Buckets:
     return Buckets(horizon=horizon, sigma=value, n_returns=n_returns, edges=edges)  # type: ignore[arg-type]
 
 
-def climatology(closes: tuple[float, ...], horizon: int, buckets: Buckets) -> tuple[float, ...]:
+def historical_buckets(closes: tuple[float, ...], horizon: int) -> list[tuple[int, Bucket]]:
+    """`(index, bucket)` for each historical return, **by its own σ at the time**.
+
+    REQ-401 defines a bucket relative to the trailing-60 σ *at that moment*, so a
+    2015 return belongs to the bucket 2015's σ gave it. Anything else conflates
+    the volatility level with the shape of the return distribution.
+
+    Each entry depends only on `closes[:index + 1]`, so **the result is a stable
+    prefix**: computing it once over the full series and slicing gives exactly
+    what recomputing at each cut-off would. That turns a rolling evaluation from
+    O(n²) into O(n), and the index is returned so a caller can do the slicing
+    without re-deriving the offset.
+    """
+    out: list[tuple[int, Bucket]] = []
+    for end in range(MIN_SESSIONS, len(closes)):
+        # σ as known at the cut-off, before the move it is bucketing.
+        window = closes[: end + 1 - horizon]
+        if len(window) < MIN_SESSIONS:
+            continue
+        edges = buckets_for(window, horizon)
+        realised = math.log(closes[end] / closes[end - horizon])
+        out.append((end, edges.assign(realised)))
+    return out
+
+
+def climatology_from_buckets(buckets: Sequence[Bucket]) -> tuple[float, ...]:
+    """Bucket frequency over an already-computed history."""
+    if not buckets:
+        raise AbstainedByConstruction("no history available for climatology")
+    counts = [0] * len(Bucket)
+    for bucket in buckets:
+        counts[bucket] += 1
+    return tuple(count / len(buckets) for count in counts)
+
+
+def climatology(closes: tuple[float, ...], horizon: int) -> tuple[float, ...]:
     """Unconditional bucket frequency over all available history (REQ-404).
 
     The honest baseline, and per ADR-0008 the hardest to beat: *"a result that
-    does not beat climatology out-of-sample is not a result."*
+    does not beat climatology out-of-sample is not a result."* So it has to be the
+    real one.
 
-    Computed against the **passed** boundaries rather than recomputing σ per
-    date, so climatology and the forecast are scored on identical buckets.
+    **It must be scale-free.** Bucketing every historical return against *today's*
+    σ answers a different question — "how often did past returns exceed 1.5× the
+    volatility we happen to have now" — and the answer swings with the current
+    regime. Measured on gold: that version put 0.595, 0.753 and 0.620 on `flat`
+    at three cut-offs in the same year, against a realised flat rate of 0.448.
+    A baseline that miscalibrates by a third depending on the month is not a bar,
+    it is a moving target.
+
+    Bucketing each return by its own contemporaneous σ gives 0.445 at all three —
+    stable, and calibrated to what actually happens.
     """
-    returns = overlapping_log_returns(closes, horizon)
-    if not returns:
-        raise AbstainedByConstruction("no returns available for climatology")
-
-    counts = [0] * len(Bucket)
-    for r in returns:
-        counts[buckets.assign(r)] += 1
-    return tuple(count / len(returns) for count in counts)
+    return climatology_from_buckets([b for _, b in historical_buckets(closes, horizon)])

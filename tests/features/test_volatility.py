@@ -24,6 +24,7 @@ from finevents.features.volatility import (
     Bucket,
     buckets_for,
     climatology,
+    historical_buckets,
     overlapping_log_returns,
     sigma,
 )
@@ -165,13 +166,55 @@ def test_percentage_translation_is_the_log_inverse() -> None:
 
 
 def test_climatology_is_a_distribution() -> None:
-    series = closes(400)
-    b = buckets_for(series, 1)
-    freq = climatology(series, 1, b)
+    freq = climatology(closes(400), 1)
 
     assert len(freq) == len(Bucket)
     assert sum(freq) == pytest.approx(1.0)
     assert all(p >= 0 for p in freq)
+
+
+def test_climatology_is_scale_free() -> None:
+    """REQ-404's bucket frequency must not move with the current volatility.
+
+    Each historical return belongs to the bucket *its own* σ gave it (REQ-401),
+    so multiplying the whole series by a constant — which scales every σ
+    identically — must leave the frequencies untouched.
+
+    Measured on real gold, the version that bucketed all history against today's
+    σ reported 0.595, 0.753 and 0.620 on `flat` at three cut-offs in one year,
+    against a realised flat rate of 0.448. A bar that moves by a third depending
+    on the month is not a bar.
+    """
+    base = closes(400, start=100.0, step=1.0)
+    scaled = tuple(v * 37.5 for v in base)
+
+    assert climatology(base, 1) == pytest.approx(climatology(scaled, 1))
+
+
+def test_climatology_reflects_the_realised_bucket_mix() -> None:
+    """It is a frequency count, so it must equal the counted frequencies."""
+    series = closes(300)
+    buckets = [b for _, b in historical_buckets(series, 1)]
+    freq = climatology(series, 1)
+
+    for bucket in Bucket:
+        expected = sum(1 for b in buckets if b == bucket) / len(buckets)
+        assert freq[bucket] == pytest.approx(expected)
+
+
+def test_the_bucket_history_is_a_stable_prefix() -> None:
+    """The property the O(n) rolling evaluation depends on.
+
+    Each entry uses only data up to its own index, so slicing a history computed
+    once over the whole series must equal recomputing it at that cut-off. If this
+    ever stops holding, every climatology in a rolling run is silently wrong.
+    """
+    series = closes(300)
+    full = historical_buckets(series, 1)
+
+    for cut_off in (150, 200, 250):
+        recomputed = historical_buckets(series[: cut_off + 1], 1)
+        assert [b for end, b in full if end <= cut_off] == [b for _, b in recomputed]
 
 
 @given(
