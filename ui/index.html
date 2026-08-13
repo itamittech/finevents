@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinEvents — Gold POC ladder</title>
+<!--
+  The gold POC dashboard (POC scaffolding toward REQ-901/903/908).
+
+  Self-contained by design: no CDN, no fonts, no fetch. Data arrives as two
+  script globals (./data/results.js, ./data/latest.js) so the page opens from
+  file:// on a laptop and ships unchanged to S3 + CloudFront later (ADR-0020).
+
+  Everything shown is derived work - scores, probabilities, sigma, edges
+  (REQ-1106). No raw closes, no VIXCLS values (REQ-1107).
+
+  Regenerate:
+    uv run python scripts/evaluate_gold_poc.py --json ui/data/results.js
+    uv run python scripts/forecast_gold_today.py
+-->
+<style>
+  :root {
+    --paper: #f7f5f1; --card: #fffefb; --ink: #21201c; --muted: #6f6a5e;
+    --line: #e3ded2; --accent: #a0721c; --accent-soft: #f2e5c9;
+    --bad: #a63d2f; --bad-soft: #f4e3df; --good: #40702f; --good-soft: #e5eddd;
+    --b0: #a63d2f; --b1: #cf8b6d; --b2: #d6d0c0; --b3: #85a86a; --b4: #4a7f45;
+    font-size: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.45; padding: 2.2rem 1.2rem 4rem;
+  }
+  main { max-width: 1020px; margin: 0 auto; }
+  h1 { font-size: 1.55rem; font-weight: 650; letter-spacing: .2px; }
+  h1 .fin { color: var(--accent); }
+  h2 {
+    font-size: .82rem; font-weight: 650; text-transform: uppercase;
+    letter-spacing: .13em; color: var(--muted); margin: 0 0 .8rem;
+  }
+  .sub { color: var(--muted); margin-top: .35rem; font-size: .95rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .9rem; }
+  .chip {
+    font-size: .74rem; color: var(--muted); background: var(--card);
+    border: 1px solid var(--line); border-radius: 99px; padding: .18rem .6rem;
+    white-space: nowrap;
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+  section {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1.25rem 1.4rem 1.35rem; margin-top: 1.15rem;
+  }
+  .hero { display: flex; gap: 2.2rem; flex-wrap: wrap; align-items: stretch; }
+  .hero .big { flex: 1 1 300px; }
+  .hero .big .n { font-size: 2.5rem; font-weight: 700; line-height: 1.1; }
+  .hero .big .n small { font-size: 1.15rem; color: var(--muted); font-weight: 500; }
+  .hero .big p { margin-top: .45rem; color: var(--muted); font-size: .92rem; max-width: 34ch; }
+  .hero .watch { flex: 1 1 300px; border-left: 3px solid var(--accent); padding-left: 1.1rem; }
+  .hero .watch .t { font-weight: 650; }
+  .hero .watch p { color: var(--muted); font-size: .92rem; margin-top: .3rem; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button {
+    border: 0; background: transparent; padding: .34rem .95rem; cursor: pointer;
+    font: inherit; font-size: .85rem; color: var(--muted);
+  }
+  .toggle button.on { background: var(--ink); color: var(--paper); }
+  .bar { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .scroll { overflow-x: auto; }
+  .scroll table { min-width: 620px; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: .42rem .6rem; font-size: .9rem; }
+  th { color: var(--muted); font-weight: 600; font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--line); }
+  tbody tr { border-bottom: 1px solid #eeeae0; }
+  tbody tr:last-child { border-bottom: 0; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .rname { font-weight: 600; white-space: nowrap; }
+  .bench { white-space: nowrap; }
+  .rname .dot { display: inline-block; width: .62rem; height: .62rem; border-radius: 50%; margin-right: .5rem; vertical-align: baseline; }
+  .bench { color: var(--muted); font-size: .8rem; }
+  .verdict { font-size: .74rem; padding: .13rem .5rem; border-radius: 99px; white-space: nowrap; }
+  .v-worse { background: var(--bad-soft); color: var(--bad); }
+  .v-nd { background: #efece3; color: var(--muted); }
+  .v-better { background: var(--good-soft); color: var(--good); }
+  .strip { display: flex; height: 1.35rem; border-radius: 4px; overflow: hidden; min-width: 260px; }
+  .strip div { display: flex; align-items: center; justify-content: center; font-size: .68rem; color: rgba(255,255,255,.92); overflow: hidden; white-space: nowrap; }
+  .strip div.lite { color: #56513f; }
+  .legend { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .legend button {
+    font: inherit; font-size: .76rem; cursor: pointer; border-radius: 99px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: .16rem .6rem .16rem .5rem; display: inline-flex; align-items: center; gap: .4rem;
+  }
+  .legend button .sw { width: .95rem; height: 3px; border-radius: 2px; }
+  .legend button.off { opacity: .38; }
+  svg text { font-family: inherit; }
+  .note { color: var(--muted); font-size: .8rem; margin-top: .7rem; }
+  .story { list-style: none; }
+  .story li { display: flex; gap: .85rem; padding: .5rem 0; border-bottom: 1px solid #eeeae0; font-size: .9rem; }
+  .story li:last-child { border-bottom: 0; }
+  .story .tag { flex: 0 0 auto; font-size: .7rem; font-weight: 700; color: var(--accent); letter-spacing: .06em; padding-top: .15rem; min-width: 5.4rem; }
+  .story p { color: #4c493f; }
+  .story b { color: var(--ink); }
+  #tooltip {
+    position: fixed; pointer-events: none; background: var(--ink); color: var(--paper);
+    font-size: .74rem; padding: .45rem .6rem; border-radius: 6px; display: none;
+    font-variant-numeric: tabular-nums; z-index: 5; max-width: 240px;
+  }
+  #tooltip .d { color: #cfc9b8; margin-bottom: .2rem; }
+  .empty { border: 1px dashed var(--line); border-radius: 10px; padding: 2rem; margin-top: 1.5rem; color: var(--muted); }
+  .empty code { display: block; background: var(--ink); color: var(--paper); border-radius: 6px; padding: .55rem .8rem; margin-top: .6rem; font-size: .82rem; }
+  footer { color: var(--muted); font-size: .78rem; margin-top: 1.6rem; line-height: 1.7; }
+  @media (max-width: 640px) { body { padding: 1.2rem .7rem 3rem; } section { padding: 1rem; } }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <h1><span class="fin">FinEvents</span> · Gold POC — the ladder, honestly scored</h1>
+    <div class="sub">Two foundation models vs climatology on live, uncontaminated days. A rung is only as good as the bar it beats.</div>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div id="content"></div>
+
+  <div id="tooltip"></div>
+
+  <footer id="foot"></footer>
+</main>
+
+<script src="./data/results.js"></script>
+<script src="./data/latest.js"></script>
+<script>
+"use strict";
+const D = window.POC_DATA, L = window.POC_LATEST;
+const BUCKET_COLOR = ["var(--b0)","var(--b1)","var(--b2)","var(--b3)","var(--b4)"];
+const BUCKET_LITE = [false, false, true, false, false];
+const RUNG_STYLE = {
+  climatology:      { color: "#57534a", dash: "" },
+  cond_climatology: { color: "#8a7f66", dash: "5 4" },
+  chronos_uni:      { color: "#a0721c", dash: "" },
+  chronos_cov:      { color: "#cf9c3d", dash: "6 4" },
+  timesfm_uni:      { color: "#2b6cb0", dash: "" },
+  timesfm_cov:      { color: "#7aa6cf", dash: "6 4" },
+  all_flat:         { color: "#b0aa9b", dash: "2 4" },
+};
+const state = { horizon: null, visible: {} };
+
+function el(tag, attrs, ...children) {
+  const node = tag.startsWith("svg:")
+    ? document.createElementNS("http://www.w3.org/2000/svg", tag.slice(4))
+    : document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "text") node.textContent = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) if (c) node.appendChild(c);
+  return node;
+}
+const fmt = (x, dp = 4) => (x >= 0 ? "+" : "") + x.toFixed(dp);
+
+function emptyState() {
+  document.getElementById("content").appendChild(el("div", { class: "empty" },
+    el("div", { text: "No data yet. Generate it, then reload this page:" }),
+    el("code", { text: "uv run python scripts/evaluate_gold_poc.py --json ui/data/results.js" }),
+    el("code", { text: "uv run python scripts/forecast_gold_today.py" })));
+}
+
+function meta() {
+  const m = document.getElementById("meta");
+  const chips = [
+    ["window", `${D.window.from} → ${D.window.to} · ${D.window.days} days`],
+    ["target", D.target],
+    ["clean from", D.window.clean_from + " — models trained before it"],
+    ["context", D.context + " sessions"],
+    ["covariate join", D.fred_join],
+    ["errors", D.errors],
+  ];
+  for (const [k, v] of chips) {
+    const c = el("span", { class: "chip" }); c.innerHTML = `${k} <b></b>`;
+    c.querySelector("b").textContent = v; m.appendChild(c);
+  }
+}
+
+function hero() {
+  const contenders = D.ladder[state.horizon].filter(r => !r.baseline && r.rung !== "all_flat");
+  const beat = contenders.filter(r => r.verdict === "BETTER").length;
+  const chronos = (D.ladder["5"] || []).find(r => r.rung === "chronos_uni");
+  const wrap = el("section", null);
+  wrap.appendChild(el("h2", { text: "The headline" }));
+  const flex = el("div", { class: "hero" });
+  const big = el("div", { class: "big" });
+  big.appendChild(el("div", { class: "n", text: `${beat} of ${contenders.length} ` }))
+     .appendChild(el("small", { text: `rungs beat climatology at t+${state.horizon}` }));
+  big.appendChild(el("p", { text: beat === 0
+    ? "The null is holding. Unconditional climatology remains the bar — no rung clears it " +
+      "with an interval that excludes zero, and the bar is free."
+    : `${beat} interval${beat > 1 ? "s" : ""} exclude${beat > 1 ? "" : "s"} zero on ` +
+      `${D.window.days} days. Small samples produce confident-looking intervals — read ` +
+      "the whiskers below before believing a win." }));
+  flex.appendChild(big);
+  if (chronos && !chronos.baseline) {
+    const includesZero = chronos.lo <= 0 && chronos.hi >= 0;
+    const w = el("div", { class: "watch" });
+    w.appendChild(el("div", { class: "t", text: `Worth watching: chronos_uni at t+5 — wins ${chronos.wins}/${chronos.n} days` }));
+    w.appendChild(el("p", { text:
+      `Mean ${fmt(chronos.diff)} vs the bar, interval [${fmt(chronos.lo)}, ${fmt(chronos.hi)}] ` +
+      (includesZero
+        ? "still includes zero: it wins often by a little and loses occasionally by a lot. Not yet a finding."
+        : "excludes zero on this sample — check the sample size and the whiskers before calling it a finding.") }));
+    flex.appendChild(w);
+  }
+  wrap.appendChild(flex);
+  return wrap;
+}
+
+function horizonToggle() {
+  const t = el("div", { class: "toggle" });
+  for (const h of D.horizons) {
+    t.appendChild(el("button", {
+      text: "t+" + h, class: h === state.horizon ? "on" : "",
+      onclick: () => { state.horizon = h; render(); },
+    }));
+  }
+  return t;
+}
+
+function latest() {
+  if (!L || !L.horizons || !L.horizons[state.horizon]) return null;
+  const hz = L.horizons[state.horizon];
+  const wrap = el("section", null);
+  const bar = el("div", { class: "bar" });
+  bar.appendChild(el("h2", { text: `Latest forecast — sealed ${L.as_of}, unscored` }));
+  bar.appendChild(horizonToggle());
+  wrap.appendChild(bar);
+
+  const table = el("table", null);
+  const body = el("tbody", null);
+  for (const rung of D.rungs) {
+    const probs = hz.rungs[rung];
+    if (!probs) continue;
+    const strip = el("div", { class: "strip" });
+    probs.forEach((p, i) => {
+      const seg = el("div", {
+        style: `width:${(p * 100).toFixed(2)}%; background:${BUCKET_COLOR[i]}`,
+        class: BUCKET_LITE[i] ? "lite" : "",
+        title: `${D.buckets[i]}: ${(p * 100).toFixed(1)}%`,
+      });
+      if (p >= 0.11) seg.textContent = Math.round(p * 100) + "%";
+      strip.appendChild(seg);
+    });
+    const tr = el("tr", null);
+    tr.appendChild(el("td", { class: "rname" }, el("span", { class: "dot", style: "background:" + RUNG_STYLE[rung].color }), document.createTextNode(rung)));
+    const cell = el("td", null, strip);
+    tr.appendChild(cell);
+    body.appendChild(tr);
+  }
+  table.appendChild(body);
+  wrap.appendChild(el("div", { class: "scroll" }, table));
+  const e = hz.edges_pct;
+  wrap.appendChild(el("div", { class: "note", text:
+    `Bucket edges at ±0.5σ / ±1.5σ from today's σ = ${hz.sigma_pct}%:  ` +
+    `large down < ${e[0]}%  ·  small down < ${e[1]}%  ·  flat < ${e[2]}%  ·  small up < ${e[3]}%  ·  large up above.  ` +
+    `Scores when the corresponding CBR fixes land — nothing here is graded yet.` }));
+  return wrap;
+}
+
+function ladder() {
+  const wrap = el("section", null);
+  const bar = el("div", { class: "bar" });
+  bar.appendChild(el("h2", { text: `The ladder — ${D.window.days} unseen days, RPS (lower is better)` }));
+  if (!L) bar.appendChild(horizonToggle());
+  wrap.appendChild(bar);
+
+  const rows = D.ladder[state.horizon];
+  const spans = rows.filter(r => !r.baseline);
+  const lo = Math.min(0, ...spans.map(r => r.lo)), hi = Math.max(0, ...spans.map(r => r.hi));
+  const scale = x => ((x - lo) / (hi - lo)) * 196 + 12;
+
+  const table = el("table", null);
+  const head = el("thead", null);
+  const hr = el("tr", null);
+  for (const [t, cls] of [["rung", ""], ["mean RPS", "num"], ["vs the bar (paired)", "num"], ["95% interval", ""], ["verdict", ""], ["days won", "num"]])
+    hr.appendChild(el("th", { text: t, class: cls }));
+  head.appendChild(hr); table.appendChild(head);
+  const body = el("tbody", null);
+
+  for (const r of rows) {
+    const tr = el("tr", null);
+    tr.appendChild(el("td", { class: "rname" },
+      el("span", { class: "dot", style: "background:" + (RUNG_STYLE[r.rung] || {}).color }),
+      document.createTextNode(r.rung)));
+    tr.appendChild(el("td", { class: "num", text: r.mean.toFixed(4) }));
+    if (r.baseline) {
+      tr.appendChild(el("td", { class: "num bench", text: "— the bar" }));
+      tr.appendChild(el("td", { class: "bench", text: "" }));
+      tr.appendChild(el("td", { class: "bench", text: "" }));
+      tr.appendChild(el("td", { class: "bench num", text: "" }));
+    } else {
+      tr.appendChild(el("td", { class: "num", text: fmt(r.diff) }));
+      const svg = el("svg:svg", { width: 220, height: 16, viewBox: "0 0 220 16" });
+      svg.appendChild(el("svg:line", { x1: scale(0), y1: 2, x2: scale(0), y2: 14, stroke: "#c9c3b4", "stroke-width": 1 }));
+      svg.appendChild(el("svg:line", { x1: scale(r.lo), y1: 8, x2: scale(r.hi), y2: 8, stroke: "#8d887b", "stroke-width": 1.6 }));
+      svg.appendChild(el("svg:circle", { cx: scale(r.diff), cy: 8, r: 3.4, fill: (RUNG_STYLE[r.rung] || {}).color || "#333" }));
+      tr.appendChild(el("td", { title: `[${fmt(r.lo)}, ${fmt(r.hi)}]` }, svg));
+      const cls = r.verdict === "worse" ? "v-worse" : r.verdict === "BETTER" ? "v-better" : "v-nd";
+      const label = r.verdict === "no detectable difference" ? "no detectable diff." : r.verdict;
+      tr.appendChild(el("td", null, el("span", { class: "verdict " + cls, text: label })));
+      tr.appendChild(el("td", { class: "num", text: `${r.wins}/${r.n}` }));
+    }
+    body.appendChild(tr);
+  }
+  table.appendChild(body);
+  wrap.appendChild(el("div", { class: "scroll" }, table));
+  wrap.appendChild(el("div", { class: "note", text:
+    "Paired per day: every rung is scored on identical days, so shared outcome noise cancels. " +
+    "Whiskers are Newey–West at lag = horizon−1 (t+5 outcomes overlap four sessions). " +
+    "The tick marks zero — a whisker crossing it is not a result." }));
+  return wrap;
+}
+
+function chart() {
+  const wrap = el("section", null);
+  wrap.appendChild(el("h2", { text: "Cumulative gap to climatology, day by day — below zero is ahead of the bar" }));
+
+  const days = D.daily, h = state.horizon;
+  const rungs = D.rungs.filter(r => r !== "climatology");
+  const series = {};
+  for (const r of rungs) {
+    let sum = 0;
+    series[r] = days.map(d => (sum += d.rps[h][r] - d.rps[h]["climatology"], sum));
+  }
+  const visible = rungs.filter(r => state.visible[r]);
+  const values = visible.flatMap(r => series[r]).concat([0]);
+  let min = Math.min(...values), max = Math.max(...values);
+  const pad = (max - min || 1) * 0.08; min -= pad; max += pad;
+
+  const W = 940, H = 330, ml = 52, mr = 14, mt = 12, mb = 30;
+  const x = i => ml + (i / (days.length - 1)) * (W - ml - mr);
+  const y = v => mt + (1 - (v - min) / (max - min)) * (H - mt - mb);
+  const svg = el("svg:svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", style: "display:block" });
+
+  const step = (max - min) / 4;
+  for (let k = 0; k <= 4; k++) {
+    const v = min + step * k;
+    svg.appendChild(el("svg:line", { x1: ml, y1: y(v), x2: W - mr, y2: y(v), stroke: "#efebe0", "stroke-width": 1 }));
+    svg.appendChild(el("svg:text", { x: ml - 7, y: y(v) + 3.5, "text-anchor": "end", "font-size": 10.5, fill: "#8d887b", text: v.toFixed(1) }));
+  }
+  svg.appendChild(el("svg:line", { x1: ml, y1: y(0), x2: W - mr, y2: y(0), stroke: "#57534a", "stroke-width": 1.3 }));
+
+  let lastMonth = "";
+  days.forEach((d, i) => {
+    const month = d.date.slice(0, 7);
+    if (month !== lastMonth && i > 0) {
+      svg.appendChild(el("svg:line", { x1: x(i), y1: mt, x2: x(i), y2: H - mb, stroke: "#f2efe6", "stroke-width": 1 }));
+      svg.appendChild(el("svg:text", { x: x(i), y: H - 10, "text-anchor": "middle", "font-size": 10.5, fill: "#8d887b", text: month }));
+    }
+    lastMonth = month;
+  });
+
+  for (const r of visible) {
+    const path = series[r].map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
+    svg.appendChild(el("svg:path", { d: path, fill: "none", stroke: RUNG_STYLE[r].color, "stroke-width": 1.8, "stroke-dasharray": RUNG_STYLE[r].dash }));
+  }
+
+  const guide = el("svg:line", { x1: -9, y1: mt, x2: -9, y2: H - mb, stroke: "#b6b0a2", "stroke-width": 1, "stroke-dasharray": "3 3" });
+  svg.appendChild(guide);
+  const tip = document.getElementById("tooltip");
+  svg.addEventListener("mousemove", ev => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((ev.clientX - rect.left) / rect.width) * W;
+    const i = Math.max(0, Math.min(days.length - 1, Math.round(((px - ml) / (W - ml - mr)) * (days.length - 1))));
+    guide.setAttribute("x1", x(i)); guide.setAttribute("x2", x(i));
+    const lines = visible.map(r => `<span style="color:${RUNG_STYLE[r].color}">●</span> ${r}  ${fmt(series[r][i], 3)}`);
+    tip.innerHTML = `<div class="d">${days[i].date} · outcome: ${D.buckets[days[i].outcome[h]]}</div>` + lines.join("<br>");
+    tip.style.display = "block";
+    tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - 250) + "px";
+    tip.style.top = (ev.clientY + 14) + "px";
+  });
+  svg.addEventListener("mouseleave", () => { tip.style.display = "none"; guide.setAttribute("x1", -9); guide.setAttribute("x2", -9); });
+
+  const legend = el("div", { class: "legend" });
+  for (const r of rungs) {
+    const b = el("button", { class: state.visible[r] ? "" : "off", onclick: () => { state.visible[r] = !state.visible[r]; render(); } },
+      el("span", { class: "sw", style: "background:" + RUNG_STYLE[r].color }), document.createTextNode(r));
+    legend.appendChild(b);
+  }
+  const bar = el("div", { class: "bar" }); bar.appendChild(legend);
+  wrap.appendChild(bar);
+  wrap.appendChild(svg);
+  wrap.appendChild(el("div", { class: "note", text:
+    "Cumulative sum of per-day RPS differences (rung − climatology) at t+" + h + ". " +
+    "A rung with real skill drifts below zero and stays there. all_flat starts hidden — it dwarfs the scale. " +
+    "This chart becomes the learning curve once the daily runner (P5) starts appending live days." }));
+  return wrap;
+}
+
+function byOutcome() {
+  const wrap = el("section", null);
+  wrap.appendChild(el("h2", { text: "By what actually happened — mean RPS per realised bucket" }));
+  const per = D.by_outcome[state.horizon];
+  const base = per["climatology"];
+  const counts = {};
+  for (const d of D.daily) counts[d.outcome[state.horizon]] = (counts[d.outcome[state.horizon]] || 0) + 1;
+
+  const table = el("table", null);
+  const head = el("tr", null);
+  head.appendChild(el("th", { text: "rung" }));
+  D.buckets.forEach((b, i) => head.appendChild(el("th", { class: "num", text: `${b} (${counts[i] || 0})` })));
+  table.appendChild(el("thead", null, head));
+  const body = el("tbody", null);
+  for (const rung of D.rungs) {
+    const tr = el("tr", null);
+    tr.appendChild(el("td", { class: "rname" },
+      el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }),
+      document.createTextNode(rung)));
+    for (let b = 0; b < D.buckets.length; b++) {
+      const v = per[rung] ? per[rung][String(b)] : undefined;
+      const td = el("td", { class: "num", text: v === undefined ? "—" : v.toFixed(3) });
+      if (v !== undefined && rung !== "climatology" && base[String(b)] !== undefined) {
+        const delta = v - base[String(b)];
+        if (delta <= -0.01) td.style.background = "var(--good-soft)";
+        else if (delta >= 0.01) td.style.background = "var(--bad-soft)";
+        td.title = "vs climatology: " + fmt(delta, 3);
+      }
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  }
+  table.appendChild(body);
+  wrap.appendChild(el("div", { class: "scroll" }, table));
+  wrap.appendChild(el("div", { class: "note", text:
+    "Green: at least 0.010 better than climatology on those days; red: at least 0.010 worse. " +
+    "The flat plurality dominates the overall mean — capability on moving days is what to watch." }));
+  return wrap;
+}
+
+function story() {
+  const wrap = el("section", null);
+  wrap.appendChild(el("h2", { text: "How these numbers earned their honesty" }));
+  const items = [
+    ["fixed", "<b>Climatology was miscalibrated</b> — history was bucketed against today's σ, so the bar moved with the volatility regime. Each return is now bucketed by its own contemporaneous σ (REQ-401)."],
+    ["fixed", "<b>The comparison was unpaired</b> — pairing per day tightened intervals roughly fourfold and moved three verdicts (T13.9)."],
+    ["fixed", "<b>The covariate join leaked one session</b> — a FRED value dated D is that day's US close, hours <i>after</i> CBR fixed the next day's price. The join now runs on knowledge days; removing the leak made covariate rungs worse."],
+    ["fixed", "<b>Errors ignored horizon overlap</b> — t+5 outcomes share four sessions with their neighbours. Newey–West errors widened three borderline “worse” verdicts to “no detectable difference”."],
+    ["found", "<b>Covariates hurt via spurious regression</b> — an unrelated random walk damages the forecast as much as a real macro series; white noise barely does. Granger–Newbold, inside in-context learning."],
+    ["found", "<b>The damage exists only out of training</b> — the same probe on 2025 days finds nothing. The 2026 contamination boundary is demonstrated, not assumed."],
+    ["binding", "<b>ADR-0056 accepted</b> — every covariate rung will carry a random-walk control scored on the same live days; no covariate is called informative unless it beats its control."],
+  ];
+  const list = el("ul", { class: "story" });
+  for (const [tag, html] of items) {
+    const li = el("li", null, el("span", { class: "tag", text: tag.toUpperCase() }));
+    const p = el("p", null); p.innerHTML = html; li.appendChild(p);
+    list.appendChild(li);
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function footer() {
+  const f = document.getElementById("foot");
+  f.textContent = "";
+  f.appendChild(el("div", { text:
+    `Generated from the panel through ${D.generated} · every number is derived work (scores, probabilities, σ, edges) — ` +
+    "no raw price series and no VIXCLS values leave the laptop (REQ-1106/1107). " +
+    "Rung 2 conditions at backoff level 2 with provisional N_min = " + D.n_min_provisional + " (REQ-408 calibrates it later). " +
+    "Regenerate: evaluate_gold_poc.py --json ui/data/results.js · forecast_gold_today.py" }));
+}
+
+function render() {
+  const c = document.getElementById("content");
+  c.textContent = "";
+  c.appendChild(hero());
+  const l = latest(); if (l) c.appendChild(l);
+  c.appendChild(ladder());
+  c.appendChild(chart());
+  c.appendChild(byOutcome());
+  c.appendChild(story());
+  footer();
+}
+
+if (!D) {
+  emptyState();
+} else {
+  state.horizon = D.horizons.includes("5") ? "5" : D.horizons[0];
+  for (const r of D.rungs) state.visible[r] = r !== "all_flat" && r !== "climatology";
+  meta();
+  render();
+}
+</script>
+</body>
+</html>

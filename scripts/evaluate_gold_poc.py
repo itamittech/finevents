@@ -33,6 +33,7 @@ the same rule, the cross-source join runs on knowledge days, not value days.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import sys
 import time
@@ -68,6 +69,120 @@ HORIZONS = (1, 5)
 CLEAN_FROM = date(2026, 1, 1)
 CONTEXT = 512
 
+#: Display order for the dashboard — baselines, then models, then the floor.
+RUNG_ORDER = (
+    "climatology",
+    "cond_climatology",
+    "chronos_uni",
+    "timesfm_uni",
+    "chronos_cov",
+    "timesfm_cov",
+    "all_flat",
+)
+
+
+def emit_ui_data(
+    path: Path,
+    *,
+    dates: tuple[date, ...],
+    cut_offs: list[int],
+    scores: dict[tuple[str, int], list[float]],
+    outcomes: dict[int, list],
+    levels_used: dict[tuple[int, int], int],
+    context: int,
+    n_min: int,
+) -> None:
+    """Persist the run for the dashboard (`ui/index.html`) as a JS global.
+
+    A `<script src>` global rather than fetch-able JSON, because the POC page
+    must open from `file://` with no server — browsers block fetch on local
+    files — and must work unchanged from S3 later (ADR-0020).
+
+    Publication boundary (REQ-1106/1107): everything emitted is derived work —
+    scores, probabilities, verdicts, dates. **No raw closes and no VIXCLS
+    values.** The regime cell's numeric inputs would be the tempting leak and
+    are omitted; only backoff-level counts appear. `generated` is the panel's
+    last session rather than wall clock, so a re-run over the same data is
+    byte-identical (the same property REQ-507 demands of the forecasts).
+    """
+    tracks = sorted({track for track, _ in scores})
+    ordered = [r for r in RUNG_ORDER if r in tracks] + [t for t in tracks if t not in RUNG_ORDER]
+
+    ladder: dict[str, list[dict]] = {}
+    for h in HORIZONS:
+        baseline = scores[("climatology", h)]
+        rows: list[dict] = []
+        for track in ordered:
+            values = scores[(track, h)]
+            row: dict = {"rung": track, "mean": round(sum(values) / len(values), 6)}
+            if track == "climatology":
+                row["baseline"] = True
+            else:
+                c = compare_paired(track, "climatology", h, values, baseline, hac_lag=h - 1)
+                lo, hi = c.interval95
+                row.update(
+                    diff=round(c.mean_difference, 6),
+                    lo=round(lo, 6),
+                    hi=round(hi, 6),
+                    verdict=c.verdict,
+                    wins=c.wins,
+                    n=c.n,
+                )
+            rows.append(row)
+        rows.sort(key=lambda r: r["mean"])
+        ladder[str(h)] = rows
+
+    daily = []
+    for position, i in enumerate(cut_offs):
+        record: dict = {"date": dates[i].isoformat(), "outcome": {}, "rps": {}}
+        for h in HORIZONS:
+            record["outcome"][str(h)] = int(outcomes[h][position])
+            record["rps"][str(h)] = {
+                track: round(scores[(track, h)][position], 6) for track in ordered
+            }
+        daily.append(record)
+
+    by_bucket: dict[str, dict] = {}
+    for h in HORIZONS:
+        per_track = {}
+        for track in ordered:
+            split = by_outcome(scores[(track, h)], outcomes[h])
+            per_track[track] = {
+                str(int(bucket)): round(sum(v) / len(v), 6) for bucket, v in sorted(split.items())
+            }
+        by_bucket[str(h)] = per_track
+
+    payload = {
+        "generated": dates[-1].isoformat(),
+        "target": "gold, RUB/gram, CBR daily fix",
+        "window": {
+            "from": dates[cut_offs[0]].isoformat(),
+            "to": dates[cut_offs[-1]].isoformat(),
+            "days": len(cut_offs),
+            "clean_from": CLEAN_FROM.isoformat(),
+        },
+        "context": context,
+        "n_min_provisional": n_min,
+        "fred_join": "knowledge day (value date +1)",
+        "errors": "paired per day, Newey-West lag = horizon-1",
+        "horizons": [str(h) for h in HORIZONS],
+        "buckets": [Bucket(i).label for i in range(len(Bucket))],
+        "rungs": ordered,
+        "ladder": ladder,
+        "daily": daily,
+        "by_outcome": by_bucket,
+        "rung2_levels": {
+            str(h): {
+                str(level): count for (hh, level), count in sorted(levels_used.items()) if hh == h
+            }
+            for h in HORIZONS
+        },
+    }
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("window.POC_DATA = " + json.dumps(payload, indent=1) + ";\n", encoding="utf-8")
+    print(f"dashboard data -> {path}")
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -77,6 +192,13 @@ def main(argv: list[str] | None = None) -> int:
     # REQ-408 is a calibration METHOD, not a value: N_min fits against the seed
     # join, which does not exist. This is provisional and labelled as such.
     parser.add_argument("--n-min", type=int, default=20)
+    parser.add_argument(
+        "--json",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="also persist the run for ui/index.html (e.g. ui/data/results.js)",
+    )
     args = parser.parse_args(argv)
 
     panel = load_panel()
@@ -216,6 +338,18 @@ def main(argv: list[str] | None = None) -> int:
     print("`days won` counts days the rung scored strictly better than climatology.")
     print("Errors are Newey-West with lag = horizon-1: t+5 is scored daily while each")
     print("outcome spans five sessions, so adjacent differences overlap by construction.")
+
+    if args.json:
+        emit_ui_data(
+            args.json,
+            dates=dates,
+            cut_offs=cut_offs,
+            scores=scores,
+            outcomes=outcomes,
+            levels_used=levels_used,
+            context=args.context,
+            n_min=args.n_min,
+        )
     return 0
 
 

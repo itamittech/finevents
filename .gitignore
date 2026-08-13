@@ -65,6 +65,13 @@ data/
 *.csv
 !docs/**/*.csv
 
+# The dashboard's generated record is the one deliberate exception to **/data/:
+# it is OUR derived work — scores, probabilities, verdicts — which REQ-1106
+# publishes. Only .js data files pass; anything else in there stays ignored.
+!ui/data/
+ui/data/*
+!ui/data/*.js
+
 # Python bytecode from the analysis scripts
 __pycache__/
 

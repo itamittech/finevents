@@ -9,11 +9,12 @@
 
 ```
 CURRENT TRACK:      GOLD POC  (a resequencing, chosen 2026-08-13 — see "The POC track")
-CURRENT STEP:       P4 + its review pass — DONE. The review found three defects in
-                    the covariate analysis (a knowledge-time leak in the FRED join,
-                    iid errors on overlapping horizons, a straw-man differencing
-                    test); all fixed and re-scored. See "The first result".
-NEXT STEP:          P5 — the daily runner (fetch, forecast, seal, score what matured)
+CURRENT STEP:       P7 — the dashboard. DONE, pulled ahead of P5/P6 by the builder
+                    (2026-08-13) so the page fixes the data contract the runner
+                    will write to. `ui/index.html`, self-contained, S3-ready.
+NEXT STEP:          P5 — the daily runner (fetch, forecast, seal, score what
+                    matured, append to ui/data/, and score the *_rwcov controls
+                    ADR-0056 now requires)
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
@@ -44,9 +45,9 @@ against history is one of three explicitly permitted uses of history (T6.12).
 | **P2** | **Validate, align as-of, σ and buckets** | ✅ **done — `scripts/prepare_gold_poc.py`** |
 | **P3** | **Chronos-2 and TimesFM, univariate + covariate-informed** | ✅ **done** — install measured, both wrappers behind one `Forecaster`, all four tracks byte-identical on repeat (REQ-507) |
 | **P4** | **Quantile → bucket (REQ-508), RPS vs climatology** | ✅ **done, then re-scored after a same-day review pass** — seven rungs on 143 unseen days. **The result is a null; see below** |
-| P5 | The daily runner — fetch, forecast, seal, score what matured | next |
+| P5 | The daily runner — fetch, forecast, seal, score what matured, append to `ui/data/`, and score ADR-0056's `*_rwcov` controls | next |
 | P6 | Schedule it locally | |
-| P7 | The dashboard | |
+| **P7** | **The dashboard** | ✅ **done — resequenced ahead of P5/P6** (builder's decision, 2026-08-13) so the page fixes the data contract the runner writes to. One self-contained `ui/index.html` — no CDN, opens from disk, ships to S3 unchanged (ADR-0020). Reads `ui/data/results.js` (per-day scores, NW intervals, verdicts) + `ui/data/latest.js` (sealed unscored forecast). Emitters write derived work only — REQ-1106/1107 |
 
 ### The first result — 2026-08-13, after four methodology corrections
 
