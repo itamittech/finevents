@@ -219,6 +219,18 @@ const NAME = {
 };
 const rname = r => NAME[r] || r;
 
+// A legend swatch that is the line itself — same colour, same dash — because a
+// solid pill cannot explain a dotted line.
+function lineSwatch(rung) {
+  const style = RUNG_STYLE[rung] || { color: "#888", dash: "" };
+  const s = el("svg:svg", { width: 24, height: 10, viewBox: "0 0 24 10", style: "flex:0 0 auto" });
+  s.appendChild(el("svg:line", {
+    x1: 1, y1: 5, x2: 23, y2: 5,
+    stroke: style.color, "stroke-width": 2.2, "stroke-dasharray": style.dash || "",
+  }));
+  return s;
+}
+
 // Data files merge into POC_REGISTRY; gold's original bare globals still load
 // as a fallback so previously generated files keep working.
 function pack(inst) {
@@ -539,7 +551,8 @@ function priceChart() {
   key.appendChild(keyItem(el("i", { style: `background:${bandColor};opacity:.35` }),
     one ? `${rname(one)}'s 8-in-10 zone, ${ahead}` : `each band = that method's 8-in-10 zone, ${ahead}`));
   key.appendChild(keyItem(el("span", { style:
-    `display:inline-block;width:1rem;border-top:2px dashed ${bandColor}` }), "its best single guess"));
+    `display:inline-block;width:1rem;border-top:2px dashed ${bandColor}` }),
+    one ? "its best single guess" : "each method's best single guess (dashed, in its colour)"));
   if (state.flatZone)
     key.appendChild(keyItem(el("i", { style: "background:#8d887b;opacity:.4" }),
       "moves this small counted as “flat”"));
@@ -934,10 +947,12 @@ function chart() {
   let min = Math.min(...values), max = Math.max(...values);
   const pad = (max - min || 1) * 0.08; min -= pad; max += pad;
 
-  const W = 940, H = 330, ml = 52, mr = 14, mt = 12, mb = 30;
+  const W = 940, H = 330, ml = 52, mr = 14, mt = 24, mb = 30;
   const x = i => ml + (i / (days.length - 1)) * (W - ml - mr);
   const y = v => mt + (1 - (v - min) / (max - min)) * (H - mt - mb);
   const svg = el("svg:svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", style: "display:block" });
+  svg.appendChild(el("svg:text", { x: ml, y: 13, "font-size": 10, fill: "#b0aa9b",
+    text: "running total of each method's daily gap to the base rates (RPS)" }));
 
   const step = (max - min) / 4;
   for (let k = 0; k <= 4; k++) {
@@ -946,6 +961,10 @@ function chart() {
     svg.appendChild(el("svg:text", { x: ml - 7, y: y(v) + 3.5, "text-anchor": "end", "font-size": 10.5, fill: "#8d887b", text: v.toFixed(1) }));
   }
   svg.appendChild(el("svg:line", { x1: ml, y1: y(0), x2: W - mr, y2: y(0), stroke: "#57534a", "stroke-width": 1.3 }));
+  if (y(0) - 14 > mt)
+    svg.appendChild(el("svg:text", { x: W - mr - 4, y: y(0) - 6, "text-anchor": "end", "font-size": 10.5, fill: "#8d887b", text: "above the line = losing to the base rates" }));
+  if (y(0) + 22 < H - mb)
+    svg.appendChild(el("svg:text", { x: W - mr - 4, y: y(0) + 14, "text-anchor": "end", "font-size": 10.5, fill: "#8d887b", text: "below = beating them" }));
 
   let lastMonth = "";
   days.forEach((d, i) => {
@@ -981,16 +1000,17 @@ function chart() {
   const legend = el("div", { class: "legend" });
   for (const r of rungs) {
     const b = el("button", { class: state.visible[r] ? "" : "off", title: r, onclick: () => { state.visible[r] = !state.visible[r]; render(); } },
-      el("span", { class: "sw", style: "background:" + RUNG_STYLE[r].color }), document.createTextNode(rname(r)));
+      lineSwatch(r), document.createTextNode(rname(r)));
     legend.appendChild(b);
   }
   const bar = el("div", { class: "bar" }); bar.appendChild(legend);
   wrap.appendChild(bar);
   wrap.appendChild(svg);
   wrap.appendChild(el("div", { class: "note", text:
-    "Cumulative sum of per-day RPS differences (rung − climatology) at t+" + h + ". " +
-    "A rung with real skill drifts below zero and stays there. all_flat starts hidden — it dwarfs the scale. " +
-    "This chart becomes the learning curve once the daily runner (P5) starts appending live days." }));
+    "Each line adds up one method's daily gap to the base rates at t+" + h + " — solid or " +
+    "dashed exactly as drawn in its legend chip. A method with real skill drifts below zero " +
+    "and stays there. Click a chip to show or hide its line; the always-flat dummy starts " +
+    "hidden because it dwarfs the scale. This becomes the learning curve as live days append." }));
   return wrap;
 }
 
