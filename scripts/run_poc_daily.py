@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from gold_poc_data import UNIVARIATE_SERIES, load_panel, load_univariate  # noqa: E402
+from gold_poc_data import UNIVARIATE_SERIES, load_panel, load_univariate, read_metal  # noqa: E402
 from poc_live_track import mature, parse, random_walk, seal, seed_for, serialize  # noqa: E402
 
 from finevents.features.conditional import (  # noqa: E402
@@ -43,7 +43,7 @@ from finevents.features.conditional import (  # noqa: E402
     conditional_climatology,
     regime_history,
 )
-from finevents.features.panel import Series  # noqa: E402
+from finevents.features.panel import Series, align  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
     buckets_for,
     climatology_from_buckets,
@@ -170,6 +170,54 @@ def main(argv: list[str] | None = None) -> int:
     state["instruments"]["gold"]["records"] = records
     if newly:
         summary.append(f"gold      matured {newly} horizon(s)")
+
+    # ---- silver: the mirror experiment (covariate = gold, same CBR fix) ------
+    spanel = align(read_metal("silver"), [read_metal("gold")])
+    dates_s, closes_s = spanel.dates, spanel.target.values
+    as_of_s = dates_s[-1].isoformat()
+    seed_s = seed_for(as_of_s)
+
+    records = state["instruments"].setdefault("silver", {"records": []})["records"]
+    if any(r["as_of"] == as_of_s for r in records):
+        summary.append(f"silver    {as_of_s} already sealed — maturation only")
+    else:
+        gold_cov = {spanel.covariates[0].name: spanel.covariates[0]}
+        walk_s = Series("rw", dates_s, random_walk(seed_s, len(closes_s)))
+        starget = spanel.target
+        outputs_s = {
+            "chronos_uni": chronos.forecast(starget, None, list(HORIZONS)),
+            "chronos_cov": chronos.forecast(starget, gold_cov, list(HORIZONS)),
+            "chronos_rwcov": chronos.forecast(starget, {"rw": walk_s}, list(HORIZONS)),
+            "timesfm_uni": timesfm.forecast(starget, None, list(HORIZONS)),
+            "timesfm_cov": timesfm.forecast(starget, gold_cov, list(HORIZONS)),
+            "timesfm_rwcov": timesfm.forecast(starget, {"rw": walk_s}, list(HORIZONS)),
+        }
+        history_s = {h: historical_buckets(closes_s, h) for h in HORIZONS}
+
+        def silver_distributions(
+            h: int, edges, *, _hist=history_s, _outs=outputs_s, _closes=closes_s
+        ) -> dict:
+            built = {
+                "all_flat": flat_distribution(),
+                "climatology": climatology_from_buckets([b for _, b in _hist[h]]),
+            }
+            for rung, out in _outs.items():
+                built[rung] = to_bucket_probabilities(out, h, _closes[-1], edges)
+            return built
+
+        records, did = seal(
+            records,
+            as_of=as_of_s,
+            horizons=sealed_horizons(dates_s, closes_s, silver_distributions),
+            rw_seed=seed_s,
+        )
+        state["instruments"]["silver"]["records"] = records
+        summary.append(f"silver    sealed {as_of_s}   8 rungs (covariate: gold), rw seed {seed_s}")
+
+    records, newly = mature(records, [d.isoformat() for d in dates_s], list(closes_s))
+    state["instruments"]["silver"]["records"] = records
+    if newly:
+        summary.append(f"silver    matured {newly} horizon(s)")
 
     # ---- the univariate instruments (FX pairs, WTI) --------------------------
     for instrument in UNIVARIATE_SERIES:

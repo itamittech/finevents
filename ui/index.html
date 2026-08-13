@@ -85,7 +85,16 @@
   .strip { display: flex; height: 1.35rem; border-radius: 4px; overflow: hidden; min-width: 260px; }
   .strip div { display: flex; align-items: center; justify-content: center; font-size: .68rem; color: rgba(255,255,255,.92); overflow: hidden; white-space: nowrap; }
   .strip div.lite { color: #56513f; }
+  #controls {
+    position: sticky; top: 0; z-index: 10; background: var(--paper);
+    padding: .75rem 0 .65rem; border-bottom: 1px solid var(--line); margin-top: 1.1rem;
+    display: flex; flex-wrap: wrap; gap: .5rem 1.6rem; align-items: center;
+  }
+  #controls .group { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  tr.focused td { background: var(--accent-soft); }
+  tbody tr.pickable { cursor: pointer; }
   .legend, .filters { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+  #controls button,
   .legend button, .filters button {
     font: inherit; font-size: .76rem; cursor: pointer; border-radius: 99px;
     border: 1px solid var(--line); background: var(--card); color: var(--ink);
@@ -93,9 +102,9 @@
   }
   .legend button .sw { width: .95rem; height: 3px; border-radius: 2px; }
   .legend button.off { opacity: .38; }
-  .filters button .sw { width: .6rem; height: .6rem; border-radius: 50%; }
+  .filters button .sw, #controls button .sw { width: .6rem; height: .6rem; border-radius: 50%; }
   .filters button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .filters .label { font-size: .74rem; color: var(--muted); margin-right: .15rem; }
+  .filters .label, #controls .label { font-size: .74rem; color: var(--muted); margin-right: .15rem; }
   .filters .sep { flex-basis: 100%; height: 0; }
   .blegend { display: flex; flex-wrap: wrap; gap: .9rem; font-size: .76rem; color: var(--muted); margin: .5rem 0 .2rem; }
   .blegend span { display: inline-flex; align-items: center; gap: .35rem; }
@@ -134,6 +143,8 @@
     <div class="meta" id="meta"></div>
   </header>
 
+  <div id="controls"></div>
+
   <div id="content"></div>
 
   <div id="tooltip"></div>
@@ -150,6 +161,8 @@
 <script src="./data/prices_usd_inr.js"></script>
 <script src="./data/results_wti.js"></script>
 <script src="./data/prices_wti.js"></script>
+<script src="./data/results_silver.js"></script>
+<script src="./data/prices_silver.js"></script>
 <script src="./data/live.js"></script>
 <script>
 "use strict";
@@ -168,6 +181,21 @@ const INSTRUMENTS = {
       "It is NOT the dollar gold price you see quoted elsewhere: the target lives in roubles, " +
       "so a rouble move is part of every move on this chart. Chosen as the one free, " +
       "licence-clean source with eleven years of daily history (DATA_SOURCES.md).",
+  },
+  silver: {
+    label: "Silver · ₽/g",
+    title: "silver, in roubles per gram",
+    unit: "₽ per gram",
+    short: "₽/g",
+    decimals: 2,
+    ounce: 31.1035,
+    names: { chronos_cov: "Chronos-2 + gold", timesfm_cov: "TimesFM + gold" },
+    blurb: "Gold's sister metal, from the same Bank of Russia daily fix — and the mirror " +
+      "experiment. For gold, silver was the one covariate that did no harm (their daily " +
+      "returns co-move at 0.68 — the only genuinely co-integrated pair in the set). Here the " +
+      "roles reverse: silver is forecast with GOLD as the sole covariate, testing whether that " +
+      "harmlessness is symmetric — and whether return co-movement can ever add skill rather " +
+      "than merely not subtract it.",
   },
   usd_rub: {
     label: "USD / RUB",
@@ -217,7 +245,8 @@ const NAME = {
   timesfm_rwcov: "TimesFM + random walk (control)",
   all_flat: "Always-flat dummy",
 };
-const rname = r => NAME[r] || r;
+const rname = r =>
+  ((INSTRUMENTS[state.instrument] || {}).names || {})[r] || NAME[r] || r;
 
 // A legend swatch that is the line itself — same colour, same dash — because a
 // solid pill cannot explain a dotted line.
@@ -261,11 +290,20 @@ const RUNG_STYLE = {
   timesfm_rwcov:    { color: "#a8c2d8", dash: "1 3" },
   all_flat:         { color: "#b0aa9b", dash: "2 4" },
 };
+// One state, one control bar. `rung` is the FOCUSED method: the price chart
+// draws its ribbon, the day-by-day view its guesses, the race chart bolds its
+// line, and every table highlights its row. Click a method anywhere to focus it.
 const state = {
-  instrument: "gold", horizon: null, visible: {}, rung: "chronos_uni", movingOnly: false,
-  bands: { chronos_uni: true, chronos_cov: false, timesfm_uni: false, timesfm_cov: false },
-  span: "90", flatZone: false,
+  instrument: "gold", horizon: null, rung: "chronos_uni",
+  span: "90", movingOnly: false, flatZone: false,
 };
+
+function setFocus(rung) { state.rung = rung; render(); }
+
+function spanSlice(list) {
+  const count = state.span === "all" ? list.length : Math.min(list.length, parseInt(state.span, 10));
+  return list.slice(-count);
+}
 
 const priceFmt = x => x.toLocaleString("en-US", {
   maximumFractionDigits: INSTRUMENTS[state.instrument].decimals,
@@ -310,17 +348,34 @@ function meta() {
   }
 }
 
-function switcher() {
-  const bar = el("div", { class: "filters", style: "margin-top:1.15rem" });
-  bar.appendChild(el("span", { class: "label", text: "instrument" }));
-  for (const k of AVAILABLE) {
-    bar.appendChild(el("button", {
-      text: INSTRUMENTS[k].label,
-      class: k === state.instrument ? "on" : "",
+function controls() {
+  const bar = document.getElementById("controls");
+  bar.textContent = "";
+  const group = (label, buttons) => {
+    const g = el("div", { class: "group" });
+    g.appendChild(el("span", { class: "label", text: label }));
+    for (const b of buttons) g.appendChild(b);
+    bar.appendChild(g);
+  };
+  if (AVAILABLE.length > 1)
+    group("instrument", AVAILABLE.map(k => el("button", {
+      text: INSTRUMENTS[k].label, class: k === state.instrument ? "on" : "",
       onclick: () => { state.instrument = k; render(); },
-    }));
-  }
-  return bar;
+    })));
+  group("horizon", D.horizons.map(h => el("button", {
+    text: "t+" + h, class: h === state.horizon ? "on" : "",
+    onclick: () => { state.horizon = h; render(); },
+  })));
+  group("method", D.rungs.map(r => el("button", {
+    class: r === state.rung ? "on" : "", title: r,
+    onclick: () => setFocus(r),
+  }, el("span", { class: "sw", style: "background:" + ((RUNG_STYLE[r] || {}).color || "#888") }),
+     document.createTextNode(rname(r)))));
+  group("chart window", ["30", "90", "all"].map(s => el("button", {
+    text: s === "all" ? "all days" : "last " + s,
+    class: state.span === s ? "on" : "",
+    onclick: () => { state.span = s; render(); },
+  })));
 }
 
 function hero() {
@@ -353,17 +408,6 @@ function hero() {
   }
   wrap.appendChild(flex);
   return wrap;
-}
-
-function horizonToggle() {
-  const t = el("div", { class: "toggle" });
-  for (const h of D.horizons) {
-    t.appendChild(el("button", {
-      text: "t+" + h, class: h === state.horizon ? "on" : "",
-      onclick: () => { state.horizon = h; render(); },
-    }));
-  }
-  return t;
 }
 
 function priceChart() {
@@ -403,24 +447,6 @@ function priceChart() {
   const closeAt = new Map(P.series.dates.map((d, i) => [d, P.series.close[i]]));
 
   const filters = el("div", { class: "filters" });
-  filters.appendChild(el("span", { class: "label", text: "horizon" }));
-  filters.appendChild(horizonToggle());
-  filters.appendChild(el("span", { class: "label", text: "  method" }));
-  for (const t of tracks) {
-    filters.appendChild(el("button", {
-      class: state.bands[t] ? "on" : "", title: t,
-      onclick: () => { state.bands[t] = !state.bands[t]; render(); },
-    }, el("span", { class: "sw", style: "background:" + (RUNG_STYLE[t] || {}).color }),
-       document.createTextNode(rname(t))));
-  }
-  filters.appendChild(el("span", { class: "label", text: "  window" }));
-  for (const s of ["30", "90", "all"]) {
-    filters.appendChild(el("button", {
-      text: s === "all" ? "all days" : "last " + s,
-      class: state.span === s ? "on" : "",
-      onclick: () => { state.span = s; render(); },
-    }));
-  }
   filters.appendChild(el("button", {
     text: "show “flat” zone", class: state.flatZone ? "on" : "",
     onclick: () => { state.flatZone = !state.flatZone; render(); },
@@ -431,7 +457,10 @@ function priceChart() {
   const count = state.span === "all" ? total : Math.min(total, parseInt(state.span, 10));
   const start = total - count;
   const idx = [...Array(count).keys()].map(k => start + k);
-  const selected = tracks.filter(t => state.bands[t]);
+  // The bar's focused method drives this chart. A baseline focus (base rates,
+  // always-flat) has no price band — the chart then shows just the price and
+  // says so, rather than pretending buckets are a ribbon.
+  const selected = tracks.includes(state.rung) ? [state.rung] : [];
   const one = selected.length === 1 ? selected[0] : null;
   const ahead = state.horizon === "1" ? "1 trading day ahead" : `${state.horizon} trading days ahead`;
 
@@ -576,7 +605,8 @@ function priceChart() {
       `${typical}% on a typical day.${biggest}` }));
   } else if (!one) {
     wrap.appendChild(el("div", { class: "note", style: "margin-top:.7rem", text:
-      "Pick exactly one method to get its verdict — promises kept, breakouts ringed in red." }));
+      `${rname(state.rung)} promises buckets, not price ranges — pick a model method in the ` +
+      "bar above to see its ribbon, its verdict, and its breakouts ringed in red." }));
   }
 
   wrap.appendChild(el("div", { class: "scroll", style: "margin-top:.4rem" }, svg));
@@ -623,19 +653,8 @@ function dayByDay() {
   wrap.appendChild(bl);
 
   const filters = el("div", { class: "filters", style: "margin-top:.6rem" });
-  filters.appendChild(el("span", { class: "label", text: "method" }));
-  for (const r of D.rungs) {
-    filters.appendChild(el("button", {
-      class: r === state.rung ? "on" : "", title: r,
-      onclick: () => { state.rung = r; render(); },
-    }, el("span", { class: "sw", style: "background:" + (RUNG_STYLE[r] || {}).color }),
-       document.createTextNode(rname(r))));
-  }
-  filters.appendChild(el("span", { class: "sep" }));
-  filters.appendChild(el("span", { class: "label", text: "horizon" }));
-  filters.appendChild(horizonToggle());
   filters.appendChild(el("button", {
-    class: state.movingOnly ? "on" : "", style: "margin-left:.4rem",
+    class: state.movingOnly ? "on" : "",
     text: "moving days only",
     onclick: () => { state.movingOnly = !state.movingOnly; render(); },
   }));
@@ -649,7 +668,7 @@ function dayByDay() {
     return wrap;
   }
 
-  const all = D.daily.map((d, i) => ({ d, i }));
+  const all = spanSlice(D.daily.map((d, i) => ({ d, i })));
   const days = all.filter(x => !state.movingOnly || x.d.outcome[h] !== 2);
   if (!days.length) { wrap.appendChild(el("div", { class: "note", text: "No days match." })); return wrap; }
 
@@ -784,8 +803,11 @@ function latest() {
       if (p >= 0.11) seg.textContent = Math.round(p * 100) + "%";
       strip.appendChild(seg);
     });
-    const tr = el("tr", null);
-    tr.appendChild(el("td", { class: "rname", title: rung }, el("span", { class: "dot", style: "background:" + RUNG_STYLE[rung].color }), document.createTextNode(rname(rung))));
+    const tr = el("tr", {
+      class: rung === state.rung ? "focused pickable" : "pickable",
+      onclick: () => setFocus(rung),
+    });
+    tr.appendChild(el("td", { class: "rname", title: rung }, el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }), document.createTextNode(rname(rung))));
     const cell = el("td", null, strip);
     tr.appendChild(cell);
     body.appendChild(tr);
@@ -854,7 +876,10 @@ function liveTrack() {
     const mean = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(4) : "—";
     const order = D.rungs.filter(r => sums[r]).concat(Object.keys(sums).filter(r => !D.rungs.includes(r)));
     for (const rung of order) {
-      const tr = el("tr", null);
+      const tr = el("tr", {
+        class: rung === state.rung ? "focused pickable" : "pickable",
+        onclick: () => setFocus(rung),
+      });
       tr.appendChild(el("td", { class: "rname", title: rung },
         el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }),
         document.createTextNode(rname(rung))));
@@ -897,7 +922,10 @@ function ladder() {
   const body = el("tbody", null);
 
   for (const r of rows) {
-    const tr = el("tr", null);
+    const tr = el("tr", {
+      class: r.rung === state.rung ? "focused pickable" : "pickable",
+      onclick: () => setFocus(r.rung),
+    });
     tr.appendChild(el("td", { class: "rname", title: r.rung },
       el("span", { class: "dot", style: "background:" + (RUNG_STYLE[r.rung] || {}).color }),
       document.createTextNode(rname(r.rung))));
@@ -935,15 +963,14 @@ function chart() {
   wrap.appendChild(el("h2", { text:
     `The race · t+${state.horizon} — cumulative gap to climatology, below zero is ahead` }));
 
-  const days = D.daily, h = state.horizon;
-  const rungs = D.rungs.filter(r => r !== "climatology");
+  const days = spanSlice(D.daily), h = state.horizon;
+  const rungs = D.rungs.filter(r => r !== "climatology" && r !== "all_flat");
   const series = {};
   for (const r of rungs) {
     let sum = 0;
     series[r] = days.map(d => (sum += d.rps[h][r] - d.rps[h]["climatology"], sum));
   }
-  const visible = rungs.filter(r => state.visible[r]);
-  const values = visible.flatMap(r => series[r]).concat([0]);
+  const values = rungs.flatMap(r => series[r]).concat([0]);
   let min = Math.min(...values), max = Math.max(...values);
   const pad = (max - min || 1) * 0.08; min -= pad; max += pad;
 
@@ -976,9 +1003,15 @@ function chart() {
     lastMonth = month;
   });
 
-  for (const r of visible) {
+  // Draw unfocused lines first and dimmed, the focused method last and bold.
+  for (const r of [...rungs.filter(r => r !== state.rung), ...rungs.filter(r => r === state.rung)]) {
+    const focused = r === state.rung;
     const path = series[r].map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
-    svg.appendChild(el("svg:path", { d: path, fill: "none", stroke: RUNG_STYLE[r].color, "stroke-width": 1.8, "stroke-dasharray": RUNG_STYLE[r].dash }));
+    svg.appendChild(el("svg:path", {
+      d: path, fill: "none", stroke: (RUNG_STYLE[r] || {}).color || "#888",
+      "stroke-width": focused ? 2.4 : 1.2, opacity: focused ? 1 : 0.4,
+      "stroke-dasharray": (RUNG_STYLE[r] || {}).dash || "",
+    }));
   }
 
   const guide = el("svg:line", { x1: -9, y1: mt, x2: -9, y2: H - mb, stroke: "#b6b0a2", "stroke-width": 1, "stroke-dasharray": "3 3" });
@@ -989,7 +1022,10 @@ function chart() {
     const px = ((ev.clientX - rect.left) / rect.width) * W;
     const i = Math.max(0, Math.min(days.length - 1, Math.round(((px - ml) / (W - ml - mr)) * (days.length - 1))));
     guide.setAttribute("x1", x(i)); guide.setAttribute("x2", x(i));
-    const lines = visible.map(r => `<span style="color:${RUNG_STYLE[r].color}">●</span> ${r}  ${fmt(series[r][i], 3)}`);
+    const lines = rungs.map(r => {
+      const name = r === state.rung ? `<b>${rname(r)}</b>` : rname(r);
+      return `<span style="color:${(RUNG_STYLE[r] || {}).color}">●</span> ${name}  ${fmt(series[r][i], 3)}`;
+    });
     tip.innerHTML = `<div class="d">${days[i].date} · outcome: ${D.buckets[days[i].outcome[h]]}</div>` + lines.join("<br>");
     tip.style.display = "block";
     tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - 250) + "px";
@@ -999,7 +1035,7 @@ function chart() {
 
   const legend = el("div", { class: "legend" });
   for (const r of rungs) {
-    const b = el("button", { class: state.visible[r] ? "" : "off", title: r, onclick: () => { state.visible[r] = !state.visible[r]; render(); } },
+    const b = el("button", { class: r === state.rung ? "on" : "", title: r, onclick: () => setFocus(r) },
       lineSwatch(r), document.createTextNode(rname(r)));
     legend.appendChild(b);
   }
@@ -1007,10 +1043,11 @@ function chart() {
   wrap.appendChild(bar);
   wrap.appendChild(svg);
   wrap.appendChild(el("div", { class: "note", text:
-    "Each line adds up one method's daily gap to the base rates at t+" + h + " — solid or " +
-    "dashed exactly as drawn in its legend chip. A method with real skill drifts below zero " +
-    "and stays there. Click a chip to show or hide its line; the always-flat dummy starts " +
-    "hidden because it dwarfs the scale. This becomes the learning curve as live days append." }));
+    "Each line adds up one method's daily gap to the base rates at t+" + h + " over the " +
+    "shown window — solid or dashed exactly as in its legend chip, with the focused method " +
+    "bold. A method with real skill drifts below zero and stays there. Click a chip to " +
+    "focus a method everywhere; the always-flat dummy is excluded (it dwarfs the scale). " +
+    "This becomes the learning curve as live days append." }));
   return wrap;
 }
 
@@ -1030,7 +1067,10 @@ function byOutcome() {
   table.appendChild(el("thead", null, head));
   const body = el("tbody", null);
   for (const rung of D.rungs) {
-    const tr = el("tr", null);
+    const tr = el("tr", {
+      class: rung === state.rung ? "focused pickable" : "pickable",
+      onclick: () => setFocus(rung),
+    });
     tr.appendChild(el("td", { class: "rname", title: rung },
       el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }),
       document.createTextNode(rname(rung))));
@@ -1096,14 +1136,12 @@ function render() {
   ({ D, P, L } = pack(state.instrument));
   if (!state.horizon || !D.horizons.includes(state.horizon))
     state.horizon = D.horizons.includes("5") ? "5" : D.horizons[0];
-  for (const r of D.rungs)
-    if (!(r in state.visible)) state.visible[r] = r !== "all_flat" && r !== "climatology";
   if (!D.rungs.includes(state.rung))
     state.rung = D.rungs.includes("chronos_uni") ? "chronos_uni" : D.rungs[0];
   meta();
+  controls();
   const c = document.getElementById("content");
   c.textContent = "";
-  if (AVAILABLE.length > 1) c.appendChild(switcher());
   c.appendChild(hero());
   c.appendChild(priceChart());
   c.appendChild(dayByDay());

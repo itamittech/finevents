@@ -42,14 +42,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from gold_poc_data import load_panel, load_univariate  # noqa: E402
+from gold_poc_data import load_panel, load_univariate, read_metal  # noqa: E402
 
 from finevents.features.conditional import (  # noqa: E402
     DayFeatures,
     conditional_climatology,
     regime_history,
 )
-from finevents.features.panel import Series  # noqa: E402
+from finevents.features.panel import Series, align  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
     Bucket,
     buckets_for,
@@ -90,6 +90,17 @@ INSTRUMENT_CONFIGS = {
         "label": "WTI crude, USD/barrel, FRED DCOILWTICO (EIA) — series from 2020-07",
         "decimals": 2,
     },
+    # The mirror experiment (builder's direction, 2026-08-13): silver-as-covariate
+    # was the one series that did gold no harm — their daily returns co-move at
+    # 0.68, the only genuinely co-integrated pair in the set. Here the roles
+    # reverse: silver is the target and GOLD is the sole covariate, testing
+    # whether that harmlessness is symmetric and whether return co-movement can
+    # ever ADD skill rather than merely not subtract it. Same CBR fix on both
+    # sides, so the covariate join needs no re-dating at all.
+    "silver": {
+        "label": "silver, RUB/gram, CBR daily fix — mirror experiment: covariate is gold",
+        "decimals": 2,
+    },
 }
 
 #: Display order for the dashboard — baselines, then models, then the floor.
@@ -127,6 +138,7 @@ def emit_ui_data(
     *,
     instrument: str,
     target_label: str,
+    covariate_join_note: str,
     dates: tuple[date, ...],
     cut_offs: list[int],
     scores: dict[tuple[str, int], list[float]],
@@ -211,7 +223,7 @@ def emit_ui_data(
         },
         "context": context,
         "n_min_provisional": n_min,
-        "fred_join": "knowledge day (value date +1)",
+        "fred_join": covariate_join_note,
         "errors": "paired per day, Newey-West lag = horizon-1",
         "horizons": [str(h) for h in HORIZONS],
         "buckets": [Bucket(i).label for i in range(len(Bucket))],
@@ -320,16 +332,28 @@ def main(argv: list[str] | None = None) -> int:
     config = INSTRUMENT_CONFIGS[args.instrument]
     decimals = config["decimals"]
 
+    # `matrix` drives the gold-only machinery (rung 2, the FRED knowledge-day
+    # join); `model_covariates` is what the covariate-informed model configs
+    # receive. For gold they are the same ten series; for silver the models get
+    # exactly one covariate — gold — and rung 2 stays off.
+    mirror_matrix = None
     if args.instrument == "gold":
         panel = load_panel()
         dates, closes = panel.dates, panel.target.values
         matrix = panel.covariate_matrix()
+        target_name = panel.target.name
+    elif args.instrument == "silver":
+        panel = align(read_metal("silver"), [read_metal("gold")])
+        dates, closes = panel.dates, panel.target.values
+        matrix = None
+        mirror_matrix = panel.covariate_matrix()
         target_name = panel.target.name
     else:
         series = load_univariate(args.instrument)
         dates, closes = series.dates, series.values
         matrix = None
         target_name = args.instrument
+    model_covariates = matrix if matrix is not None else mirror_matrix
 
     last = len(closes) - max(HORIZONS) - 1
     cut_offs = [i for i in range(len(closes)) if i <= last and dates[i] >= args.start]
@@ -343,6 +367,8 @@ def main(argv: list[str] | None = None) -> int:
     if matrix is not None:
         print(f"panel      {len(closes)} sessions, {len(panel.covariates)} covariates")
         print("fred join  knowledge day (value date +1) — a US close postdates the CBR fix")
+    elif mirror_matrix is not None:
+        print(f"panel      {len(closes)} sessions, covariate: gold (same CBR fix — no re-dating)")
     else:
         print(f"series     {len(closes)} sessions, univariate (no covariate rungs, no rung 2)")
     print(f"cut-offs   {len(cut_offs)}   {dates[cut_offs[0]]} -> {dates[cut_offs[-1]]}")
@@ -350,7 +376,7 @@ def main(argv: list[str] | None = None) -> int:
 
     chronos = Chronos2Forecaster(context_length=args.context)
     timesfm = TimesFMForecaster(context_length=args.context)
-    if matrix is not None:
+    if model_covariates is not None:
         forecasters = [(chronos, False), (chronos, True), (timesfm, False), (timesfm, True)]
     else:
         forecasters = [(chronos, False), (timesfm, False)]
@@ -389,8 +415,11 @@ def main(argv: list[str] | None = None) -> int:
         history = closes[: i + 1]
         target_slice = Series(target_name, dates[: i + 1], history)
         covariate_slices = (
-            {name: Series(name, dates[: i + 1], values[: i + 1]) for name, values in matrix.items()}
-            if matrix is not None
+            {
+                name: Series(name, dates[: i + 1], values[: i + 1])
+                for name, values in model_covariates.items()
+            }
+            if model_covariates is not None
             else None
         )
 
@@ -511,10 +540,16 @@ def main(argv: list[str] | None = None) -> int:
     print("outcome spans five sessions, so adjacent differences overlap by construction.")
 
     if args.json:
+        join_note = (
+            "knowledge day (value date +1)"
+            if args.instrument == "gold"
+            else "same fix as the target (CBR gold) — no re-dating"
+        )
         emit_ui_data(
             args.json,
             instrument=args.instrument,
             target_label=config["label"],
+            covariate_join_note=join_note,
             dates=dates,
             cut_offs=cut_offs,
             scores=scores,
