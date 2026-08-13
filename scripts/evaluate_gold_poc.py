@@ -35,6 +35,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from finevents.features.conditional import (  # noqa: E402
+    DayFeatures,
+    conditional_climatology,
+    regime_history,
+)
 from finevents.features.panel import Panel, Series, align  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
     Bucket,
@@ -96,6 +101,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--from", dest="start", type=date.fromisoformat, default=CLEAN_FROM)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--context", type=int, default=CONTEXT)
+    # REQ-408 is a calibration METHOD, not a value: N_min fits against the seed
+    # join, which does not exist. This is provisional and labelled as such.
+    parser.add_argument("--n-min", type=int, default=20)
     args = parser.parse_args(argv)
 
     panel = load_panel()
@@ -124,6 +132,14 @@ def main(argv: list[str] | None = None) -> int:
     print("precomputing the climatology bucket history...", flush=True)
     history_buckets = {h: historical_buckets(closes, h) for h in HORIZONS}
 
+    # Rung 2's conditioning. Point-in-time, so this is a stable prefix too.
+    cells = regime_history(matrix["real_10y"], matrix["vix"])
+    features = {
+        h: [DayFeatures(end, dates[end], bucket, cells[end]) for end, bucket in history_buckets[h]]
+        for h in HORIZONS
+    }
+    levels_used: dict[tuple[int, int], int] = {}
+
     scores: dict[tuple[str, int], list[float]] = {}
     outcomes: dict[int, list] = {h: [] for h in HORIZONS}
     started = time.perf_counter()
@@ -146,6 +162,13 @@ def main(argv: list[str] | None = None) -> int:
                     [b for end, b in history_buckets[horizon] if end <= i]
                 ),
             }
+            past = [f for f in features[horizon] if f.index <= i]
+            if past:
+                rung2 = conditional_climatology(past, cells[i], dates[i], n_min=args.n_min)
+                distributions["cond_climatology"] = rung2.probabilities
+                key = (horizon, rung2.level)
+                levels_used[key] = levels_used.get(key, 0) + 1
+
             for forecaster, with_covariates in forecasters:
                 out = forecaster.forecast(
                     target_slice,
@@ -198,6 +221,16 @@ def main(argv: list[str] | None = None) -> int:
         seen = by_outcome(baseline, outcomes[horizon])
         counts = "".join(f"{len(seen[b]):>14}" for b in buckets_seen)
         print(f"  {'n days':<14}{counts}\n")
+
+    print("rung 2 backoff levels used  (Design §4.10; level 0 means it collapsed to rung 1)")
+    for horizon in HORIZONS:
+        used = {lvl: n for (h, lvl), n in sorted(levels_used.items()) if h == horizon}
+        total = sum(used.values()) or 1
+        detail = "  ".join(f"level {lvl}: {n} ({n / total:.0%})" for lvl, n in sorted(used.items()))
+        print(f"  t+{horizon}   {detail}")
+    print(f"  N_min = {args.n_min} — PROVISIONAL. REQ-408 calibrates it against the seed join,")
+    print("  which does not exist yet, so this number is a placeholder and not a decision.")
+    print()
 
     print("The paired column is the sharper test: every rung sees identical days, so")
     print("the day-to-day outcome noise cancels instead of swamping the difference.")
