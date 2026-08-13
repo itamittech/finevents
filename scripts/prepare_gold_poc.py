@@ -22,13 +22,14 @@ the gateway, and that difference is worth naming.
 from __future__ import annotations
 
 import argparse
-import csv
 import math
 import sys
 from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+from gold_poc_data import load_series  # noqa: E402
 
 from finevents.features.panel import Panel, Series, align  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
@@ -40,7 +41,6 @@ from finevents.features.volatility import (  # noqa: E402
 )
 from finevents.ingest.validation import forward_coverage, validate_prices  # noqa: E402
 
-DATA = Path(__file__).resolve().parent.parent / "data"
 HORIZONS = (1, 5)
 
 # The contamination boundary. Chronos-2's corpus closes around 2024–25 and
@@ -48,45 +48,6 @@ HORIZONS = (1, 5)
 # aws-architecture.md still lists it as an open pre-build item. 2026 is after
 # both by any reading, so it is the window a result can be claimed on.
 CLEAN_FROM = date(2026, 1, 1)
-
-
-def read_metal(metal: str) -> Series:
-    rows = {
-        date.fromisoformat(r["date"]): float(r["sell_rub_g"])
-        for r in csv.DictReader((DATA / "metals_cbr_rub.csv").open(encoding="utf-8"))
-        if r["metal"] == metal
-    }
-    return Series.of(f"{metal}_rub_g", rows)
-
-
-def read_simple(filename: str, column: str, name: str) -> Series:
-    rows = {
-        date.fromisoformat(r["date"]): float(r[column])
-        for r in csv.DictReader((DATA / filename).open(encoding="utf-8"))
-    }
-    return Series.of(name, rows)
-
-
-def load() -> tuple[Series, list[Series]]:
-    gold = read_metal("gold")
-    covariates = [
-        # Sister metals and the FX leg share gold's calendar exactly — same
-        # source, same fix. USD/RUB is a first-class covariate here, not a
-        # cross-check: the target is priced in roubles, so part of every move in
-        # gold_rub *is* a move in the rouble.
-        read_metal("silver"),
-        read_metal("platinum"),
-        read_metal("palladium"),
-        read_simple("fx_usdrub_cbr.csv", "usd_rub", "usd_rub"),
-        # US series. Different holidays, so these join as-of.
-        read_simple("fred_dgs10.csv", "dgs10", "nominal_10y"),
-        read_simple("fred_dfii10.csv", "dfii10", "real_10y"),
-        read_simple("fred_dtwexbgs.csv", "dtwexbgs", "dollar_index"),
-        read_simple("fred_dcoilwtico.csv", "dcoilwtico", "wti"),
-        read_simple("fred_vixcls.csv", "vixcls", "vix"),
-        read_simple("fred_dexinus.csv", "dexinus", "usd_inr"),
-    ]
-    return gold, covariates
 
 
 def report_validation(gold: Series, covariates: list[Series], through: date) -> int:
@@ -154,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--as-of", type=date.fromisoformat, default=None)
     args = parser.parse_args(argv)
 
-    gold, covariates = load()
+    gold, covariates = load_series()
     as_of = args.as_of or gold.dates[-1]
 
     failures = report_validation(gold, covariates, through=gold.dates[-1])
@@ -166,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
         f"  {len(panel)} sessions   {panel.dates[0]} -> {panel.dates[-1]}   "
         f"({trimmed} leading session(s) trimmed for covariate coverage)"
     )
+    print("  FRED joined at knowledge day (value date +1): a US close postdates the CBR fix")
     print(
         f"  {len(panel.covariates)} covariates: " f"{', '.join(c.name for c in panel.covariates)}"
     )

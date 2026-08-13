@@ -8,25 +8,31 @@ the bucket edges from data up to the cut-off, forecast, convert to bucket
 probabilities, and only then look up what actually happened. The realised return
 is read *after* the forecast exists, never before.
 
-Six rungs, all scored on identical days:
+Seven rungs, all scored on identical days:
 
-    all_flat        the trivial baseline ADR-0008 says ±5% would have flattered
-    climatology     the honest bar — "a result that does not beat climatology
-                    out-of-sample is not a result"
-    chronos_uni     gold alone
-    chronos_cov     gold + 10 covariates, past-only
-    timesfm_uni     gold alone
-    timesfm_cov     gold + 10 covariates, future values held flat (ADR-0055)
+    all_flat          the trivial baseline ADR-0008 says ±5% would have flattered
+    climatology       the honest bar — "a result that does not beat climatology
+                      out-of-sample is not a result"
+    cond_climatology  rung 2 — conditioned on the real-yield × VIX regime (§4.10)
+    chronos_uni       gold alone
+    chronos_cov       gold + 10 covariates, past-only
+    timesfm_uni       gold alone
+    timesfm_cov       gold + 10 covariates, future values held flat (ADR-0055)
+
+Covariates join in **knowledge time** (`gold_poc_data` — FRED value date +1 day;
+a US close postdates the CBR fix it used to sit beside). Paired standard errors
+are Newey–West with lag = horizon−1, because t+5 is scored daily while each
+outcome spans five sessions, so adjacent differences overlap by construction.
 
 Scope: POC scaffolding. The production path is T9.x and reads through
 `AsOfRepository`; this reads the CSVs. REQ-407 still holds structurally, because
-every window comes from a series already truncated by `Series.as_of`.
+every window comes from a series already truncated by `Series.as_of` — and, per
+the same rule, the cross-source join runs on knowledge days, not value days.
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import math
 import sys
 import time
@@ -35,12 +41,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from gold_poc_data import load_panel  # noqa: E402
+
 from finevents.features.conditional import (  # noqa: E402
     DayFeatures,
     conditional_climatology,
     regime_history,
 )
-from finevents.features.panel import Panel, Series, align  # noqa: E402
+from finevents.features.panel import Series  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
     Bucket,
     buckets_for,
@@ -56,44 +64,9 @@ from finevents.score.rps import (  # noqa: E402
     summarise,
 )
 
-DATA = Path(__file__).resolve().parent.parent / "data"
 HORIZONS = (1, 5)
 CLEAN_FROM = date(2026, 1, 1)
 CONTEXT = 512
-
-
-def read_metal(metal: str) -> Series:
-    rows = {
-        date.fromisoformat(r["date"]): float(r["sell_rub_g"])
-        for r in csv.DictReader((DATA / "metals_cbr_rub.csv").open(encoding="utf-8"))
-        if r["metal"] == metal
-    }
-    return Series.of(f"{metal}_rub_g", rows)
-
-
-def read_simple(filename: str, column: str, name: str) -> Series:
-    rows = {
-        date.fromisoformat(r["date"]): float(r[column])
-        for r in csv.DictReader((DATA / filename).open(encoding="utf-8"))
-    }
-    return Series.of(name, rows)
-
-
-def load_panel() -> Panel:
-    gold = read_metal("gold")
-    covariates = [
-        read_metal("silver"),
-        read_metal("platinum"),
-        read_metal("palladium"),
-        read_simple("fx_usdrub_cbr.csv", "usd_rub", "usd_rub"),
-        read_simple("fred_dgs10.csv", "dgs10", "nominal_10y"),
-        read_simple("fred_dfii10.csv", "dfii10", "real_10y"),
-        read_simple("fred_dtwexbgs.csv", "dtwexbgs", "dollar_index"),
-        read_simple("fred_dcoilwtico.csv", "dcoilwtico", "wti"),
-        read_simple("fred_vixcls.csv", "vixcls", "vix"),
-        read_simple("fred_dexinus.csv", "dexinus", "usd_inr"),
-    ]
-    return align(gold, covariates)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -119,6 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(f"panel      {len(closes)} sessions, {len(panel.covariates)} covariates")
+    print("fred join  knowledge day (value date +1) — a US close postdates the CBR fix")
     print(f"cut-offs   {len(cut_offs)}   {dates[cut_offs[0]]} -> {dates[cut_offs[-1]]}")
     print(f"context    {args.context} sessions\n")
 
@@ -204,13 +178,18 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {r.track:<14}{r.mean:>8.4f}    {'— the bar':<34}{'':>10}")
                 continue
             c = compare_paired(
-                r.track, "climatology", horizon, scores[(r.track, horizon)], baseline
+                r.track,
+                "climatology",
+                horizon,
+                scores[(r.track, horizon)],
+                baseline,
+                hac_lag=horizon - 1,
             )
             lo, hi = c.interval95
             cell = f"{c.mean_difference:+.4f} [{lo:+.4f}, {hi:+.4f}] {c.verdict}"
             print(f"  {r.track:<14}{r.mean:>8.4f}    {cell:<34}{c.wins}/{c.n:>4}")
 
-        print("\n  by what actually happened  (mean RPS; ~60% of days are flat)")
+        print("\n  by what actually happened  (mean RPS; ~45% of days are flat)")
         buckets_seen = sorted(by_outcome(baseline, outcomes[horizon]))
         header = "".join(f"{Bucket(b).label:>14}" for b in buckets_seen)
         print(f"  {'rung':<14}{header}")
@@ -235,6 +214,8 @@ def main(argv: list[str] | None = None) -> int:
     print("The paired column is the sharper test: every rung sees identical days, so")
     print("the day-to-day outcome noise cancels instead of swamping the difference.")
     print("`days won` counts days the rung scored strictly better than climatology.")
+    print("Errors are Newey-West with lag = horizon-1: t+5 is scored daily while each")
+    print("outcome spans five sessions, so adjacent differences overlap by construction.")
     return 0
 
 

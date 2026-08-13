@@ -1,7 +1,7 @@
 # ADR-0056: A random-walk covariate control, because covariate rungs are vulnerable to spurious regression
 
 - **Status:** Proposed
-- **Date:** 2026-08-13
+- **Date:** 2026-08-13 · revised the same day after a review pass found two defects in the round-1 harness (see *What the review corrected*)
 - **Serves:** REQ-503, REQ-504, REQ-806
 - **Relates to:** ADR-0047 (which makes the covariate-informed rungs the bar the agent is measured against)
 
@@ -11,7 +11,7 @@ The gold POC scored six rungs on 143 unseen days. Both covariate-informed rungs 
 
 The wiring is not the problem. Covariate arrays align with the target calendar, and Chronos-2 normalises internally — multiplying a covariate by 1,000 changes the forecast by 1e-7 relative, which is float noise.
 
-**What the diagnosis found**, on 40 cut-offs with Chronos-2, mean RPS against a univariate baseline:
+**What the round-1 diagnosis found**, on 40 consecutive 2026 cut-offs with Chronos-2, mean RPS against a univariate baseline (measured under the value-date covariate join, since corrected — see below):
 
 | Covariate passed | t+1 | t+5 |
 |---|---|---|
@@ -26,6 +26,35 @@ The wiring is not the problem. Covariate arrays align with the target calendar, 
 **White noise does markedly less damage than a random walk.** That is the tell. White noise offers no structure to latch onto; two independent integrated series *do* appear strongly related over any finite window — the Granger–Newbold spurious regression, reproduced inside a foundation model's in-context learning. The model infers a relationship that does not exist and forecasts on it.
 
 `silver` is the one covariate that does no harm, and it is the one genuinely co-integrated with the target rather than merely trending alongside it.
+
+## What the review corrected — and what the corrected probe found
+
+A same-day review of the round-1 harness found two defects:
+
+1. **The covariate join leaked one session.** FRED dates a value by its US close — 10–14
+   hours *after* CBR has already fixed the next day's price, because the CBR fix dated D
+   is set the working day before D. Joined by value date, every cut-off saw a US close
+   postdating the t+1 outcome it predicted. The join now runs on knowledge days (FRED
+   value date +1 — `scripts/gold_poc_data.py`), which is REQ-407 applied across sources.
+   The leak was in the covariates' favour, so round 1's damage numbers are, if anything,
+   understated.
+2. **Round 1's standard errors ignored horizon overlap.** t+5 is scored daily while each
+   outcome spans five sessions, so adjacent paired differences share four of them. The
+   paired comparison now uses Newey–West errors with lag = horizon − 1.
+
+**Round 2 — the same configurations on 40 cut-offs spread across 2025** (a window no
+report decision may touch 2026 to answer) found **no damage from anything**: all-10
+levels under the leaky join scored +0.0015 at t+1 against 2026's +0.0209, and the random
+walk −0.0014 / +0.0036 against 2026's +0.0216 / +0.0389. Every interval includes zero.
+
+**The damage manifests only where the models are out of their training data.** 2025 sits
+inside both corpora by any reading; a partly memorised continuation barely reacts to
+covariates. The full 143-day 2026 window shows the damage across Jan–Aug — many regimes —
+so a regime explanation does not survive, and memorisation is the plausible mechanism.
+Two things follow. First, the contamination boundary (`CLEAN_FROM = 2026-01-01`) is now
+**demonstrated**, not assumed: the same experiment answers differently on the two sides
+of it. Second, no probe window can stand in for the report window — which is an argument
+*for* this ADR's decision, because a control rung is scored on the report days themselves.
 
 ## Decision
 
@@ -42,7 +71,7 @@ This is the covariate analogue of two controls the project already runs: the bas
 ## Alternatives considered
 
 - **Drop covariates entirely.** Rejected: it discards REQ-504's second configuration and, worse, it would remove the measurement that produced this finding. The covariate rungs are informative *because* they can be compared against a control.
-- **Difference the covariates to stationarity**, the standard econometric answer to spurious regression. Tested and rejected on evidence: passing all ten as 20-session changes scored **+0.0351** at t+1, worse than levels at +0.0209. The target is forecast in levels, and mixing stationary covariates with an integrated target did not help here.
+- **Difference the covariates to stationarity**, the standard econometric answer to spurious regression. **Not resolved, and the original rejection here overclaimed.** What was tested on 2026 days was 20-*session* overlapping changes — still near-integrated (lag-1 autocorrelation ≈ 0.95), a straw man for stationarity — and it scored **+0.0351** at t+1, worse than levels at +0.0209. The honest transform, 1-day changes, was then tested in round 2 and was indistinguishable from univariate — but so was *everything* on that window, including the random walk, so the probe had no discriminating power. Differencing therefore remains **unproven as a remedy rather than disproven**. The control rung answers it properly: once live days accumulate, a 1-day-changes configuration can be scored beside its own random-walk control on days no model has trained on.
 - **Restrict covariates to co-integrated series only.** Attractive — `silver` is the one that works — but co-integration would have to be tested per pair, per instrument, on a rolling basis, and a test that passes in-sample is exactly what spurious regression defeats. The control rung measures the same thing without requiring the test to be right.
 - **Treat the finding as specific to Chronos-2.** Rejected as unsafe: TimesFM's covariate rung is also detectably worse, by a similar margin, through a completely different mechanism (XReg regression). Two independent implementations degrading the same way is evidence about the data, not about one library.
 
@@ -55,6 +84,13 @@ This is the covariate analogue of two controls the project already runs: the bas
 **Easier.** Adding a covariate becomes a decision with evidence attached rather than a plausible story. The event-severity series that increments 6–7 produce will face the same test before it is believed.
 
 **A warning that now has a number behind it.** Feeding event severity to the numeric models as a covariate — the plan for rungs 3 and 4 — may degrade them. That is worth knowing before the eleven-year classification batch (T5.9) is run to produce that series.
+
+**Probes cannot substitute for the control.** Round 2 showed the covariate effect is
+window-dependent — absent on in-training days, large on out-of-training days. Any
+offline probe on permissible (pre-2026) data therefore measures the wrong regime, and
+the only honest price for a covariate is a control scored on the same live days as the
+rung it accompanies. This closes the tempting shortcut of "we probed it once, covariates
+are fine now".
 
 ## Revisit trigger
 

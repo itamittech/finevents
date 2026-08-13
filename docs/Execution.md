@@ -9,8 +9,11 @@
 
 ```
 CURRENT TRACK:      GOLD POC  (a resequencing, chosen 2026-08-13 — see "The POC track")
-CURRENT STEP:       P3 — the two forecasting models.  DONE, locally verified.
-NEXT STEP:          P4 — quantiles to buckets, and RPS against climatology
+CURRENT STEP:       P4 + its review pass — DONE. The review found three defects in
+                    the covariate analysis (a knowledge-time leak in the FRED join,
+                    iid errors on overlapping horizons, a straw-man differencing
+                    test); all fixed and re-scored. See "The first result".
+NEXT STEP:          P5 — the daily runner (fetch, forecast, seal, score what matured)
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
@@ -38,38 +41,42 @@ against history is one of three explicitly permitted uses of history (T6.12).
 | P1 | Collect gold + covariates; answer FRED terms | ✅ 10 series in `data/`, fetchers committed |
 | **P2** | **Validate, align as-of, σ and buckets** | ✅ **done — `scripts/prepare_gold_poc.py`** |
 | **P3** | **Chronos-2 and TimesFM, univariate + covariate-informed** | ✅ **done** — install measured, both wrappers behind one `Forecaster`, all four tracks byte-identical on repeat (REQ-507) |
-| **P4** | **Quantile → bucket (REQ-508), RPS vs climatology** | ✅ **done** — six rungs scored on 143 unseen days. **The result is a null; see below** |
+| **P4** | **Quantile → bucket (REQ-508), RPS vs climatology** | ✅ **done, then re-scored after a same-day review pass** — seven rungs on 143 unseen days. **The result is a null; see below** |
 | P5 | The daily runner — fetch, forecast, seal, score what matured | next |
 | P6 | Schedule it locally | |
 | P7 | The dashboard | |
 
-### The first result — 2026-08-13, after two methodology corrections
+### The first result — 2026-08-13, after four methodology corrections
 
-Six rungs, 143 unseen days in the contamination-free window. RPS, lower is better.
-**Paired per-day differences** against climatology; every rung sees identical days, so
-outcome noise cancels rather than swamping the signal (T13.9's day-level aggregation).
+Seven rungs, 143 unseen days in the contamination-free window. RPS, lower is better.
+**Paired per-day differences** against climatology (T13.9's day-level aggregation), with
+**Newey–West errors at lag = horizon−1** because t+5 is scored daily while each outcome
+spans five sessions. Covariates join in **knowledge time** (`scripts/gold_poc_data.py`).
 
 | rung | t+1 | vs climatology | t+5 | vs climatology | t+5 days won |
 |---|---|---|---|---|---|
 | **`climatology`** | **0.1368** | — the bar | 0.1443 | — the bar | — |
+| `cond_climatology` | 0.1390 | +0.0022 n.d. | 0.1467 | +0.0024 n.d. | 57/143 |
 | `timesfm_uni` | 0.1392 | +0.0024 n.d. | 0.1455 | +0.0012 n.d. | 69/143 |
 | `chronos_uni` | 0.1401 | +0.0033 n.d. | **0.1407** | **−0.0036 n.d.** | **96/143** |
-| `timesfm_cov` | 0.1442 | **+0.0074 worse** | 0.1593 | **+0.0150 worse** | 72/143 |
-| `chronos_cov` | 0.1492 | **+0.0124 worse** | 0.1568 | **+0.0125 worse** | 80/143 |
+| `timesfm_cov` | 0.1453 | **+0.0085 worse** | 0.1646 | +0.0203 n.d. | 70/143 |
+| `chronos_cov` | 0.1488 | +0.0120 n.d. | 0.1568 | +0.0125 n.d. | 78/143 |
 | `all_flat` | 0.1783 | **+0.0415 worse** | 0.1871 | **+0.0428 worse** | 63/143 |
 
 *n.d. = the 95% interval of the per-day difference includes zero.*
 
-**Climatology wins outright at t+1.** No model rung beats it, and the two covariate rungs
-are detectably worse at both horizons — adding covariates actively hurts.
+**Climatology leads at t+1 and nothing beats it anywhere.** Every covariate rung's point
+estimate is worse than its univariate sibling at both horizons; under honest errors one of
+those deficits (`timesfm_cov` t+1) is still individually detectable, and `all_flat` stays
+detectably worse at both horizons — the test keeps its teeth.
 
-**The one thing close to a signal is `chronos_uni` at t+5:** −0.0036 with the interval
-[−0.0084, **+0.0011**] — nearly excluding zero — and it wins **96 of 143 days (67%)**. It
-beats climatology on `large down`, `small down` and `flat`, and loses on both up buckets.
-Winning two days in three while the mean gap stays inside noise means it wins often by a
-little and loses occasionally by a lot. Worth watching; not yet a finding.
+**The one thing close to a signal is `chronos_uni` at t+5:** −0.0036, winning **96 of 143
+days (67%)**, better on `large down`, `small down` and `flat`, worse on both up buckets.
+The overlap-aware interval is [−0.0104, +0.0032] — wider than the iid one that nearly
+excluded zero. Winning two days in three while the mean stays inside noise means it wins
+often by a little and loses occasionally by a lot. Worth watching; not yet a finding.
 
-#### Two corrections that changed the answer
+#### Four corrections that changed the answer
 
 **1. Climatology was miscalibrated.** It bucketed all history against *today's* σ, so the
 bar moved with the volatility regime — 0.595, 0.753 and 0.620 on `flat` at three cut-offs
@@ -81,9 +88,25 @@ the scale-free version gives 0.445 at all three, and there is now a property tes
 weakest available test when every rung is scored on identical days. Paired, the intervals
 tightened roughly fourfold and three verdicts moved from "indistinguishable" to "worse".
 
-Both corrections made the baseline **stronger** and the models look **worse**. An earlier
-write-up here claimed the models beat climatology on every category of moving day; that was
-an artifact of correction 1 and is withdrawn.
+**3. The covariate join leaked one session.** A FRED value dated D is that day's US close —
+10–14 hours *after* CBR had already fixed the next day's price (the CBR fix dated D is set
+the working day before D; 13 Aug's was public on 12 Aug). Joined by value date, every
+cut-off saw a US close postdating the t+1 outcome it predicted. The join now runs on
+knowledge days (FRED value date +1) — REQ-407 applied *across* sources, the rule ADR-0016
+builds into the store and the POC panel was silently breaking. Removing the leak left the
+four covariate-free rungs **byte-identical** and made the covariate rungs *worse*
+(`timesfm_cov` t+5: 0.1593 → 0.1646): the leak had been helping them, TimesFM's XReg most,
+since it regresses on contemporaneous covariates.
+
+**4. The standard errors ignored horizon overlap.** t+5 differences share four of five
+outcome sessions with their neighbours; the iid error is too small by construction. With
+Newey–West at lag = horizon−1, three borderline "worse" verdicts (both covariate rungs at
+t+5, `chronos_cov` at t+1 — whose iid lower bound was +0.0004) honestly widen to "no
+detectable difference".
+
+Every correction moved the answer against the models or widened the claimed certainty. An
+earlier write-up here claimed the models beat climatology on every category of moving day;
+that was an artifact of correction 1 and is withdrawn.
 
 #### Rung 2 built — and it does not help
 
@@ -94,7 +117,7 @@ than silently collapsing to rung 1.
 | | t+1 | t+5 |
 |---|---|---|
 | `climatology` (rung 1) | **0.1368** | **0.1443** |
-| `cond_climatology` (rung 2) | 0.1390 (+0.0022) | 0.1476 (+0.0033) |
+| `cond_climatology` (rung 2) | 0.1390 (+0.0022) | 0.1467 (+0.0024) |
 
 **Conditioning on the real-yield × VIX regime makes it slightly worse at both horizons** —
 not detectably, but the point estimate moves the wrong way. So the regime cell carries no
@@ -105,13 +128,14 @@ That is a finding in its own right: ADR-0017 called the real 10Y yield arguably 
 dominant gold driver, and terciling it against VIX still adds nothing at daily resolution.
 Levels 4 and 3 remain unbuilt — they need T3.2's festival/expiry calendar.
 
-#### Why the covariates hurt — diagnosed, 2026-08-13
+#### Why the covariates hurt — diagnosed in two rounds, 2026-08-13
 
-Both covariate rungs came out detectably worse, consistently, so it was diagnosed rather
-than reported. **The wiring is fine** — arrays align, and Chronos-2 normalises internally
+Both covariate rungs came out consistently worse, so it was diagnosed rather than
+reported. **The wiring is fine** — arrays align, and Chronos-2 normalises internally
 (scaling a covariate by 1,000 moves the forecast by 1e-7 relative).
 
-Mean RPS on 40 cut-offs against a univariate baseline of 0.1688 / 0.1527:
+**Round 1**, mean RPS on 40 consecutive 2026 cut-offs against a univariate baseline of
+0.1688 / 0.1527:
 
 | covariate passed | t+1 | t+5 |
 |---|---|---|
@@ -128,21 +152,34 @@ This is Granger–Newbold spurious regression happening inside in-context learni
 It is not one library's quirk: TimesFM's covariate rung degrades by a similar margin through
 a completely different mechanism (XReg regression).
 
+**Round 2 — the same configurations on 40 cut-offs spread across 2025 — found no damage
+from anything.** All-10-levels under round 1's exact setup: +0.0015 at t+1 against 2026's
++0.0209; the random walk: −0.0014 / +0.0036 against 2026's +0.0216 / +0.0389. Every
+interval includes zero. The damage manifests **only where the models are out of their
+training data** — and since the full 143-day window shows it across Jan–Aug 2026, a
+regime explanation does not survive; memorisation of the pre-2026 series is the plausible
+mechanism. A partly memorised continuation barely reacts to covariates.
+
+Two conclusions follow. **The contamination boundary is now demonstrated, not assumed** —
+the same experiment answers differently on the two sides of 2026-01-01, which is direct
+evidence that `CLEAN_FROM` is load-bearing and that nothing scored before 2026 supports a
+claim. And **no offline probe can price a covariate**, because every permissible probe
+window sits in the wrong regime — the argument for
+[ADR-0056](adr/0056-random-walk-covariate-control.md)'s control rung, which is scored on
+the same live days as the rung it accompanies. Whether *stationary* covariates (1-day
+changes) escape the damage could not be adjudicated on 2025 — nothing damages there — and
+stays open for live days; the ADR records why its original "differencing rejected" line
+overclaimed.
+
 **The retrospective consequence matters most.** ADR-0047 makes the covariate-informed
 configurations rungs 3 and 4 — the bar the agent is measured against. If that bar is
 handicapped by spurious regression, the agent beating it means less than it appears.
-[ADR-0056](adr/0056-random-walk-covariate-control.md) proposes a random-walk control rung to
-turn that from an unknown into a number.
+ADR-0056 (Proposed — the builder's decision) turns that from an unknown into a number.
 
-**The contamination boundary is the result.** Chronos-2 and TimesFM 2.5 were pre-trained
-on corpora closing before 2026 — neither publishes an exact cutoff, which is still an open
-pre-build item. Anything scored before 2026 measures partly what the models memorised. The
-2026 window is the only part a claim can rest on, and it must be reported separately.
-
-**What is green locally.** `uv run pytest` — **151 tests** (142 without the model weights,
-which is CI's view). `uv run pre-commit run --all-files` — 10 hooks. `sam validate --lint`
-and `sam build`. Gate G0's checks pass; Gate G1's T1.4 is green; REQ-507 holds on all four
-numeric tracks.
+**What is green locally.** `uv run pytest` — **205 tests** (192 without the model weights,
+which is CI's view; four of them pin the overlap-aware Newey–West error). `uv run
+pre-commit run --all-files` — 10 hooks. `sam validate --lint` and `sam build`. Gate G0's
+checks pass; Gate G1's T1.4 is green; REQ-507 holds on all four numeric tracks.
 
 **What is not yet proven.** The deploy loop. Nothing has touched AWS, by decision — the
 seven tables and the versioned bucket are declared in `template.yaml` and validated, but

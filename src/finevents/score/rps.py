@@ -94,6 +94,12 @@ class PairedComparison:
     an unpaired test lets it dominate the interval.
 
     T13.9 specifies day-level aggregation for exactly this reason.
+
+    Pairing removes shared outcome noise; it does not remove **serial**
+    dependence. A t+5 forecast is scored every day while each outcome spans five
+    sessions, so adjacent differences share four of them and are dependent by
+    construction. `hac_lag` records the Newey–West lag the standard error used —
+    `horizon − 1` for overlapping horizons, `0` being exactly the iid formula.
     """
 
     track: str
@@ -103,6 +109,7 @@ class PairedComparison:
     mean_difference: float
     stderr: float
     wins: int
+    hac_lag: int = 0
 
     @property
     def interval95(self) -> tuple[float, float]:
@@ -131,9 +138,23 @@ class PairedComparison:
 
 
 def compare_paired(
-    track: str, baseline: str, horizon: int, track_scores: list[float], baseline_scores: list[float]
+    track: str,
+    baseline: str,
+    horizon: int,
+    track_scores: list[float],
+    baseline_scores: list[float],
+    *,
+    hac_lag: int = 0,
 ) -> PairedComparison:
-    """Mean per-day RPS difference, `track − baseline`. Negative is better."""
+    """Mean per-day RPS difference, `track − baseline`. Negative is better.
+
+    `hac_lag` is the Newey–West lag for the standard error. Pass `horizon − 1`
+    when horizons overlap — scoring t+5 daily makes adjacent differences share
+    four outcome sessions, and the iid error is then too small, which is how a
+    borderline rung gets called "worse" on an interval the data cannot support.
+    `hac_lag=0` reproduces the iid formula exactly. Bartlett weights keep the
+    long-run variance non-negative whatever the autocorrelation pattern.
+    """
     if len(track_scores) != len(baseline_scores):
         raise ScoringError(
             f"{track} has {len(track_scores)} days against {baseline}'s "
@@ -141,6 +162,8 @@ def compare_paired(
         )
     if not track_scores:
         raise ScoringError(f"{track} vs {baseline}: no scored days")
+    if hac_lag < 0:
+        raise ScoringError(f"hac_lag must be non-negative, got {hac_lag}")
 
     differences = [a - b for a, b in zip(track_scores, baseline_scores, strict=True)]
     n = len(differences)
@@ -148,18 +171,26 @@ def compare_paired(
     wins = sum(1 for d in differences if d < 0)
 
     if n < 2:
-        return PairedComparison(track, baseline, horizon, n, mean, float("inf"), wins)
+        return PairedComparison(track, baseline, horizon, n, mean, float("inf"), wins, 0)
 
-    variance = sum((d - mean) ** 2 for d in differences) / (n - 1)
-    return PairedComparison(track, baseline, horizon, n, mean, math.sqrt(variance / n), wins)
+    lag = min(hac_lag, n - 1)
+    centred = [d - mean for d in differences]
+    long_run = sum(c * c for c in centred) / (n - 1)
+    for j in range(1, lag + 1):
+        weight = 1.0 - j / (lag + 1)
+        autocovariance = sum(centred[t] * centred[t - j] for t in range(j, n)) / (n - 1)
+        long_run += 2.0 * weight * autocovariance
+    long_run = max(long_run, 0.0)
+
+    return PairedComparison(track, baseline, horizon, n, mean, math.sqrt(long_run / n), wins, lag)
 
 
 def by_outcome(scores: list[float], outcomes: list[Bucket]) -> dict[Bucket, list[float]]:
     """Scores split by the bucket that actually happened.
 
     A mean over all days can hide real capability: a rung might be strong on the
-    large-move days that matter and ordinary on the flat majority, and since
-    ~60% of days are flat, the flat days dominate the average.
+    large-move days that matter and ordinary on the flat plurality — roughly 45%
+    of scored days land in the flat bucket, so they dominate the average.
     """
     if len(scores) != len(outcomes):
         raise ScoringError(f"{len(scores)} scores against {len(outcomes)} outcomes")
