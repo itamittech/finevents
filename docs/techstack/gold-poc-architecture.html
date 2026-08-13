@@ -1,0 +1,420 @@
+<title>Gold POC · the stack — what's installed, why, and how it's used</title>
+
+<style>
+  :root {
+    --paper:#F2F4F7; --card:#FFFFFF; --ink:#141A24; --ink-soft:#4A5568;
+    --ink-faint:#8592A6; --rule:#D5DBE3;
+    --data:#0B6E77;  --data-wash:#0B6E7714;
+    --code:#5B48CC;  --code-wash:#5B48CC14;
+    --gate:#9C5B06;  --gate-wash:#9C5B060F;
+    --measure:70ch;
+    --sans:ui-sans-serif,"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#0D1219; --card:#151C26; --ink:#E5EBF3; --ink-soft:#A3B0C2;
+      --ink-faint:#6B7A8D; --rule:#28323F;
+      --data:#4FC5CE; --data-wash:#4FC5CE1A;
+      --code:#A093FF; --code-wash:#A093FF1A;
+      --gate:#E0A548; --gate-wash:#E0A54814; }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0D1219; --card:#151C26; --ink:#E5EBF3; --ink-soft:#A3B0C2;
+    --ink-faint:#6B7A8D; --rule:#28323F;
+    --data:#4FC5CE; --data-wash:#4FC5CE1A; --code:#A093FF; --code-wash:#A093FF1A;
+    --gate:#E0A548; --gate-wash:#E0A54814;
+  }
+  :root[data-theme="light"] {
+    --paper:#F2F4F7; --card:#FFFFFF; --ink:#141A24; --ink-soft:#4A5568;
+    --ink-faint:#8592A6; --rule:#D5DBE3;
+    --data:#0B6E77; --data-wash:#0B6E7714; --code:#5B48CC; --code-wash:#5B48CC14;
+    --gate:#9C5B06; --gate-wash:#9C5B060F;
+  }
+
+  body { background:var(--paper); color:var(--ink); font-family:var(--serif);
+    font-size:17px; line-height:1.65; margin:0; padding:0 20px 96px; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--measure); margin:0 auto; }
+  .bleed { max-width:1020px; margin-inline:auto; }
+
+  header { max-width:1020px; margin:0 auto; padding:56px 0 28px; border-bottom:1px solid var(--rule); }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--ink-faint); margin:0 0 14px; }
+  h1 { font-family:var(--sans); font-weight:700; font-size:clamp(30px,5vw,44px);
+    letter-spacing:-0.028em; line-height:1.05; text-wrap:balance; margin:0 0 16px; }
+  .standfirst { font-size:19px; color:var(--ink-soft); max-width:62ch; margin:0; text-wrap:pretty; }
+
+  h2 { font-family:var(--sans); font-weight:650; font-size:25px; letter-spacing:-0.018em;
+    line-height:1.2; text-wrap:balance; margin:56px 0 4px; }
+  h2 + .dek { color:var(--ink-faint); font-family:var(--mono); font-size:12px;
+    letter-spacing:0.05em; margin:0 0 22px; }
+  h3 { font-family:var(--sans); font-weight:620; font-size:17.5px; margin:36px 0 6px; }
+  .layer-meta { font-family:var(--mono); font-size:11.5px; color:var(--ink-faint); margin:0 0 12px; }
+  p { margin:0 0 16px; text-wrap:pretty; }
+  code { font-family:var(--mono); font-size:0.855em; background:var(--code-wash);
+    padding:0.1em 0.36em; border-radius:4px; word-break:break-word; }
+  strong { font-weight:600; }
+
+  pre { margin:16px 0; padding:14px 16px; overflow-x:auto; border-radius:8px;
+    background:var(--card); border:1px solid var(--rule);
+    font-family:var(--mono); font-size:12.5px; line-height:1.6; }
+  pre code { background:none; padding:0; font-size:inherit; }
+  .c { color:var(--ink-faint); font-style:italic; }
+  .k { color:var(--code); }
+  .hl { color:var(--data); font-weight:600; }
+
+  figure { margin:30px auto 8px; }
+  .figscroll { overflow-x:auto; }
+  figure svg { display:block; width:100%; min-width:700px; height:auto; }
+  figcaption { font-family:var(--sans); font-size:13.5px; line-height:1.5;
+    color:var(--ink-soft); margin-top:14px; max-width:74ch; }
+
+  .s-ink{fill:var(--ink);} .s-faint{fill:var(--ink-faint);} .s-soft{fill:var(--ink-soft);}
+  .s-data{fill:var(--data);} .s-code{fill:var(--code);} .s-gate{fill:var(--gate);}
+  .b-data{fill:var(--data-wash);stroke:var(--data);}
+  .b-code{fill:var(--code-wash);stroke:var(--code);}
+  .b-gate{fill:var(--gate-wash);stroke:var(--gate);}
+  .b-plain{fill:var(--card);stroke:var(--rule);}
+  .ln{stroke:var(--ink-faint);fill:none;}
+
+  .tscroll { overflow-x:auto; margin:22px 0; }
+  table { border-collapse:collapse; width:100%; font-size:15px; }
+  th,td { text-align:left; padding:11px 14px 11px 0; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { font-family:var(--sans); font-size:11px; font-weight:620; letter-spacing:0.09em;
+    text-transform:uppercase; color:var(--ink-faint); border-bottom-width:1.5px; }
+  td:first-child { font-family:var(--mono); font-size:13px; font-weight:600; padding-right:20px; white-space:nowrap; }
+  .num { font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  .pull { border-left:3px solid var(--data); background:var(--data-wash);
+    padding:18px 22px; margin:28px 0; border-radius:0 6px 6px 0; }
+  .caveat { border-left:3px solid var(--gate); background:var(--gate-wash);
+    padding:18px 22px; margin:28px 0; border-radius:0 6px 6px 0; }
+  .pull p:last-child,.caveat p:last-child { margin-bottom:0; }
+
+  footer { max-width:var(--measure); margin:72px auto 0; padding-top:20px;
+    border-top:1px solid var(--rule); font-family:var(--mono); font-size:11.5px;
+    color:var(--ink-faint); line-height:1.7; }
+  @media (max-width:640px){ body{font-size:16px;} pre{font-size:11.5px;} }
+</style>
+
+<header>
+  <p class="eyebrow">FinEvents · gold POC · the stack · 2026-08-13</p>
+  <h1>Every tool in the POC, and what it's actually for</h1>
+  <p class="standfirst">
+    Seven layers from a central bank's XML endpoint to a scored forecast. Each one has one
+    job, one library, and a reason it isn't something else.
+  </p>
+</header>
+
+<figure class="bleed">
+  <div class="figscroll">
+    <svg viewBox="0 0 880 640" role="img"
+         aria-label="Seven-layer pipeline. Sources are Bank of Russia XML and FRED CSV. Fetchers written with the Python standard library write gitignored CSVs into a data directory. The panel layer aligns covariates as-of and validation checks them. The features layer computes sigma and the five buckets. The forecast layer runs Chronos-2 and TimesFM, both on CPU torch. The scoring layer converts quantiles to buckets and computes ranked probability score against climatology.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6"
+                orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/>
+        </marker>
+      </defs>
+
+      <!-- 1 SOURCES -->
+      <text class="s-faint" x="20" y="46" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">SOURCES</text>
+      <rect class="b-data" x="150" y="20" width="710" height="52" rx="8" stroke-width="1.2"/>
+      <text class="s-data" x="290" y="42" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">Bank of Russia · XML</text>
+      <text class="s-faint" x="290" y="59" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">gold, silver, platinum, palladium, USD/RUB</text>
+      <text class="s-data" x="650" y="42" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">FRED · keyless CSV</text>
+      <text class="s-faint" x="650" y="59" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">yields, dollar, VIX, WTI, USD/INR</text>
+
+      <line class="ln" x1="505" y1="72" x2="505" y2="94" stroke-width="1.4" marker-end="url(#ar)"/>
+
+      <!-- 2 FETCH -->
+      <text class="s-faint" x="20" y="122" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">FETCH</text>
+      <rect class="b-plain" x="150" y="96" width="710" height="52" rx="8" stroke-width="1.2"/>
+      <text class="s-ink" x="505" y="118" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">scripts/fetch_metals_history.py  ·  scripts/fetch_fred_series.py</text>
+      <text class="s-faint" x="505" y="135" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">stdlib only — urllib, csv, xml. No SDK, no API key, no dependency</text>
+
+      <line class="ln" x1="505" y1="148" x2="505" y2="170" stroke-width="1.4" marker-end="url(#ar)"/>
+
+      <!-- 3 STORE -->
+      <text class="s-faint" x="20" y="198" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">STORE</text>
+      <rect class="b-data" x="150" y="172" width="710" height="52" rx="8" stroke-width="1.2"/>
+      <text class="s-data" x="505" y="194" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">data/*.csv — 11 series, gitignored</text>
+      <text class="s-faint" x="505" y="211" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">the fetcher is committed, its output never is (ADR-0044)</text>
+
+      <line class="ln" x1="505" y1="224" x2="505" y2="246" stroke-width="1.4" marker-end="url(#ar)"/>
+
+      <!-- 4 ALIGN -->
+      <text class="s-faint" x="20" y="274" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">ALIGN</text>
+      <rect class="b-code" x="150" y="248" width="710" height="52" rx="8" stroke-width="1.2"/>
+      <text class="s-code" x="330" y="270" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">features/panel.py</text>
+      <text class="s-faint" x="330" y="287" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">Series · as-of join · never back-fills</text>
+      <text class="s-code" x="680" y="270" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">ingest/validation.py</text>
+      <text class="s-faint" x="680" y="287" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">reports, never repairs (REQ-208)</text>
+
+      <line class="ln" x1="505" y1="300" x2="505" y2="322" stroke-width="1.4" marker-end="url(#ar)"/>
+
+      <!-- 5 FEATURES -->
+      <text class="s-faint" x="20" y="350" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">FEATURES</text>
+      <rect class="b-code" x="150" y="324" width="710" height="52" rx="8" stroke-width="1.2"/>
+      <text class="s-code" x="505" y="346" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">features/volatility.py — σ, five buckets, climatology</text>
+      <text class="s-faint" x="505" y="363" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">pure stdlib, so it can be recomputed in a spreadsheet (Design §4.1)</text>
+
+      <line class="ln" x1="505" y1="376" x2="505" y2="398" stroke-width="1.4" marker-end="url(#ar)"/>
+
+      <!-- 6 FORECAST -->
+      <text class="s-faint" x="20" y="432" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">FORECAST</text>
+      <rect class="b-code" x="150" y="400" width="710" height="68" rx="8" stroke-width="1.5"/>
+      <text class="s-code" x="330" y="422" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">chronos-forecasting</text>
+      <text class="s-faint" x="330" y="438" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">Chronos2Pipeline · 120M</text>
+      <text class="s-code" x="680" y="422" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">timesfm</text>
+      <text class="s-faint" x="680" y="438" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">TimesFM_2p5_200M_torch · 200M</text>
+      <text class="s-faint" x="505" y="458" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5">both sit on torch 2.13.0+cpu — no CUDA, no GPU</text>
+
+      <line class="ln" x1="505" y1="468" x2="505" y2="490" stroke-width="1.4" marker-end="url(#ar)"/>
+
+      <!-- 7 SCORE -->
+      <text class="s-faint" x="20" y="518" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">SCORE</text>
+      <rect class="b-gate" x="150" y="492" width="710" height="52" rx="8" stroke-width="1.2"/>
+      <text class="s-gate" x="330" y="514" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">quantiles → 5 buckets</text>
+      <text class="s-faint" x="330" y="531" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">PCHIP interior, exponential tails (§4.13)</text>
+      <text class="s-gate" x="680" y="514" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12">RPS vs climatology</text>
+      <text class="s-faint" x="680" y="531" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">the bar: flat = 0.625 at t+1 (§4.2)</text>
+
+      <!-- gates rail -->
+      <rect class="b-plain" x="150" y="566" width="710" height="52" rx="8" stroke-width="1" stroke-dasharray="4 3"/>
+      <text class="s-faint" x="20" y="592" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.2">GATES</text>
+      <text class="s-soft" x="505" y="588" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5">ruff · pytest · hypothesis · bandit · pip-audit · gitleaks · 4 project checks</text>
+      <text class="s-faint" x="505" y="605" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10">run over every layer on every commit, and again in CI</text>
+    </svg>
+  </div>
+  <figcaption>
+    Data flows top to bottom; the dashed rail applies to all of it. Teal is data at rest,
+    violet is code that transforms it, amber is where a number becomes a claim.
+  </figcaption>
+</figure>
+
+<div class="wrap">
+  <h2>Layer by layer</h2>
+  <p class="dek">what it does · which tool · why not something else</p>
+
+  <h3>1 – 2 · Sources and fetchers</h3>
+  <p class="layer-meta">stdlib only — <code>urllib</code>, <code>csv</code>, <code>xml</code></p>
+  <p>
+    Both sources are keyless HTTP endpoints, so there is no SDK, no API key and no
+    dependency. The fetchers exist as committed code precisely so the acquisition is
+    reproducible while the data stays out of the repository.
+  </p>
+<pre><code><span class="c"># scripts/fetch_fred_series.py — the whole mechanism</span>
+FREDGRAPH = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}&cosd={start}"
+
+<span class="k">def</span> fetch(series: str) -> list[dict]:
+    <span class="hl">if series not in RESTRICTIONS:</span>          <span class="c"># terms checked before data lands</span>
+        <span class="k">raise</span> SystemExit(f"{series} is not in RESTRICTIONS…")
+    text = get(FREDGRAPH.format(series=series, start=START.isoformat()))
+    <span class="k">return</span> [row <span class="k">for</span> row <span class="k">in</span> csv.DictReader(io.StringIO(text))
+            <span class="k">if</span> row[series] != "."]        <span class="c"># holidays skipped, never interpolated</span></code></pre>
+  <p>
+    That <code>RESTRICTIONS</code> guard is the whole of DATA_SOURCES.md question 1 made
+    mechanical: an unlisted series is refused rather than silently acquired.
+  </p>
+
+  <h3>3 · The data directory</h3>
+  <p class="layer-meta">11 CSVs · gitignored · ~1 MB</p>
+  <p>
+    Committing an acquired price series to a public repository is republication (ADR-0044).
+    So <code>data/</code> is ignored and the fetcher is committed instead — anyone can
+    re-acquire, nobody re-publishes.
+  </p>
+
+  <h3>4 · Panel and validation</h3>
+  <p class="layer-meta"><code>finevents/features/panel.py</code> · <code>finevents/ingest/validation.py</code></p>
+  <p>
+    Covariates keep different calendars from gold, so they join <em>as-of</em>: each session
+    takes each covariate's most recent value at or before that date.
+  </p>
+<pre><code><span class="k">def</span> latest_at(self, when: date) -> float | None:
+    <span class="c">"""Most recent value at or before `when`; None if the series starts later."""</span>
+    position = bisect.bisect_right(self.dates, when)
+    <span class="k">return</span> self.values[position - 1] <span class="k">if</span> position <span class="k">else</span> <span class="hl">None</span>
+    <span class="c">#                                              ^ None, never a default.</span>
+    <span class="c">#   An invented value is indistinguishable from real data downstream.</span></code></pre>
+  <p>
+    That single choice is worth <strong>646 sessions</strong>: a naive date-intersection
+    leaves 2,213, the as-of join leaves 2,859.
+  </p>
+
+  <h3>5 · Features</h3>
+  <p class="layer-meta"><code>finevents/features/volatility.py</code> · pure stdlib, no numpy</p>
+  <p>
+    σ is the standard deviation of overlapping <em>h</em>-day log returns over the trailing
+    60 sessions, demeaned, <code>ddof=1</code>. Written without numpy on purpose — the demo
+    is that you can reproduce it in a spreadsheet.
+  </p>
+<pre><code>window   = closes[-60:]
+returns  = overlapping_log_returns(window, horizon)   <span class="c"># 60 − h of them</span>
+mean     = sum(returns) / len(returns)                <span class="c"># demeaned</span>
+variance = sum((r - mean) ** 2 <span class="k">for</span> r <span class="k">in</span> returns) / (len(returns) - 1)   <span class="c"># ddof=1</span>
+
+<span class="k">if</span> len(closes) &lt; 40:
+    <span class="k">raise</span> <span class="hl">AbstainedByConstruction</span>(…)   <span class="c"># never a substituted σ</span></code></pre>
+
+  <h3>6 · The two forecasters</h3>
+  <p class="layer-meta"><code>chronos-forecasting</code> 2.3.1 · <code>timesfm</code> 2.0.2 · both on <code>torch</code> 2.13.0+cpu</p>
+  <p>
+    Two libraries, two conventions, one job. Both are thin wrappers that download weights
+    from HuggingFace and run a forward pass.
+  </p>
+<pre><code><span class="c"># Chronos-2 — returns exactly the quantile levels you ask for, in order</span>
+<span class="k">from</span> chronos <span class="k">import</span> Chronos2Pipeline
+
+pipe = Chronos2Pipeline.from_pretrained("amazon/chronos-2")
+quantiles, mean = pipe.predict_quantiles(
+    [torch.tensor(closes[-60:])],
+    prediction_length=5,
+    quantile_levels=[0.1, 0.25, 0.5, 0.75, 0.9],
+)
+<span class="c"># quantiles[0] is [item, horizon, quantile] → (1, 5, 5)</span></code></pre>
+<pre><code><span class="c"># TimesFM 2.5 — compile once, then forecast</span>
+<span class="k">from</span> timesfm <span class="k">import</span> ForecastConfig, TimesFM_2p5_200M_torch
+
+model = TimesFM_2p5_200M_torch.from_pretrained("google/timesfm-2.5-200m-pytorch")
+model.compile(ForecastConfig(max_context=512, max_horizon=16,
+                             normalize_inputs=<span class="k">True</span>, fix_quantile_crossing=<span class="k">True</span>))
+point, quantiles = model.forecast(horizon=5, inputs=[np.asarray(closes[-60:])])
+<span class="c"># quantiles is (n, horizon, 10) where index 0 is the MEAN, 1..9 are deciles —</span>
+<span class="c"># read index 0 as a quantile and the row looks non-monotonic. Normalise in the wrapper.</span></code></pre>
+
+  <div class="pull">
+    <p>
+      <strong>One protocol over both.</strong> Design §2 defines a <code>Forecaster</code> with a
+      single <code>forecast()</code> method, so the API differences above are absorbed once, in
+      step 2, and never leak into the scoring code. That is the whole reason the protocol
+      exists.
+    </p>
+  </div>
+
+  <h3>7 · Scoring</h3>
+  <p class="layer-meta">Design §4.13 (quantile → bucket) · §4.2 (RPS)</p>
+  <p>
+    Quantiles become five bucket probabilities, and RPS compares that distribution against
+    the bucket that actually happened. Lower is better, and being wrong by one bucket costs
+    less than being wrong by four — which is why it is RPS and not accuracy.
+  </p>
+</div>
+
+<div class="bleed">
+  <h2>Why the install is 837 MB when the code is tiny</h2>
+  <p class="dek">the dependency stack, to scale</p>
+</div>
+
+<figure class="bleed">
+  <div class="figscroll">
+    <svg viewBox="0 0 880 300" role="img"
+         aria-label="Dependency stack. The two model libraries are a few megabytes each and sit on transformers, huggingface hub and safetensors, which sit on torch at 441 megabytes and numpy. Model weights, 1.34 gigabytes, live in a separate cache on disk rather than inside the virtual environment.">
+      <rect class="b-code" x="30" y="20" width="360" height="54" rx="8" stroke-width="1.3"/>
+      <text class="s-code" x="210" y="42" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5">chronos-forecasting</text>
+      <text class="s-faint" x="210" y="60" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10.5">~5 MB of Python</text>
+
+      <rect class="b-code" x="410" y="20" width="360" height="54" rx="8" stroke-width="1.3"/>
+      <text class="s-code" x="590" y="42" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5">timesfm</text>
+      <text class="s-faint" x="590" y="60" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10.5">~2 MB of Python</text>
+
+      <rect class="b-plain" x="30" y="92" width="740" height="54" rx="8" stroke-width="1.2"/>
+      <text class="s-ink" x="400" y="114" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5">transformers · huggingface_hub · safetensors · tokenizers</text>
+      <text class="s-faint" x="400" y="132" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10.5">weight download, caching and loading — the plumbing, not the maths</text>
+
+      <rect class="b-plain" x="30" y="164" width="480" height="60" rx="8" stroke-width="1.6"/>
+      <text class="s-ink" x="270" y="188" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13.5" font-weight="600">torch 2.13.0+cpu</text>
+      <text class="s-faint" x="270" y="207" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10.5">441 MB — over half the whole environment</text>
+
+      <rect class="b-plain" x="530" y="164" width="240" height="60" rx="8" stroke-width="1.2"/>
+      <text class="s-ink" x="650" y="188" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5">numpy</text>
+      <text class="s-faint" x="650" y="207" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10.5">arrays</text>
+
+      <rect class="b-data" x="30" y="242" width="740" height="46" rx="8" stroke-width="1.3" stroke-dasharray="5 3"/>
+      <text class="s-data" x="400" y="262" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5">model weights — 1,338 MB, cached on D:, NOT in the venv</text>
+      <text class="s-faint" x="400" y="279" text-anchor="middle" font-family="ui-sans-serif,sans-serif" font-size="10.5">Chronos-2 456 MB · TimesFM 2.5 882 MB · downloaded once</text>
+
+      <text class="s-faint" x="820" y="52" font-family="ui-monospace,monospace" font-size="11">7 MB</text>
+      <text class="s-faint" x="820" y="124" font-family="ui-monospace,monospace" font-size="11">~90 MB</text>
+      <text class="s-faint" x="820" y="198" font-family="ui-monospace,monospace" font-size="11">~740 MB</text>
+      <text class="s-faint" x="820" y="269" font-family="ui-monospace,monospace" font-size="11">1.3 GB</text>
+    </svg>
+  </div>
+  <figcaption>
+    The model libraries are trivially small. Almost all the weight is torch, which both share
+    — and the actual model parameters live outside the environment entirely, in a cache you
+    can point anywhere.
+  </figcaption>
+</figure>
+
+<div class="wrap">
+  <h2>The full inventory</h2>
+  <p class="dek">every tool, and the decision that put it there</p>
+
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Tool</th><th>Job</th><th>Why this one</th></tr></thead>
+      <tbody>
+        <tr><td>uv</td><td>Packaging, lockfile, venv</td><td>Resolves for other platforms from this one — needed to lock aarch64 from Windows (ADR-0054)</td></tr>
+        <tr><td>pytest</td><td>Test runner</td><td>125 tests today</td></tr>
+        <tr><td>hypothesis</td><td>Property tests</td><td>The <code>P</code>-coded requirements. Generates as-of values a human would not pick</td></tr>
+        <tr><td>moto</td><td>In-process AWS fake</td><td>Unit layer; Docker Compose is the integration layer (Design §8)</td></tr>
+        <tr><td>ruff</td><td>Lint + format</td><td>One tool for both, fast enough to sit in a hook</td></tr>
+        <tr><td>pre-commit</td><td>Hook runner</td><td>Convenience only — CI re-runs everything (REQ-1104)</td></tr>
+        <tr><td>bandit</td><td>Python SAST</td><td>High severity only, matching REQ-1113 rather than exceeding it</td></tr>
+        <tr><td>pip-audit</td><td>Dependency CVEs</td><td>Audits the <em>lockfile</em>, not the environment (REQ-1114)</td></tr>
+        <tr><td>gitleaks</td><td>Credential scan</td><td>The repo is public; a leaked key is not recoverable (REQ-1101)</td></tr>
+        <tr><td>torch</td><td>Tensor runtime</td><td>Both models require it. CPU build on Windows — no CUDA involved</td></tr>
+        <tr><td>chronos-forecasting</td><td>Chronos-2</td><td>ADR-0030. Native covariates, 8,192 context</td></tr>
+        <tr><td>timesfm</td><td>TimesFM 2.5</td><td>ADR-0031. A second, independent track</td></tr>
+        <tr><td>AWS SAM CLI</td><td>Infrastructure</td><td>ADR-0015. Not used by the POC at all</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Four checks that are ours, not off the shelf</h3>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Check</th><th>Refuses</th></tr></thead>
+      <tbody>
+        <tr><td>check_payload_signature</td><td>Scraped content entering a public repo (Design §9)</td></tr>
+        <tr><td>check_boundaries</td><td>Storage or model clients in the wrong module; historical <code>as_of</code>; wall-clock reads</td></tr>
+        <tr><td>check_traceability</td><td>An ADR no requirement cites, a requirement no task owns</td></tr>
+        <tr><td>check_dependencies</td><td>A locked dependency with a known CVE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Running it</h2>
+  <p class="dek">every command in the POC, in order</p>
+
+<pre><code><span class="c"># once</span>
+uv sync --group dev --group numeric        <span class="c"># 3m25s, 837 MB</span>
+setx HF_HOME "D:\ml-cache\huggingface"     <span class="c"># keep 1.3 GB off C:</span>
+uv run pre-commit install
+
+<span class="c"># acquire — safe to re-run, always fetches current</span>
+uv run python scripts/fetch_metals_history.py
+uv run python scripts/fetch_fred_series.py
+
+<span class="c"># prepare, and print the numbers you can check by hand</span>
+uv run python scripts/prepare_gold_poc.py
+
+<span class="c"># the gates</span>
+uv run pytest -q
+uv run pre-commit run --all-files</code></pre>
+
+  <div class="caveat">
+    <p>
+      <strong>Nothing above touches AWS.</strong> No credentials, no deploy, no Bedrock. The
+      only network access is two public data endpoints and a one-off weight download.
+    </p>
+  </div>
+</div>
+
+<footer>
+  FinEvents · gold POC · stack reference · non-normative<br>
+  ADR-0008 · 0015 · 0024 · 0030 · 0031 · 0037 · 0044 · 0054 · Design §1, §4.1, §4.2, §4.13, §8, §9<br>
+  Measured 2026-08-13 on an i7-8550U, 4 cores, CPU only — install 3m25s, venv 837 MB, weights 1,338 MB
+</footer>

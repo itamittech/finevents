@@ -23,6 +23,8 @@ drifting into tutorials.
 |---|---|---|
 | [`sam-deploy-flow.html`](sam-deploy-flow.html) | Where SAM becomes CloudFormation (server-side, not locally); a side-by-side of both dialects on three real cases; whether SAM is portable to other clouds | [ADR-0015](../adr/0015-aws-sam-for-infrastructure.md), [ADR-0024](../adr/0024-single-account-per-environment-stacks.md), [ADR-0054](../adr/0054-toolchain.md) · 2026-08-10 |
 | [`gold-poc-approach.html`](gold-poc-approach.html) | What Chronos-2 and TimesFM are, why 120M/200M-parameter models run on a laptop, and the gold POC's cut-off → buckets → RPS mechanism | [ADR-0008](../adr/0008-volatility-relative-movement-buckets.md), [ADR-0030](../adr/0030-chronos-as-baseline-and-shown-forecast.md), [ADR-0031](../adr/0031-timesfm-third-track-and-ensemble-baselines.md) · Design §4.1, §4.2, §4.13 · 2026-08-13 |
+| [`gold-poc-architecture.html`](gold-poc-architecture.html) | **Start here for the POC.** The seven layers from a central bank's XML endpoint to a scored forecast; every installed tool and why it is there; real code snippets; why the install is 837 MB when the code is tiny | ADR-0008, 0030, 0031, 0044, 0054 · Design §1, §4.1, §4.2, §4.13, §9 · 2026-08-13 |
+| [`gold-poc-p3-plan.html`](gold-poc-p3-plan.html) | P3's flow: install, wrappers, the determinism gate, then the split into a sealed live prediction and a 145-day rolling evaluation | Design §2, §4.13 · ADR-0037 · REQ-501–509 · 2026-08-13. **A plan, not a reference — it goes stale when P3 lands** |
 
 ## Conventions
 
