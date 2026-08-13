@@ -80,6 +80,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0053](0053-remove-stooq-as-a-price-source.md) | **Remove Stooq as a price source** — it now serves a bot challenge (amends 0007, 0010) | Accepted | 2026-08-09 | A free source with permissive terms and daily metals history appears |
 | [0054](0054-toolchain.md) | **Python 3.13, uv, pytest, moto, GitHub Actions** — closes T0.13; the wheel intersection turned out not to bind | Accepted | 2026-08-10 | A dependency ships no `cp313` aarch64 wheel, or Lambda dates the 3.13 runtime |
 | [0055](0055-timesfm-covariate-persistence.md) | **TimesFM's future covariates held at their last observed value**, and the policy recorded on every forecast | Accepted | 2026-08-13 | TimesFM gains a past-only covariate mode, or the persistence assumption proves to be doing visible work |
+| [0056](0056-random-walk-covariate-control.md) | **A random-walk covariate control** — a meaningless covariate damages the forecast as much as a real one, so covariate rungs need a control | **Proposed** | 2026-08-13 | A covariate set beats its random-walk control over 250+ scored days |
 
 ## The forward-only turn
 

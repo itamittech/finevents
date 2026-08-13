@@ -105,6 +105,35 @@ That is a finding in its own right: ADR-0017 called the real 10Y yield arguably 
 dominant gold driver, and terciling it against VIX still adds nothing at daily resolution.
 Levels 4 and 3 remain unbuilt — they need T3.2's festival/expiry calendar.
 
+#### Why the covariates hurt — diagnosed, 2026-08-13
+
+Both covariate rungs came out detectably worse, consistently, so it was diagnosed rather
+than reported. **The wiring is fine** — arrays align, and Chronos-2 normalises internally
+(scaling a covariate by 1,000 moves the forecast by 1e-7 relative).
+
+Mean RPS on 40 cut-offs against a univariate baseline of 0.1688 / 0.1527:
+
+| covariate passed | t+1 | t+5 |
+|---|---|---|
+| `silver` — same source, genuinely co-moving | **−0.0015** | +0.0025 |
+| white noise | +0.0065 | +0.0149 |
+| **an unrelated random walk** | **+0.0216** | **+0.0389** |
+| `usd_rub` — a real macro covariate | +0.0222 | +0.0321 |
+
+**A meaningless random walk does as much damage as a real covariate**, across four
+independent draws. White noise does markedly less — which is the tell: white noise offers no
+structure to latch onto, while two integrated series *appear* related over any finite window.
+This is Granger–Newbold spurious regression happening inside in-context learning.
+
+It is not one library's quirk: TimesFM's covariate rung degrades by a similar margin through
+a completely different mechanism (XReg regression).
+
+**The retrospective consequence matters most.** ADR-0047 makes the covariate-informed
+configurations rungs 3 and 4 — the bar the agent is measured against. If that bar is
+handicapped by spurious regression, the agent beating it means less than it appears.
+[ADR-0056](adr/0056-random-walk-covariate-control.md) proposes a random-walk control rung to
+turn that from an unknown into a number.
+
 **The contamination boundary is the result.** Chronos-2 and TimesFM 2.5 were pre-trained
 on corpora closing before 2026 — neither publishes an exact cutoff, which is still an open
 pre-build item. Anything scored before 2026 measures partly what the models memorised. The
