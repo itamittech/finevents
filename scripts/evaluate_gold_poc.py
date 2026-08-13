@@ -57,6 +57,7 @@ from finevents.features.volatility import (  # noqa: E402
     historical_buckets,
 )
 from finevents.numeric import Chronos2Forecaster, TimesFMForecaster  # noqa: E402
+from finevents.numeric.base import QUANTILE_LEVELS  # noqa: E402
 from finevents.numeric.buckets import flat_distribution, to_bucket_probabilities  # noqa: E402
 from finevents.score.rps import (  # noqa: E402
     by_outcome,
@@ -88,6 +89,7 @@ def emit_ui_data(
     cut_offs: list[int],
     scores: dict[tuple[str, int], list[float]],
     outcomes: dict[int, list],
+    probabilities: dict[int, list[dict[str, list[float]]]],
     levels_used: dict[tuple[int, int], int],
     context: int,
     n_min: int,
@@ -134,12 +136,15 @@ def emit_ui_data(
 
     daily = []
     for position, i in enumerate(cut_offs):
-        record: dict = {"date": dates[i].isoformat(), "outcome": {}, "rps": {}}
+        record: dict = {"date": dates[i].isoformat(), "outcome": {}, "rps": {}, "probs": {}}
         for h in HORIZONS:
             record["outcome"][str(h)] = int(outcomes[h][position])
             record["rps"][str(h)] = {
                 track: round(scores[(track, h)][position], 6) for track in ordered
             }
+            # The full five-bucket distribution each rung committed to that day —
+            # what the day-by-day view draws. Derived work, like everything here.
+            record["probs"][str(h)] = probabilities[h][position]
         daily.append(record)
 
     by_bucket: dict[str, dict] = {}
@@ -184,6 +189,50 @@ def emit_ui_data(
     print(f"dashboard data -> {path}")
 
 
+def emit_prices(
+    path: Path,
+    *,
+    dates: tuple[date, ...],
+    cut_offs: list[int],
+    closes: tuple[float, ...],
+    quantile_rows: dict[int, dict[str, list[list[float]]]],
+    flat_zones: dict[int, list[tuple[float, float]]],
+) -> None:
+    """Persist the price layer for the dashboard's fan chart. **LOCAL ONLY.**
+
+    Unlike `emit_ui_data`, this file contains CBR-derived price values — the
+    close series and the models' price-space quantiles. DATA_SOURCES.md's CBR
+    terms question is still open, the repository is public, and committing a
+    price series is republication (ADR-0044, ADR-0050). So `.gitignore` admits
+    the derived files by name and deliberately leaves this one out; the page
+    degrades gracefully when it is absent. If the CBR question is ever answered
+    in favour, admitting this file is a one-line, recorded decision.
+    """
+    first = cut_offs[0]
+    payload = {
+        "currency": "RUB per gram (CBR daily fix)",
+        "local_only": True,
+        "levels": list(QUANTILE_LEVELS),
+        "series": {
+            "dates": [d.isoformat() for d in dates[first:]],
+            "close": [round(c, 2) for c in closes[first:]],
+        },
+        "horizons": {
+            str(h): {
+                "dates": [dates[i + h].isoformat() for i in cut_offs],
+                "flat_lo": [z[0] for z in flat_zones[h]],
+                "flat_hi": [z[1] for z in flat_zones[h]],
+                "bands": quantile_rows[h],
+            }
+            for h in HORIZONS
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = "window.POC_PRICES = " + json.dumps(payload, indent=1) + ";\n"
+    path.write_text(text, encoding="utf-8")
+    print(f"price layer    -> {path}   (local only — never committed; see docstring)")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--from", dest="start", type=date.fromisoformat, default=CLEAN_FROM)
@@ -198,6 +247,14 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         metavar="PATH",
         help="also persist the run for ui/index.html (e.g. ui/data/results.js)",
+    )
+    parser.add_argument(
+        "--prices",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="also persist the LOCAL-ONLY price layer (ui/data/prices.js — gitignored,"
+        " contains CBR-derived values; see emit_prices)",
     )
     args = parser.parse_args(argv)
 
@@ -238,6 +295,9 @@ def main(argv: list[str] | None = None) -> int:
 
     scores: dict[tuple[str, int], list[float]] = {}
     outcomes: dict[int, list] = {h: [] for h in HORIZONS}
+    probabilities_by_day: dict[int, list[dict[str, list[float]]]] = {h: [] for h in HORIZONS}
+    quantile_rows: dict[int, dict[str, list[list[float]]]] = {h: {} for h in HORIZONS}
+    flat_zones: dict[int, list[tuple[float, float]]] = {h: [] for h in HORIZONS}
     started = time.perf_counter()
 
     for n, i in enumerate(cut_offs, 1):
@@ -247,10 +307,30 @@ def main(argv: list[str] | None = None) -> int:
             name: Series(name, dates[: i + 1], values[: i + 1]) for name, values in matrix.items()
         }
 
+        # One call per configuration: a forecast carries every horizon at once,
+        # so calling inside the horizon loop was doing identical work twice
+        # (REQ-507 makes the repeat byte-identical, hence merely wasteful).
+        # The quantiles feed both the bucket conversion and the price-space
+        # bands the dashboard's fan chart draws.
+        model_outputs = []
+        for forecaster, with_covariates in forecasters:
+            out = forecaster.forecast(
+                target_slice,
+                covariate_slices if with_covariates else None,
+                list(HORIZONS),
+            )
+            model_outputs.append(out)
+
         for horizon in HORIZONS:
             edges = buckets_for(history, horizon)
             realised = edges.assign(math.log(closes[i + horizon] / closes[i]))
             outcomes[horizon].append(realised)
+            flat_zones[horizon].append(
+                (
+                    round(history[-1] * math.exp(edges.edges[1]), 2),
+                    round(history[-1] * math.exp(edges.edges[2]), 2),
+                )
+            )
 
             distributions = {
                 "all_flat": flat_distribution(),
@@ -265,14 +345,15 @@ def main(argv: list[str] | None = None) -> int:
                 key = (horizon, rung2.level)
                 levels_used[key] = levels_used.get(key, 0) + 1
 
-            for forecaster, with_covariates in forecasters:
-                out = forecaster.forecast(
-                    target_slice,
-                    covariate_slices if with_covariates else None,
-                    list(HORIZONS),
-                )
+            for out in model_outputs:
                 distributions[out.track] = to_bucket_probabilities(out, horizon, history[-1], edges)
+                quantile_rows[horizon].setdefault(out.track, []).append(
+                    [round(v, 2) for v in out.values[horizon]]
+                )
 
+            probabilities_by_day[horizon].append(
+                {track: [round(p, 4) for p in dist] for track, dist in distributions.items()}
+            )
             for track, probabilities in distributions.items():
                 scores.setdefault((track, horizon), []).append(
                     ranked_probability_score(probabilities, realised)
@@ -346,9 +427,19 @@ def main(argv: list[str] | None = None) -> int:
             cut_offs=cut_offs,
             scores=scores,
             outcomes=outcomes,
+            probabilities=probabilities_by_day,
             levels_used=levels_used,
             context=args.context,
             n_min=args.n_min,
+        )
+    if args.prices:
+        emit_prices(
+            args.prices,
+            dates=dates,
+            cut_offs=cut_offs,
+            closes=closes,
+            quantile_rows=quantile_rows,
+            flat_zones=flat_zones,
         )
     return 0
 

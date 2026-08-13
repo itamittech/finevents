@@ -67,10 +67,13 @@ data/
 
 # The dashboard's generated record is the one deliberate exception to **/data/:
 # it is OUR derived work — scores, probabilities, verdicts — which REQ-1106
-# publishes. Only .js data files pass; anything else in there stays ignored.
+# publishes. Admitted BY NAME: ui/data/prices.js must stay local — it carries
+# CBR-derived price values and the CBR terms question in DATA_SOURCES.md is
+# still open (ADR-0044/ADR-0050). The page degrades gracefully without it.
 !ui/data/
 ui/data/*
-!ui/data/*.js
+!ui/data/results.js
+!ui/data/latest.js
 
 # Python bytecode from the analysis scripts
 __pycache__/

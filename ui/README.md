@@ -11,20 +11,25 @@ dashboard already reads instead of the reverse.
 ## Regenerate the data
 
 ```bash
-uv run python scripts/evaluate_gold_poc.py --json ui/data/results.js
+uv run python scripts/evaluate_gold_poc.py --json ui/data/results.js --prices ui/data/prices.js
 uv run python scripts/forecast_gold_today.py
 ```
 
-The first re-scores the full clean window (~20 min, model weights needed) and
+The first re-scores the full clean window (~5 min, model weights needed) and
 persists it; the second seals an unscored latest forecast (~2 min). Reload the
 page after either.
 
 ## What is in `ui/data/`
 
-| File | Written by | Contents |
-|---|---|---|
-| `results.js` | `evaluate_gold_poc.py --json` | Ladder means, paired Newey–West intervals, verdicts, per-day RPS and outcomes, by-outcome splits, rung-2 backoff levels |
-| `latest.js` | `forecast_gold_today.py` | Every rung's bucket probabilities at the last session, σ and edges in percent — sealed, unscored |
+| File | Written by | Committed? | Contents |
+|---|---|---|---|
+| `results.js` | `evaluate_gold_poc.py --json` | yes | Ladder means, paired Newey–West intervals, verdicts, per-day RPS, outcomes **and each rung's full five-bucket distribution per day** (the day-by-day view), by-outcome splits, rung-2 backoff levels |
+| `latest.js` | `forecast_gold_today.py` | yes | Every rung's bucket probabilities at the last session, σ and edges in percent — sealed, unscored |
+| `prices.js` | `evaluate_gold_poc.py --prices` | **no — local only** | The fan chart's price layer: the close series, each model's price-space deciles per day, the daily flat zone. Carries CBR-derived values, and the CBR terms question in DATA_SOURCES.md is open — `.gitignore` admits the other two by name and deliberately not this one |
+
+The page degrades gracefully when a file is missing or stale: the fan chart
+shows how to generate `prices.js`, and an older `results.js` without per-day
+distributions turns the day-by-day view into a regenerate note instead of a break.
 
 Both are **derived work only** — scores, probabilities, verdicts (REQ-1106).
 No raw price series and no VIXCLS values are ever written (REQ-1107); the
