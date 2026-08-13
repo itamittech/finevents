@@ -9,8 +9,8 @@
 
 ```
 CURRENT TRACK:      GOLD POC  (a resequencing, chosen 2026-08-13 — see "The POC track")
-CURRENT STEP:       P2 — data preparation.  DONE, locally verified.
-NEXT STEP:          P3 — the two forecasting models
+CURRENT STEP:       P3 — the two forecasting models.  DONE, locally verified.
+NEXT STEP:          P4 — quantiles to buckets, and RPS against climatology
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
@@ -37,8 +37,8 @@ against history is one of three explicitly permitted uses of history (T6.12).
 |---|---|---|
 | P1 | Collect gold + covariates; answer FRED terms | ✅ 10 series in `data/`, fetchers committed |
 | **P2** | **Validate, align as-of, σ and buckets** | ✅ **done — `scripts/prepare_gold_poc.py`** |
-| P3 | Chronos-2 and TimesFM, univariate + covariate-informed | next |
-| P4 | Quantile → bucket (REQ-508), RPS vs climatology | |
+| **P3** | **Chronos-2 and TimesFM, univariate + covariate-informed** | ✅ **done** — install measured, both wrappers behind one `Forecaster`, all four tracks byte-identical on repeat (REQ-507) |
+| P4 | Quantile → bucket (REQ-508), RPS vs climatology | next |
 | P5 | Report on full history **and** the 145-day clean window | |
 
 **The contamination boundary is the result.** Chronos-2 and TimesFM 2.5 were pre-trained
@@ -46,9 +46,10 @@ on corpora closing before 2026 — neither publishes an exact cutoff, which is s
 pre-build item. Anything scored before 2026 measures partly what the models memorised. The
 2026 window is the only part a claim can rest on, and it must be reported separately.
 
-**What is green locally.** `uv run pytest` — **89 tests**, of which 27 are the repository
-suite. `uv run pre-commit run --all-files` — 10 hooks. `sam validate --lint` and
-`sam build`. Gate G0's checks pass; Gate G1's T1.4 is green.
+**What is green locally.** `uv run pytest` — **151 tests** (142 without the model weights,
+which is CI's view). `uv run pre-commit run --all-files` — 10 hooks. `sam validate --lint`
+and `sam build`. Gate G0's checks pass; Gate G1's T1.4 is green; REQ-507 holds on all four
+numeric tracks.
 
 **What is not yet proven.** The deploy loop. Nothing has touched AWS, by decision — the
 seven tables and the versioned bucket are declared in `template.yaml` and validated, but

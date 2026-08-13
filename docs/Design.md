@@ -60,6 +60,23 @@ class ModelClient(Protocol):
 
 `Role` is an enum of `CLASSIFY | PREDICT | CURATE`, resolved to a model ID through `config/` (REQ-1007). **No call site names a model.**
 
+### 2.1 What `Forecaster` normalises, and the one thing it cannot
+
+*Added 2026-08-13, from building `numeric/` against both libraries. Measured, not assumed.*
+
+Both wrappers emit the same nine deciles (0.1 … 0.9) so that the Design §4.13 bucket conversion is identical for every track. Two library conventions are absorbed at this boundary:
+
+| Library | Convention | Why it matters |
+|---|---|---|
+| TimesFM 2.5 | Quantile array is `[n, horizon, 10]` with **index 0 the mean**, deciles at 1–9 | Read index 0 as a quantile and the row is non-monotone, so §4.13 yields a **negative probability** for the lowest bucket |
+| Chronos-2 | Covariate slot is `past_covariates`; returns exactly the levels requested, in order | — |
+
+**The asymmetry that cannot be absorbed.** Chronos-2 accepts *past-only* covariates. TimesFM's XReg requires covariate values spanning **context and horizon** and raises `math domain error` on a context-length array. Future covariate values do not exist at the cut-off, so `timesfm_cov` holds them at the last observed value.
+
+That uses only information available at the cut-off, so it is **not leakage** — but it is an assumption `chronos_cov` is not making, and the two covariate tracks therefore did not receive the same input. `QuantileForecast` carries `future_covariate_policy ∈ {none, persistence}` and it is stored with the forecast, so no consumer can compare the two tracks as though they had. See [ADR-0055](adr/0055-timesfm-covariate-persistence.md).
+
+**Context length is fixed, not "as much as the model allows."** REQ-502 says sized to the model's maximum; taken literally with a growing archive, a later cut-off would silently receive a longer window and the rolling comparison would measure context length rather than model quality. The POC fixes 512 sessions for both models. That value is a POC choice, not a specified one.
+
 ## 3. Data schemas
 
 ### DynamoDB

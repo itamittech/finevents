@@ -3,7 +3,7 @@
 **Status:** Baseline v1
 **Date:** 2026-08-09
 **Governed by:** [ADR-0001](adr/0001-spec-driven-development-with-adrs.md) — no code for a feature until its requirement exists and is numbered
-**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0054](adr/README.md)
+**Traces to:** [Product.md](Product.md), [SystemDesign.md](SystemDesign.md), [ADRs 0001–0055](adr/README.md)
 
 ## How to read this
 
@@ -133,8 +133,8 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 |---|---|---|---|
 | REQ-501 | Chronos-2 and TimesFM 2.5 run **in-process** from local weights. No SageMaker endpoint, no Bedrock call. | ADR-0030, 0031 | `I` |
 | REQ-502 | Each model receives a fixed-length rolling context window, sized to the model's maximum context. The full archive is never sent. | ADR-0030 | `U` |
-| REQ-503 | Covariates are passed as **time series aligned to the context window**, not as scalars. | ADR-0030 | `U` |
-| REQ-504 | Each model runs in two configurations — univariate and covariate-informed — over 11 instruments, giving 44 forecasts per day. | ADR-0030, 0031 | `I` |
+| REQ-503 | Covariates are passed as **time series aligned to the context window**, not as scalars. | ADR-0030, 0055 | `U` |
+| REQ-504 | Each model runs in two configurations — univariate and covariate-informed — over 11 instruments, giving 44 forecasts per day. | ADR-0030, 0031, 0055 | `I` |
 | REQ-505 | Only the **univariate** forecasts are shown to the predictor. Covariate-informed runs are scoring rivals and are never placed in a prompt. | ADR-0029 | `CI` |
 | REQ-506 | Both models forecast **one series at a time**. Chronos-2's native multivariate mode is not used, so the comparison against the agent is like-for-like. | ADR-0030 | `R` |
 | REQ-507 | Both models are deterministically seeded. Identical input produces identical output. | ADR-0030 | `P` |
