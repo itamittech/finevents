@@ -85,14 +85,25 @@ Both corrections made the baseline **stronger** and the models look **worse**. A
 write-up here claimed the models beat climatology on every category of moving day; that was
 an artifact of correction 1 and is withdrawn.
 
-#### What is still missing from the bar
+#### Rung 2 built — and it does not help
 
-**Rung 2 — conditional climatology — is specified but not built.** [Design §4.10](Design.md)
-conditions on the tercile of the trailing 20-session change in the real 10Y yield crossed
-with the VIX tercile, and calls it the rung *"that matters most for honesty"*. Levels 2, 1
-and 0 of its backoff ladder are buildable from data already on disk; levels 4 and 3 need the
-festival/expiry calendar (T3.2). Until it exists, the bar is the weakest of the two
-specified baselines.
+Conditional climatology (Design §4.10) now runs at levels 2/1/0. It sits on **level 2 for
+100% of cut-offs** at the provisional `N_min = 20`, so it is genuinely conditioning rather
+than silently collapsing to rung 1.
+
+| | t+1 | t+5 |
+|---|---|---|
+| `climatology` (rung 1) | **0.1368** | **0.1443** |
+| `cond_climatology` (rung 2) | 0.1390 (+0.0022) | 0.1476 (+0.0033) |
+
+**Conditioning on the real-yield × VIX regime makes it slightly worse at both horizons** —
+not detectably, but the point estimate moves the wrong way. So the regime cell carries no
+usable information about gold's next bucket distribution at this granularity, and
+**unconditional climatology remains the bar**.
+
+That is a finding in its own right: ADR-0017 called the real 10Y yield arguably *the*
+dominant gold driver, and terciling it against VIX still adds nothing at daily resolution.
+Levels 4 and 3 remain unbuilt — they need T3.2's festival/expiry calendar.
 
 **The contamination boundary is the result.** Chronos-2 and TimesFM 2.5 were pre-trained
 on corpora closing before 2026 — neither publishes an exact cutoff, which is still an open
