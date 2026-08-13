@@ -1,6 +1,6 @@
 # FinEvents — Execution
 
-**Status:** Increments 0 and 1 built and locally green; both await the first deploy.
+**Status:** Increments 0–1 built. **A gold POC track is now running ahead of the ladder** — the builder's decision, recorded below.
 **Governs:** how work is sequenced and handed over. Read with [Tasks.md](Tasks.md), which holds the full task detail.
 
 ---
@@ -8,19 +8,43 @@
 ## ▶ WHERE WE ARE
 
 ```
-CURRENT INCREMENT:  1 — Bitemporal foundation
-STATUS:             built, locally verified. Code complete; T1.6's stores are declared,
-                    not deployed.
-LAST LANDED:        — (increment 0 still lands on its first `sam deploy`)
-BLOCKED ON:         nothing to build. Deployment is deferred by the builder's decision.
-                    T0.12 data-terms (3 open) gates increment 4.
+CURRENT TRACK:      GOLD POC  (a resequencing, chosen 2026-08-13 — see "The POC track")
+CURRENT STEP:       P2 — data preparation.  DONE, locally verified.
+NEXT STEP:          P3 — the two forecasting models
+
+LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
+                    after the POC.
+BLOCKED ON:         nothing. Deployment is deferred by the builder's decision and
+                    the POC needs no AWS.
 RESOLVED:           T0.13 Python version — ADR-0054. The intersection does not bind.
                     T0.16 scraped-payload signature — already defined in Design §9.
                     T1.1–T1.5 — bitemporal core, append-only writes, as-of gateway,
-                    frozen clock, and the property tests over REQ-105–108 + REQ-407.
+                    frozen clock, property tests over REQ-105–108 + REQ-407.
+                    DATA_SOURCES.md question 1 (FRED terms) — answered 2026-08-13.
                     TimesFM 2.5 licence (Apache-2.0) — one of the ten pre-build items.
-                    metals price history — exists, fetched, in data/
 ```
+
+### The POC track
+
+**Why it exists.** Increment 10 of the ladder is already marked ★ and already says the
+numeric lane *"stands alone"* as a contribution. The POC pulls that milestone forward on
+one instrument, drops the event and agent halves, and runs entirely on a laptop.
+
+**It is legal under ADR-0037.** Forward-only binds the *agent*. Lane A numeric calibration
+against history is one of three explicitly permitted uses of history (T6.12).
+
+| Step | What | State |
+|---|---|---|
+| P1 | Collect gold + covariates; answer FRED terms | ✅ 10 series in `data/`, fetchers committed |
+| **P2** | **Validate, align as-of, σ and buckets** | ✅ **done — `scripts/prepare_gold_poc.py`** |
+| P3 | Chronos-2 and TimesFM, univariate + covariate-informed | next |
+| P4 | Quantile → bucket (REQ-508), RPS vs climatology | |
+| P5 | Report on full history **and** the 145-day clean window | |
+
+**The contamination boundary is the result.** Chronos-2 and TimesFM 2.5 were pre-trained
+on corpora closing before 2026 — neither publishes an exact cutoff, which is still an open
+pre-build item. Anything scored before 2026 measures partly what the models memorised. The
+2026 window is the only part a claim can rest on, and it must be reported separately.
 
 **What is green locally.** `uv run pytest` — **89 tests**, of which 27 are the repository
 suite. `uv run pre-commit run --all-files` — 10 hooks. `sam validate --lint` and
