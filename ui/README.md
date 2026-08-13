@@ -36,6 +36,7 @@ any order works and missing instruments simply do not appear in the switcher.
 | `results.js` | `evaluate_gold_poc.py --json` | yes | Gold's ladder: means, paired Newey–West intervals, verdicts, per-day RPS, outcomes **and each rung's full five-bucket distribution per day** (the day-by-day view), by-outcome splits, rung-2 backoff levels |
 | `results_usd_rub.js`, `results_usd_inr.js` | `--instrument … --json` | yes | The same record for the FX pairs, univariate rungs only, merged into `POC_REGISTRY` |
 | `latest.js` | `forecast_gold_today.py` | yes | Every gold rung's bucket probabilities at the last session, σ and edges in percent — sealed, unscored |
+| `live.js` | `run_poc_daily.py` (P5) | yes | The live track record: one sealed record per instrument per day — every rung's probabilities, σ, edges, the ADR-0056 random-walk seed — plus matured outcomes and RPS, scored against the **sealed** edges. Seal-once: re-running a day is a byte-identical no-op |
 | `prices*.js` | `--prices` | **no — local only** | The fan chart's price layer per instrument: the close series, each model's price-space deciles per day, the daily flat zone. These carry source-derived price values; the CBR terms question in DATA_SOURCES.md is open, so `.gitignore` admits the results files by name and deliberately none of these |
 
 The page degrades gracefully when a file is missing or stale: the fan chart

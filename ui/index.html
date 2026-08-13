@@ -148,6 +148,7 @@
 <script src="./data/prices_usd_rub.js"></script>
 <script src="./data/results_usd_inr.js"></script>
 <script src="./data/prices_usd_inr.js"></script>
+<script src="./data/live.js"></script>
 <script>
 "use strict";
 const REG = window.POC_REGISTRY || {};
@@ -765,6 +766,84 @@ function latest() {
   return wrap;
 }
 
+function liveTrack() {
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  const wrap = el("section", null);
+  wrap.appendChild(el("h2", { text: "The live track record — sealed daily, scored when reality arrives" }));
+
+  if (!track || !track.records.length) {
+    wrap.appendChild(el("p", { class: "note", text:
+      "Nothing sealed for this instrument yet. The daily runner creates the record:" }));
+    wrap.appendChild(el("div", { class: "empty", style: "margin-top:.6rem; padding:1rem" },
+      el("code", { text: "uv run python scripts/run_poc_daily.py" })));
+    return wrap;
+  }
+
+  const records = track.records;
+  const newest = records[records.length - 1];
+  const scored = { "1": 0, "5": 0 };
+  const sums = {};
+  for (const r of records) {
+    for (const h of Object.keys(scored)) {
+      const m = r.matured[h];
+      if (!m) continue;
+      scored[h]++;
+      for (const [rung, rps] of Object.entries(m.rps)) {
+        (sums[rung] = sums[rung] || { "1": [], "5": [] })[h].push(rps);
+      }
+    }
+  }
+  const anyScored = scored["1"] + scored["5"] > 0;
+
+  const stats = el("div", { class: "stats", style: "margin-top:.2rem" });
+  const block = (v, label) => {
+    const s = el("div", { class: "stat" });
+    s.appendChild(el("div", { class: "v", text: v }));
+    s.appendChild(el("div", { class: "l", text: label }));
+    return s;
+  };
+  stats.appendChild(block(String(records.length), "day(s) sealed so far"));
+  stats.appendChild(block(`${scored["1"]} + ${scored["5"]}`, "outcomes scored (t+1 + t+5)"));
+  stats.appendChild(block(newest.as_of, newest.matured["1"]
+    ? "latest seal — t+1 already scored"
+    : "latest seal — waiting for its outcome"));
+  wrap.appendChild(stats);
+
+  if (anyScored) {
+    const table = el("table", { style: "margin-top:1rem" });
+    const head = el("tr", null);
+    for (const t of ["method", `live RPS t+1 (${scored["1"]} day${scored["1"] === 1 ? "" : "s"})`,
+                     `live RPS t+5 (${scored["5"]} day${scored["5"] === 1 ? "" : "s"})`])
+      head.appendChild(el("th", { text: t, class: t === "method" ? "" : "num" }));
+    table.appendChild(el("thead", null, head));
+    const body = el("tbody", null);
+    const mean = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(4) : "—";
+    const order = D.rungs.filter(r => sums[r]).concat(Object.keys(sums).filter(r => !D.rungs.includes(r)));
+    for (const rung of order) {
+      const tr = el("tr", null);
+      tr.appendChild(el("td", { class: "rname", title: rung },
+        el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }),
+        document.createTextNode(rname(rung))));
+      tr.appendChild(el("td", { class: "num", text: mean(sums[rung]["1"]) }));
+      tr.appendChild(el("td", { class: "num", text: mean(sums[rung]["5"]) }));
+      body.appendChild(tr);
+    }
+    table.appendChild(body);
+    wrap.appendChild(el("div", { class: "scroll" }, table));
+  }
+
+  wrap.appendChild(el("div", { class: "note", text:
+    "Every record was sealed before its outcome existed and is scored against the σ-edges " +
+    "sealed with it — re-running a day can never rewrite history (the tests pin this). " +
+    (state.instrument === "gold"
+      ? "Gold's seals include the chronos_rwcov / timesfm_rwcov random-walk controls ADR-0056 " +
+        "requires, seed recorded per day. "
+      : "") +
+    "The table is tiny today by construction: it grows one row per trading day once the " +
+    "runner is scheduled (P6)." }));
+  return wrap;
+}
+
 function ladder() {
   const wrap = el("section", null);
   wrap.appendChild(el("h2", { text:
@@ -988,6 +1067,7 @@ function render() {
   c.appendChild(priceChart());
   c.appendChild(dayByDay());
   const l = latest(); if (l) c.appendChild(l);
+  c.appendChild(liveTrack());
   c.appendChild(ladder());
   c.appendChild(chart());
   c.appendChild(byOutcome());
