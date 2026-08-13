@@ -158,6 +158,7 @@ const INSTRUMENTS = {
     label: "Gold · ₽/g",
     title: "gold, in roubles per gram",
     unit: "₽ per gram",
+    short: "₽/g",
     decimals: 0,
     ounce: 31.1035,
     blurb: "The Bank of Russia's official daily gold fix — an XAU/RUB series, priced per gram. " +
@@ -169,6 +170,7 @@ const INSTRUMENTS = {
     label: "USD / RUB",
     title: "the US dollar, in roubles",
     unit: "₽ per $1",
+    short: "₽/$",
     decimals: 2,
     blurb: "How many roubles one dollar buys — the Bank of Russia's official daily rate, the very " +
       "fix that converts the gold series. An officially managed rate: its long quiet stretches " +
@@ -179,6 +181,7 @@ const INSTRUMENTS = {
     label: "USD / INR",
     title: "the US dollar, in rupees",
     unit: "₹ per $1",
+    short: "₹/$",
     decimals: 2,
     blurb: "How many Indian rupees one dollar buys — the US Federal Reserve's H.10 reference " +
       "rate. Until now it only fed gold's forecast as a covariate; here it is forecast in its " +
@@ -227,7 +230,7 @@ const RUNG_STYLE = {
 const state = {
   instrument: "gold", horizon: null, visible: {}, rung: "chronos_uni", movingOnly: false,
   bands: { chronos_uni: true, chronos_cov: false, timesfm_uni: false, timesfm_cov: false },
-  span: "90", flatZone: true,
+  span: "90", flatZone: false,
 };
 
 const priceFmt = x => x.toLocaleString("en-US", {
@@ -348,9 +351,8 @@ function priceChart() {
   wrap.appendChild(card);
 
   wrap.appendChild(el("p", { class: "note", text:
-    "How to read it: pick a method. Each day it drew a zone — “tomorrow lands in here, 8 days " +
-    "in 10.” The dark line is what the price actually did. Line inside the zone: promise kept. " +
-    "Red ring: the market escaped it. The score below counts the promises kept." }));
+    "Before each day happened, the method drew a zone: “the price will land in here, 8 days " +
+    "in 10.” Then the day happened. Hover any day to see both." }));
 
   if (!P) {
     wrap.appendChild(el("div", { class: "note", style: "margin-top:.8rem", text:
@@ -386,7 +388,7 @@ function priceChart() {
     }));
   }
   filters.appendChild(el("button", {
-    text: "flat zone", class: state.flatZone ? "on" : "",
+    text: "show “flat” zone", class: state.flatZone ? "on" : "",
     onclick: () => { state.flatZone = !state.flatZone; render(); },
   }));
   wrap.appendChild(filters);
@@ -396,6 +398,29 @@ function priceChart() {
   const start = total - count;
   const idx = [...Array(count).keys()].map(k => start + k);
   const selected = tracks.filter(t => state.bands[t]);
+  const one = selected.length === 1 ? selected[0] : null;
+  const ahead = state.horizon === "1" ? "1 trading day ahead" : `${state.horizon} trading days ahead`;
+
+  // The coverage story, computed before anything is drawn — the rings, the
+  // stats and the plain-English verdict all read from this one pass.
+  let cov = null;
+  if (one) {
+    cov = { inside: 0, escapes: [], errors: [], biggest: null };
+    for (const i of idx) {
+      const c = closeAt.get(hz.dates[i]);
+      if (c === undefined) continue;
+      const q = hz.bands[one][i];
+      const deviation = Math.abs(c / q[4] - 1) * 100;
+      cov.errors.push(deviation);
+      if (q[0] <= c && c <= q[8]) cov.inside++;
+      else {
+        cov.escapes.push(i);
+        if (!cov.biggest || deviation > cov.biggest.deviation)
+          cov.biggest = { date: hz.dates[i], deviation };
+      }
+    }
+    cov.n = cov.inside + cov.escapes.length;
+  }
 
   const lo = [], hi = [];
   for (const i of idx) {
@@ -407,7 +432,7 @@ function priceChart() {
   let yMin = Math.min(...lo), yMax = Math.max(...hi);
   const pad = (yMax - yMin || 1) * 0.06; yMin -= pad; yMax += pad;
 
-  const W = 940, H = 320, ml = 62, mr = 14, mt = 12, mb = 28;
+  const W = 940, H = 330, ml = 62, mr = 14, mt = 26, mb = 28;
   const x = k => count < 2 ? (ml + W - mr) / 2 : ml + (k / (count - 1)) * (W - ml - mr);
   const y = v => mt + (1 - (v - yMin) / (yMax - yMin)) * (H - mt - mb);
   const svg = el("svg:svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", style: "display:block; min-width:760px" });
@@ -418,7 +443,7 @@ function priceChart() {
     svg.appendChild(el("svg:line", { x1: ml, y1: y(v), x2: W - mr, y2: y(v), stroke: "#efebe0", "stroke-width": 1 }));
     svg.appendChild(el("svg:text", { x: ml - 7, y: y(v) + 3.5, "text-anchor": "end", "font-size": 10.5, fill: "#8d887b", text: priceFmt(v) }));
   }
-  svg.appendChild(el("svg:text", { x: ml - 7, y: mt - 1, "text-anchor": "end", "font-size": 10, fill: "#b0aa9b", text: info.unit }));
+  svg.appendChild(el("svg:text", { x: ml - 7, y: 13, "text-anchor": "end", "font-size": 10, fill: "#b0aa9b", text: info.short }));
   let lastMonth = "";
   idx.forEach((i, k) => {
     const month = hz.dates[i].slice(0, 7);
@@ -441,7 +466,7 @@ function priceChart() {
       + idx.slice().reverse().map((i, r) => "L" + x(count - 1 - r).toFixed(1) + " " + y(hz.bands[t][i][0]).toFixed(1)).join(" ") + "Z";
     svg.appendChild(el("svg:path", { d: area, fill: color, opacity: 0.16 }));
     const median = idx.map((i, k) => (k ? "L" : "M") + x(k).toFixed(1) + " " + y(hz.bands[t][i][4]).toFixed(1)).join(" ");
-    svg.appendChild(el("svg:path", { d: median, fill: "none", stroke: color, "stroke-width": 1.4, "stroke-dasharray": (RUNG_STYLE[t] || {}).dash || "" }));
+    svg.appendChild(el("svg:path", { d: median, fill: "none", stroke: color, "stroke-width": 1.4, "stroke-dasharray": "5 4" }));
   }
 
   const actual = [];
@@ -454,19 +479,11 @@ function priceChart() {
   for (const p of actual)
     svg.appendChild(el("svg:circle", { cx: x(p.k), cy: y(p.c), r: 1.9, fill: "#21201c" }));
 
-  let inside = 0, misses = [], errors = [];
-  if (selected.length === 1) {
-    const t = selected[0];
-    for (const p of actual) {
-      const q = hz.bands[t][p.i];
-      const out = p.c < q[0] || p.c > q[8];
-      if (!out) inside++;
-      else {
-        misses.push(p);
+  if (cov) {
+    const escaped = new Set(cov.escapes);
+    for (const p of actual)
+      if (escaped.has(p.i))
         svg.appendChild(el("svg:circle", { cx: x(p.k), cy: y(p.c), r: 4.6, fill: "none", stroke: "var(--bad)", "stroke-width": 1.6 }));
-      }
-      errors.push(Math.abs(p.c / q[4] - 1) * 100);
-    }
   }
 
   const tip = document.getElementById("tooltip");
@@ -479,8 +496,8 @@ function priceChart() {
     const rows = selected.map(t => {
       const q = hz.bands[t][i];
       const out = c !== undefined && (c < q[0] || c > q[8]);
-      return `<span style="color:${(RUNG_STYLE[t] || {}).color}">●</span> ${rname(t)}: ${priceFmt(q[4])} ` +
-             `[${priceFmt(q[0])} – ${priceFmt(q[8])}]${out ? " · <b>escaped</b>" : ""}`;
+      return `<span style="color:${(RUNG_STYLE[t] || {}).color}">●</span> ${rname(t)}: guessed ${priceFmt(q[4])}, ` +
+             `zone ${priceFmt(q[0])} – ${priceFmt(q[8])}${out ? " · <b>breakout</b>" : ""}`;
     });
     tip.innerHTML = `<div class="d">${hz.dates[i]} · actual ${c === undefined ? "n/a" : priceFmt(c)}</div>` + rows.join("<br>");
     tip.style.display = "block";
@@ -494,26 +511,45 @@ function priceChart() {
     const s = el("span", null); s.appendChild(node);
     s.appendChild(document.createTextNode(label)); return s;
   };
+  const bandColor = one ? (RUNG_STYLE[one] || {}).color : "var(--accent)";
   key.appendChild(keyItem(el("span", { style:
-    "display:inline-block;width:1rem;height:2px;background:#21201c" }), "what actually happened"));
-  key.appendChild(keyItem(el("i", { style: "background:var(--accent);opacity:.35" }),
-    "the range promised in advance (10–90% likely)"));
+    "display:inline-block;width:1rem;height:2px;background:#21201c" }), "the actual price"));
+  key.appendChild(keyItem(el("i", { style: `background:${bandColor};opacity:.35` }),
+    one ? `${rname(one)}'s 8-in-10 zone, ${ahead}` : `each band = that method's 8-in-10 zone, ${ahead}`));
   key.appendChild(keyItem(el("span", { style:
-    "display:inline-block;width:1rem;border-top:2px dashed var(--accent)" }), "its central guess"));
-  key.appendChild(keyItem(el("i", { style: "background:#8d887b;opacity:.4" }), "the day's flat zone"));
+    `display:inline-block;width:1rem;border-top:2px dashed ${bandColor}` }), "its best single guess"));
+  if (state.flatZone)
+    key.appendChild(keyItem(el("i", { style: "background:#8d887b;opacity:.4" }),
+      "moves this small counted as “flat”"));
   key.appendChild(keyItem(el("span", { style:
     "display:inline-block;width:.6rem;height:.6rem;border-radius:50%;border:2px solid var(--bad)" }),
-    "escaped the range"));
+    "breakout — the price left the zone"));
   wrap.appendChild(key);
+
+  if (cov && cov.n) {
+    const pct = Math.round(100 * cov.inside / cov.n);
+    let verdict;
+    if (pct >= 76 && pct <= 86) verdict = "right in line with what an 8-in-10 zone should do";
+    else if (pct > 86) verdict = "more than promised — its zones are drawn a touch too wide (playing safe)";
+    else verdict = "less than promised — its zones are too narrow (overconfident)";
+    cov.errors.sort((a, b) => a - b);
+    const typical = cov.errors[Math.floor(cov.errors.length / 2)].toFixed(1);
+    const biggest = cov.biggest ? ` Its biggest surprise: ${cov.biggest.date}.` : "";
+    wrap.appendChild(el("div", { class: "aim", style: "margin:.8rem 0 .3rem", text:
+      `The verdict on ${rname(one)}: over these ${cov.n} days the price stayed inside its zone ` +
+      `${cov.inside} times (${pct}%) — ${verdict}. Its best single guess was off by about ` +
+      `${typical}% on a typical day.${biggest}` }));
+  } else if (!one) {
+    wrap.appendChild(el("div", { class: "note", style: "margin-top:.7rem", text:
+      "Pick exactly one method to get its verdict — promises kept, breakouts ringed in red." }));
+  }
+
   wrap.appendChild(el("div", { class: "scroll", style: "margin-top:.4rem" }, svg));
   wrap.appendChild(el("div", { class: "note", text:
     "Baselines like the base rates promise buckets rather than price ranges — they live in the " +
     "views below." }));
 
-  if (selected.length === 1 && actual.length) {
-    const t = selected[0];
-    errors.sort((a, b) => a - b);
-    const typical = errors.length ? errors[Math.floor(errors.length / 2)] : 0;
+  if (cov && cov.n) {
     const stats = el("div", { class: "stats" });
     const block = (v, label) => {
       const s = el("div", { class: "stat" });
@@ -521,16 +557,9 @@ function priceChart() {
       s.appendChild(el("div", { class: "l", text: label }));
       return s;
     };
-    stats.appendChild(block(`${inside} / ${actual.length}`,
-      `days the price stayed inside ${rname(t)}'s range (a well-calibrated range holds ~80%)`));
-    stats.appendChild(block(`${(100 * inside / actual.length).toFixed(0)}%`,
-      "actual coverage of the 10–90% promise"));
-    stats.appendChild(block(`${typical.toFixed(2)}%`,
-      "typical miss of the central guess (median)"));
+    stats.appendChild(block(`${cov.inside} / ${cov.n}`, "days inside the zone (8 in 10 promised)"));
+    stats.appendChild(block(`${cov.escapes.length}`, "breakouts — days the market escaped the zone"));
     wrap.appendChild(stats);
-  } else if (selected.length !== 1) {
-    wrap.appendChild(el("div", { class: "note", text:
-      "Select exactly one method to see its coverage score and its escape days ringed in red." }));
   }
   return wrap;
 }
