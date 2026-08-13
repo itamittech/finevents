@@ -4,11 +4,19 @@ These run without weights. A fake pipeline stands in for each library, so the
 tests assert what the *wrapper* does — which is the part that can be wrong in a
 way the models cannot tell you about.
 
+Two tiers, because "without weights" is not "without the stack": the fakes
+hand the wrappers torch tensors and numpy arrays — the types the real
+libraries return — so the wrapper-level tests need those libraries installed
+even though no model ever loads. CI installs only the dev group (ci.yml:
+"neither belongs in CI"), so that tier is skipped there and exercised locally,
+where the model group exists. The pure-contract tier above it runs everywhere.
+
 The real models are exercised in `test_models_live.py`, marked `slow`.
 """
 
 from __future__ import annotations
 
+import importlib.util
 from datetime import date, timedelta
 
 import pytest
@@ -25,6 +33,11 @@ from finevents.numeric import (
 )
 
 N = 120
+
+needs_model_stack = pytest.mark.skipif(
+    importlib.util.find_spec("torch") is None or importlib.util.find_spec("numpy") is None,
+    reason="the fakes speak torch/numpy — the model stack CI deliberately omits",
+)
 
 
 def series(name: str, start: float = 100.0) -> Series:
@@ -113,6 +126,7 @@ class FakeChronos:
         return [grid.unsqueeze(0)], None
 
 
+@needs_model_stack
 def test_chronos_passes_past_covariates_and_records_no_future_policy() -> None:
     """Chronos-2 takes past-only covariates, so nothing about the horizon is assumed."""
     fake = FakeChronos()
@@ -131,6 +145,7 @@ def test_chronos_passes_past_covariates_and_records_no_future_policy() -> None:
     assert out.horizons == (1, 5)
 
 
+@needs_model_stack
 def test_chronos_univariate_sends_no_covariate_slot() -> None:
     fake = FakeChronos()
     out = Chronos2Forecaster(context_length=60, pipeline=fake).forecast(series("gold"), None, [1])
@@ -139,6 +154,7 @@ def test_chronos_univariate_sends_no_covariate_slot() -> None:
     assert out.track == "chronos_uni"
 
 
+@needs_model_stack
 def test_chronos_requests_exactly_the_shared_levels() -> None:
     """Both models must emit the same levels, or the bucket conversion differs."""
     fake = FakeChronos()
@@ -146,6 +162,7 @@ def test_chronos_requests_exactly_the_shared_levels() -> None:
     assert tuple(fake.calls[0]["levels"]) == QUANTILE_LEVELS
 
 
+@needs_model_stack
 def test_chronos_asks_for_the_longest_horizon_once() -> None:
     """h=1 and h=5 is one call of length 5, not two calls."""
     fake = FakeChronos()
@@ -186,6 +203,7 @@ class FakeTimesFM:
         return np.zeros((1, horizon)), self._grid(horizon)
 
 
+@needs_model_stack
 def test_timesfm_drops_the_mean_at_index_zero() -> None:
     """The single most dangerous convention in either library.
 
@@ -200,6 +218,7 @@ def test_timesfm_drops_the_mean_at_index_zero() -> None:
     assert out.values[1] == tuple(100.0 + d for d in range(9))
 
 
+@needs_model_stack
 def test_timesfm_extends_covariates_over_the_horizon_by_persistence() -> None:
     """XReg refuses a context-length array, so the horizon is filled by holding
     the last observed value — knowable at the cut-off, so not leakage."""
@@ -215,6 +234,7 @@ def test_timesfm_extends_covariates_over_the_horizon_by_persistence() -> None:
     assert out.future_covariate_policy is FutureCovariatePolicy.PERSISTENCE
 
 
+@needs_model_stack
 def test_the_two_covariate_policies_are_distinguishable() -> None:
     """The asymmetry the wrappers could not absorb, made visible instead.
 
@@ -232,12 +252,14 @@ def test_the_two_covariate_policies_are_distinguishable() -> None:
     assert timesfm.future_covariate_policy is FutureCovariatePolicy.PERSISTENCE
 
 
+@needs_model_stack
 def test_a_horizon_beyond_the_compiled_maximum_is_refused() -> None:
     f = TimesFMForecaster(max_horizon=4, model=FakeTimesFM())
     with pytest.raises(ValueError, match="exceeds max_horizon"):
         f.forecast(series("gold"), None, [8])
 
 
+@needs_model_stack
 @pytest.mark.parametrize(
     "forecaster",
     [

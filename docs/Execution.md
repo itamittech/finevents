@@ -184,10 +184,13 @@ ADR-0056 — **accepted 2026-08-13** — turns that from an unknown into a numbe
 `*_rwcov` control rung ships beside each `*_cov` rung from P5 onward, and no covariate
 set is called informative unless it beats its control on a paired comparison.
 
-**What is green locally.** `uv run pytest` — **205 tests** (192 without the model weights,
-which is CI's view; four of them pin the overlap-aware Newey–West error). `uv run
-pre-commit run --all-files` — 10 hooks. `sam validate --lint` and `sam build`. Gate G0's
-checks pass; Gate G1's T1.4 is green; REQ-507 holds on all four numeric tracks.
+**What is green locally.** `uv run pytest` — **213 tests** (200 without the model weights;
+CI additionally skips the 10 wrapper-contract cases whose fakes speak torch/numpy, the
+stack ci.yml deliberately omits — so CI's view is 190 run, 10 skipped, 13 deselected).
+`uv run pre-commit run --all-files` — 10 hooks. `sam validate --lint` and `sam build`.
+Gate G0's checks pass locally **and on CI** (the author hook previously crashed on
+runners with no configured git identity; it now checks HEAD's author there instead).
+Gate G1's T1.4 is green; REQ-507 holds on all four numeric tracks.
 
 **What is not yet proven.** The deploy loop. Nothing has touched AWS, by decision — the
 seven tables and the versioned bucket are declared in `template.yaml` and validated, but

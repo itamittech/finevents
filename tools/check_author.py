@@ -5,6 +5,17 @@ The repository is intended to be open source and is already public. An author
 identity that reaches history is not rewritable in practice once pushed, so this
 blocks at commit time rather than reporting afterwards.
 
+Three environments, three checks:
+
+- a commit range given: every author in it (the pull-request gate);
+- no range, identity configured: the configured identity — a workstation about
+  to commit (the pre-commit hook's case);
+- no range, **no identity configured**: a CI runner re-running the hooks over a
+  checkout (ci.yml, REQ-1104). Nothing is about to be committed there, so the
+  meaningful assertion is the author of the commit being validated — HEAD.
+  This used to crash instead, which is how a green local gate turned into a
+  red Gate G0 on every push.
+
 Usage:  python tools/check_author.py [--range origin/main..HEAD]
 Exit:   0 correct identity, 1 otherwise.
 """
@@ -26,6 +37,13 @@ def _git(*args: str) -> str:
     return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout.strip()
 
 
+def _git_or_none(*args: str) -> str | None:
+    """Like `_git`, but absence is an answer rather than an error."""
+    result = subprocess.run(["git", *args], capture_output=True, text=True, check=False)
+    value = result.stdout.strip()
+    return value if result.returncode == 0 and value else None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -42,9 +60,14 @@ def main(argv: list[str] | None = None) -> int:
         wrong = sorted(authors - {EXPECTED})
         subject = f"commits in {args.rev_range}"
     else:
-        configured = _git("config", "user.email")
-        wrong = [configured] if configured != EXPECTED else []
-        subject = "git config user.email"
+        configured = _git_or_none("config", "user.email")
+        if configured is not None:
+            wrong = [configured] if configured != EXPECTED else []
+            subject = "git config user.email"
+        else:
+            head_author = _git_or_none("log", "-1", "--format=%ae")
+            wrong = [head_author] if head_author is not None and head_author != EXPECTED else []
+            subject = "HEAD author (no identity configured — CI checkout)"
 
     if wrong:
         print(f"REQ-005: {subject} is {', '.join(wrong)}; expected {EXPECTED}", file=sys.stderr)
