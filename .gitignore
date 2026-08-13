@@ -75,6 +75,7 @@ ui/data/*
 !ui/data/results.js
 !ui/data/results_usd_rub.js
 !ui/data/results_usd_inr.js
+!ui/data/results_wti.js
 !ui/data/latest.js
 !ui/data/live.js
 

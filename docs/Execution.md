@@ -15,9 +15,12 @@ CURRENT STEP:       P5 — the daily runner. DONE. `scripts/run_poc_daily.py`:
                     Seal-once and sealed-edge scoring are pinned by 8 tests.
                     First live seals taken 2026-08-13; ui/data/live.js is the
                     record and the dashboard shows it.
-NEXT STEP:          P6 — schedule the runner locally (~daily; note H.10 publishes
-                    USD/INR weekly, and CBR's next-day fix decides which date a
-                    run seals — the runner is already timing-robust)
+NEXT STEP:          The P8 series — the builder's 2026-08-13 evolution (diagram in
+                    session): P8a WTI on the board (done with this update) →
+                    P8b deterministic event feed → P8c the Strands reasoning rung
+                    (ADR-0057; OpenAI GPT-5.6 via env vars, key pending from the
+                    builder) → P8d the mini-wiki memory
+                    (docs/design/poc-mini-wiki.md). P6 (scheduling) follows P8.
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
@@ -49,7 +52,11 @@ against history is one of three explicitly permitted uses of history (T6.12).
 | **P3** | **Chronos-2 and TimesFM, univariate + covariate-informed** | ✅ **done** — install measured, both wrappers behind one `Forecaster`, all four tracks byte-identical on repeat (REQ-507) |
 | **P4** | **Quantile → bucket (REQ-508), RPS vs climatology** | ✅ **done, then re-scored after a same-day review pass** — seven rungs on 143 unseen days. **The result is a null; see below** |
 | **P5** | **The daily runner** | ✅ **done** — `scripts/run_poc_daily.py`: fetch (halts on failure) → seal every rung from the latest print → mature what closed. Gold seals 9 rungs including the **`chronos_rwcov` / `timesfm_rwcov` controls ADR-0056 requires** (one seeded random walk, seed = as-of date, recorded per record); FX pairs seal univariate. **Seal-once** (a re-run is byte-identical — verified by hash) and **sealed-edge scoring** (a source revision can never move a taken score) are pinned by `tests/poc/`. `ui/data/live.js` is the record; the dashboard's "live track record" section reads it. No wall clock anywhere: as-of, seed and maturation all derive from the data |
-| P6 | Schedule it locally | next — H.10's weekly USD/INR lag and CBR's next-day fix are handled by construction |
+| P6 | Schedule it locally | follows P8 — H.10's weekly USD/INR lag and CBR's next-day fix are handled by construction |
+| **P8a** | **WTI ("petrol") joins the board** | ✅ done — 4th instrument, univariate ladder + daily seals. Series starts 2020-07 on principle: WTI's −$37 print (2020-04-20) has no log-return. Loading unified in `gold_poc_data.UNIVARIATE_SERIES` |
+| P8b | Deterministic event feed (GDELT, code-only filter — increment 5 pulled forward) | next |
+| P8c | The reasoning rung — Strands (ADR-0057), OpenAI GPT-5.6 from env, `llm_raw` + `llm_mem` sealed like every rung | blocked on the builder's API key |
+| P8d | The mini-wiki memory — [design agreed](design/poc-mini-wiki.md): code computes numbers, model writes cited lessons, both provenance-tagged | after P8c |
 | **P7** | **The dashboard** | ✅ **done — resequenced ahead of P5/P6** (builder's decision, 2026-08-13) so the page fixes the data contract the runner writes to. One self-contained `ui/index.html` — no CDN, opens from disk, ships to S3 unchanged (ADR-0020). Reads `ui/data/results.js` (per-day scores, distributions, NW intervals, verdicts) + `ui/data/latest.js` (sealed unscored forecast). Same-day friendliness pass at the builder's direction: the page now opens with a **fan chart** — the gold price with each method's 10–90% decile ribbon, escape days ringed, promised-vs-delivered coverage, and horizon/method/window/flat-zone filters — followed by a day-by-day predicted-vs-actual view with hit-and-direction scoreboard vs climatology and the moving-day framing of what the agent is being built to win. Committed emitters write derived work only (REQ-1106/1107); the fan chart's price layers (`ui/data/prices*.js`, source-derived values) are generated locally and deliberately never committed while the CBR terms question stays open. Second builder pass the same day: instrument identity cards (the series is XAU/**RUB** per gram — said plainly), an on-chart legend and plain-language how-to-read, friendly method names everywhere, and **USD/RUB + USD/INR forecast in their own right** (univariate rungs only — covariate rungs would need their own design plus ADR-0056 controls) behind an instrument switcher. The FX result is itself informative: Chronos-2 ties the base rates on USD/RUB and both models are detectably *worse* on USD/INR |
 
 ### The first result — 2026-08-13, after four methodology corrections

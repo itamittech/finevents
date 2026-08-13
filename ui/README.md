@@ -4,11 +4,12 @@ One self-contained page: `index.html`. No build step, no dependencies, no server
 required — double-click it, or serve the folder. It ships unchanged to
 S3 + CloudFront when the time comes (ADR-0020).
 
-Three instruments, switchable at the top: **gold (₽/gram, the full seven
+Four instruments, switchable at the top: **gold (₽/gram, the full seven
 rungs)** and, at the builder's request for a side-by-side finance view,
-**USD/RUB and USD/INR — univariate rungs only** (their covariate rungs would
-need their own design plus ADR-0056 controls, and rung 2's regime is a gold
-hypothesis). Every method appears under a friendly name — "Chronos-2",
+**USD/RUB, USD/INR and WTI crude — univariate rungs only** (their covariate
+rungs would need their own design plus ADR-0056 controls, and rung 2's regime
+is a gold hypothesis; WTI's series starts 2020-07 because its −$37 print has
+no log-return). Every method appears under a friendly name — "Chronos-2",
 "Base rates (climatology)" — with the internal rung key on hover.
 
 **Built before the daily runner on purpose** (resequenced 2026-08-13, builder's

@@ -148,6 +148,8 @@
 <script src="./data/prices_usd_rub.js"></script>
 <script src="./data/results_usd_inr.js"></script>
 <script src="./data/prices_usd_inr.js"></script>
+<script src="./data/results_wti.js"></script>
+<script src="./data/prices_wti.js"></script>
 <script src="./data/live.js"></script>
 <script>
 "use strict";
@@ -187,6 +189,17 @@ const INSTRUMENTS = {
     blurb: "How many Indian rupees one dollar buys — the US Federal Reserve's H.10 reference " +
       "rate. Until now it only fed gold's forecast as a covariate; here it is forecast in its " +
       "own right (univariate rungs only).",
+  },
+  wti: {
+    label: "Oil (WTI)",
+    title: "WTI crude oil, in dollars per barrel",
+    unit: "$ per barrel",
+    short: "$/bbl",
+    decimals: 2,
+    blurb: "West Texas Intermediate crude — the US oil benchmark (EIA, via FRED). The series " +
+      "starts July 2020 on principle: WTI printed −$37 in April 2020, and a negative price " +
+      "has no log-return for the σ machinery to work with. Until now it fed gold's forecast " +
+      "as a covariate; here it is forecast in its own right (univariate rungs only).",
   },
 };
 

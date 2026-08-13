@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from gold_poc_data import load_panel, read_simple  # noqa: E402
+from gold_poc_data import UNIVARIATE_SERIES, load_panel, load_univariate  # noqa: E402
 from poc_live_track import mature, parse, random_walk, seal, seed_for, serialize  # noqa: E402
 
 from finevents.features.conditional import (  # noqa: E402
@@ -56,10 +56,6 @@ ROOT = Path(__file__).resolve().parent.parent
 LIVE = ROOT / "ui" / "data" / "live.js"
 HORIZONS = (1, 5)
 CONTEXT = 512
-FX = {
-    "usd_rub": ("fx_usdrub_cbr.csv", "usd_rub"),
-    "usd_inr": ("fred_dexinus.csv", "dexinus"),
-}
 
 
 def refetch() -> None:
@@ -165,9 +161,9 @@ def main(argv: list[str] | None = None) -> int:
     if newly:
         summary.append(f"gold      matured {newly} horizon(s)")
 
-    # ---- the FX pairs: univariate rungs only ---------------------------------
-    for instrument, (filename, column) in FX.items():
-        series = read_simple(filename, column, instrument)
+    # ---- the univariate instruments (FX pairs, WTI) --------------------------
+    for instrument in UNIVARIATE_SERIES:
+        series = load_univariate(instrument)
         dates_fx, closes_fx = series.dates, series.values
         as_of_fx = dates_fx[-1].isoformat()
 

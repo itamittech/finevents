@@ -21,6 +21,7 @@ not shifted.
 
 from __future__ import annotations
 
+import bisect
 import csv
 import sys
 from datetime import date, timedelta
@@ -34,6 +35,28 @@ DATA = Path(__file__).resolve().parent.parent / "data"
 
 #: A FRED value becomes knowable the day after its value date (US close, MSK).
 FRED_KNOWLEDGE_LAG_DAYS = 1
+
+#: The univariate forecast targets beyond gold: (file, column, series start).
+#: One registry, because evaluate and the daily runner both load these and a
+#: private copy in each is how a fix misses one of them (the covariate-join
+#: lesson). WTI starts 2020-07-01 on principle, not convenience: it printed
+#: **negative** on 2020-04-20 (−$36.98), and a non-positive price has no
+#: log-return — the σ/bucket machinery is undefined across that print.
+UNIVARIATE_SERIES: dict[str, tuple[str, str, date | None]] = {
+    "usd_rub": ("fx_usdrub_cbr.csv", "usd_rub", None),
+    "usd_inr": ("fred_dexinus.csv", "dexinus", None),
+    "wti": ("fred_dcoilwtico.csv", "dcoilwtico", date(2020, 7, 1)),
+}
+
+
+def load_univariate(instrument: str) -> Series:
+    """One univariate target series, start-trimmed where the registry says so."""
+    filename, column, start = UNIVARIATE_SERIES[instrument]
+    series = read_simple(filename, column, instrument)
+    if start is None:
+        return series
+    begin = bisect.bisect_left(series.dates, start)
+    return Series(instrument, series.dates[begin:], series.values[begin:])
 
 
 def read_metal(metal: str) -> Series:

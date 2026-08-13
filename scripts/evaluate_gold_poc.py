@@ -42,7 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from gold_poc_data import load_panel, read_simple  # noqa: E402
+from gold_poc_data import load_panel, load_univariate  # noqa: E402
 
 from finevents.features.conditional import (  # noqa: E402
     DayFeatures,
@@ -71,23 +71,24 @@ CLEAN_FROM = date(2026, 1, 1)
 CONTEXT = 512
 
 #: The instruments this harness can score. Gold gets the full seven rungs.
-#: The FX pairs are scored **univariate only**: their covariate rungs would
+#: The others are scored **univariate only**: their covariate rungs would
 #: need their own covariate design plus ADR-0056 controls, and rung 2's
 #: real-yield × VIX regime is a gold story — extending either silently would
 #: manufacture rungs nobody designed. `decimals` sizes the price rounding.
+#: Loading (files, columns, start trims) lives in gold_poc_data.UNIVARIATE_SERIES.
 INSTRUMENT_CONFIGS = {
     "gold": {"label": "gold, RUB/gram, CBR daily fix", "decimals": 2},
     "usd_rub": {
         "label": "USD/RUB, CBR official rate (the same fix that prices the gold series)",
         "decimals": 4,
-        "file": "fx_usdrub_cbr.csv",
-        "column": "usd_rub",
     },
     "usd_inr": {
         "label": "USD/INR, FRED DEXINUS (Federal Reserve H.10 reference rate)",
         "decimals": 4,
-        "file": "fred_dexinus.csv",
-        "column": "dexinus",
+    },
+    "wti": {
+        "label": "WTI crude, USD/barrel, FRED DCOILWTICO (EIA) — series from 2020-07",
+        "decimals": 2,
     },
 }
 
@@ -325,7 +326,7 @@ def main(argv: list[str] | None = None) -> int:
         matrix = panel.covariate_matrix()
         target_name = panel.target.name
     else:
-        series = read_simple(config["file"], config["column"], args.instrument)
+        series = load_univariate(args.instrument)
         dates, closes = series.dates, series.values
         matrix = None
         target_name = args.instrument
