@@ -73,6 +73,8 @@ data/
 !ui/data/
 ui/data/*
 !ui/data/results.js
+!ui/data/results_usd_rub.js
+!ui/data/results_usd_inr.js
 !ui/data/latest.js
 
 # Python bytecode from the analysis scripts

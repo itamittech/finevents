@@ -42,7 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from gold_poc_data import load_panel  # noqa: E402
+from gold_poc_data import load_panel, read_simple  # noqa: E402
 
 from finevents.features.conditional import (  # noqa: E402
     DayFeatures,
@@ -70,6 +70,27 @@ HORIZONS = (1, 5)
 CLEAN_FROM = date(2026, 1, 1)
 CONTEXT = 512
 
+#: The instruments this harness can score. Gold gets the full seven rungs.
+#: The FX pairs are scored **univariate only**: their covariate rungs would
+#: need their own covariate design plus ADR-0056 controls, and rung 2's
+#: real-yield × VIX regime is a gold story — extending either silently would
+#: manufacture rungs nobody designed. `decimals` sizes the price rounding.
+INSTRUMENT_CONFIGS = {
+    "gold": {"label": "gold, RUB/gram, CBR daily fix", "decimals": 2},
+    "usd_rub": {
+        "label": "USD/RUB, CBR official rate (the same fix that prices the gold series)",
+        "decimals": 4,
+        "file": "fx_usdrub_cbr.csv",
+        "column": "usd_rub",
+    },
+    "usd_inr": {
+        "label": "USD/INR, FRED DEXINUS (Federal Reserve H.10 reference rate)",
+        "decimals": 4,
+        "file": "fred_dexinus.csv",
+        "column": "dexinus",
+    },
+}
+
 #: Display order for the dashboard — baselines, then models, then the floor.
 RUNG_ORDER = (
     "climatology",
@@ -82,9 +103,29 @@ RUNG_ORDER = (
 )
 
 
+def registry_text(instrument: str, kind: str, payload: dict) -> str:
+    """One emitted file = one merge into `window.POC_REGISTRY[instrument]`.
+
+    Order-independent on the page: every file re-creates the registry if it is
+    first, then merges its own slice, so any subset of files in any order works.
+    Gold keeps its original bare globals (`POC_DATA` / `POC_PRICES`) so files
+    already committed keep loading; the page reads registry first, then falls
+    back.
+    """
+    key = json.dumps(instrument)
+    return (
+        "window.POC_REGISTRY = window.POC_REGISTRY || {};\n"
+        + f"window.POC_REGISTRY[{key}] = Object.assign(window.POC_REGISTRY[{key}] || {{}}, "
+        + json.dumps({kind: payload}, indent=1)
+        + ");\n"
+    )
+
+
 def emit_ui_data(
     path: Path,
     *,
+    instrument: str,
+    target_label: str,
     dates: tuple[date, ...],
     cut_offs: list[int],
     scores: dict[tuple[str, int], list[float]],
@@ -159,7 +200,8 @@ def emit_ui_data(
 
     payload = {
         "generated": dates[-1].isoformat(),
-        "target": "gold, RUB/gram, CBR daily fix",
+        "instrument": instrument,
+        "target": target_label,
         "window": {
             "from": dates[cut_offs[0]].isoformat(),
             "to": dates[cut_offs[-1]].isoformat(),
@@ -185,13 +227,20 @@ def emit_ui_data(
     }
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("window.POC_DATA = " + json.dumps(payload, indent=1) + ";\n", encoding="utf-8")
+    if instrument == "gold":
+        text = "window.POC_DATA = " + json.dumps(payload, indent=1) + ";\n"
+    else:
+        text = registry_text(instrument, "results", payload)
+    path.write_text(text, encoding="utf-8")
     print(f"dashboard data -> {path}")
 
 
 def emit_prices(
     path: Path,
     *,
+    instrument: str,
+    currency_label: str,
+    decimals: int,
     dates: tuple[date, ...],
     cut_offs: list[int],
     closes: tuple[float, ...],
@@ -210,12 +259,12 @@ def emit_prices(
     """
     first = cut_offs[0]
     payload = {
-        "currency": "RUB per gram (CBR daily fix)",
+        "currency": currency_label,
         "local_only": True,
         "levels": list(QUANTILE_LEVELS),
         "series": {
             "dates": [d.isoformat() for d in dates[first:]],
-            "close": [round(c, 2) for c in closes[first:]],
+            "close": [round(c, decimals) for c in closes[first:]],
         },
         "horizons": {
             str(h): {
@@ -228,7 +277,10 @@ def emit_prices(
         },
     }
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = "window.POC_PRICES = " + json.dumps(payload, indent=1) + ";\n"
+    if instrument == "gold":
+        text = "window.POC_PRICES = " + json.dumps(payload, indent=1) + ";\n"
+    else:
+        text = registry_text(instrument, "prices", payload)
     path.write_text(text, encoding="utf-8")
     print(f"price layer    -> {path}   (local only — never committed; see docstring)")
 
@@ -256,11 +308,27 @@ def main(argv: list[str] | None = None) -> int:
         help="also persist the LOCAL-ONLY price layer (ui/data/prices.js — gitignored,"
         " contains CBR-derived values; see emit_prices)",
     )
+    parser.add_argument(
+        "--instrument",
+        choices=sorted(INSTRUMENT_CONFIGS),
+        default="gold",
+        help="what to forecast. Gold runs all seven rungs; the FX pairs run"
+        " univariate only (see INSTRUMENT_CONFIGS for why)",
+    )
     args = parser.parse_args(argv)
+    config = INSTRUMENT_CONFIGS[args.instrument]
+    decimals = config["decimals"]
 
-    panel = load_panel()
-    dates, closes = panel.dates, panel.target.values
-    matrix = panel.covariate_matrix()
+    if args.instrument == "gold":
+        panel = load_panel()
+        dates, closes = panel.dates, panel.target.values
+        matrix = panel.covariate_matrix()
+        target_name = panel.target.name
+    else:
+        series = read_simple(config["file"], config["column"], args.instrument)
+        dates, closes = series.dates, series.values
+        matrix = None
+        target_name = args.instrument
 
     last = len(closes) - max(HORIZONS) - 1
     cut_offs = [i for i in range(len(closes)) if i <= last and dates[i] >= args.start]
@@ -270,14 +338,21 @@ def main(argv: list[str] | None = None) -> int:
         print("no cut-offs in range", file=sys.stderr)
         return 1
 
-    print(f"panel      {len(closes)} sessions, {len(panel.covariates)} covariates")
-    print("fred join  knowledge day (value date +1) — a US close postdates the CBR fix")
+    print(f"instrument {args.instrument} — {config['label']}")
+    if matrix is not None:
+        print(f"panel      {len(closes)} sessions, {len(panel.covariates)} covariates")
+        print("fred join  knowledge day (value date +1) — a US close postdates the CBR fix")
+    else:
+        print(f"series     {len(closes)} sessions, univariate (no covariate rungs, no rung 2)")
     print(f"cut-offs   {len(cut_offs)}   {dates[cut_offs[0]]} -> {dates[cut_offs[-1]]}")
     print(f"context    {args.context} sessions\n")
 
     chronos = Chronos2Forecaster(context_length=args.context)
     timesfm = TimesFMForecaster(context_length=args.context)
-    forecasters = [(chronos, False), (chronos, True), (timesfm, False), (timesfm, True)]
+    if matrix is not None:
+        forecasters = [(chronos, False), (chronos, True), (timesfm, False), (timesfm, True)]
+    else:
+        forecasters = [(chronos, False), (timesfm, False)]
 
     # Computed once over the full series and sliced per cut-off. Each entry
     # depends only on data up to its own index, so the prefix at cut-off i is
@@ -286,11 +361,20 @@ def main(argv: list[str] | None = None) -> int:
     history_buckets = {h: historical_buckets(closes, h) for h in HORIZONS}
 
     # Rung 2's conditioning. Point-in-time, so this is a stable prefix too.
-    cells = regime_history(matrix["real_10y"], matrix["vix"])
-    features = {
-        h: [DayFeatures(end, dates[end], bucket, cells[end]) for end, bucket in history_buckets[h]]
-        for h in HORIZONS
-    }
+    # Gold only: the real-yield × VIX regime is a gold hypothesis (ADR-0017),
+    # not a generic one — silently reusing it for FX would manufacture a rung
+    # nobody designed.
+    features: dict[int, list[DayFeatures]] = {}
+    cells: list = []
+    if matrix is not None:
+        cells = regime_history(matrix["real_10y"], matrix["vix"])
+        features = {
+            h: [
+                DayFeatures(end, dates[end], bucket, cells[end])
+                for end, bucket in history_buckets[h]
+            ]
+            for h in HORIZONS
+        }
     levels_used: dict[tuple[int, int], int] = {}
 
     scores: dict[tuple[str, int], list[float]] = {}
@@ -302,10 +386,12 @@ def main(argv: list[str] | None = None) -> int:
 
     for n, i in enumerate(cut_offs, 1):
         history = closes[: i + 1]
-        target_slice = Series(panel.target.name, dates[: i + 1], history)
-        covariate_slices = {
-            name: Series(name, dates[: i + 1], values[: i + 1]) for name, values in matrix.items()
-        }
+        target_slice = Series(target_name, dates[: i + 1], history)
+        covariate_slices = (
+            {name: Series(name, dates[: i + 1], values[: i + 1]) for name, values in matrix.items()}
+            if matrix is not None
+            else None
+        )
 
         # One call per configuration: a forecast carries every horizon at once,
         # so calling inside the horizon loop was doing identical work twice
@@ -327,8 +413,8 @@ def main(argv: list[str] | None = None) -> int:
             outcomes[horizon].append(realised)
             flat_zones[horizon].append(
                 (
-                    round(history[-1] * math.exp(edges.edges[1]), 2),
-                    round(history[-1] * math.exp(edges.edges[2]), 2),
+                    round(history[-1] * math.exp(edges.edges[1]), decimals),
+                    round(history[-1] * math.exp(edges.edges[2]), decimals),
                 )
             )
 
@@ -338,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
                     [b for end, b in history_buckets[horizon] if end <= i]
                 ),
             }
-            past = [f for f in features[horizon] if f.index <= i]
+            past = [f for f in features[horizon] if f.index <= i] if features else []
             if past:
                 rung2 = conditional_climatology(past, cells[i], dates[i], n_min=args.n_min)
                 distributions["cond_climatology"] = rung2.probabilities
@@ -348,7 +434,7 @@ def main(argv: list[str] | None = None) -> int:
             for out in model_outputs:
                 distributions[out.track] = to_bucket_probabilities(out, horizon, history[-1], edges)
                 quantile_rows[horizon].setdefault(out.track, []).append(
-                    [round(v, 2) for v in out.values[horizon]]
+                    [round(v, decimals) for v in out.values[horizon]]
                 )
 
             probabilities_by_day[horizon].append(
@@ -404,15 +490,18 @@ def main(argv: list[str] | None = None) -> int:
         counts = "".join(f"{len(seen[b]):>14}" for b in buckets_seen)
         print(f"  {'n days':<14}{counts}\n")
 
-    print("rung 2 backoff levels used  (Design §4.10; level 0 means it collapsed to rung 1)")
-    for horizon in HORIZONS:
-        used = {lvl: n for (h, lvl), n in sorted(levels_used.items()) if h == horizon}
-        total = sum(used.values()) or 1
-        detail = "  ".join(f"level {lvl}: {n} ({n / total:.0%})" for lvl, n in sorted(used.items()))
-        print(f"  t+{horizon}   {detail}")
-    print(f"  N_min = {args.n_min} — PROVISIONAL. REQ-408 calibrates it against the seed join,")
-    print("  which does not exist yet, so this number is a placeholder and not a decision.")
-    print()
+    if levels_used:
+        print("rung 2 backoff levels used  (Design §4.10; level 0 means it collapsed to rung 1)")
+        for horizon in HORIZONS:
+            used = {lvl: n for (h, lvl), n in sorted(levels_used.items()) if h == horizon}
+            total = sum(used.values()) or 1
+            detail = "  ".join(
+                f"level {lvl}: {n} ({n / total:.0%})" for lvl, n in sorted(used.items())
+            )
+            print(f"  t+{horizon}   {detail}")
+        print(f"  N_min = {args.n_min} — PROVISIONAL. REQ-408 calibrates it against the seed")
+        print("  join, which does not exist yet, so this is a placeholder and not a decision.")
+        print()
 
     print("The paired column is the sharper test: every rung sees identical days, so")
     print("the day-to-day outcome noise cancels instead of swamping the difference.")
@@ -423,6 +512,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         emit_ui_data(
             args.json,
+            instrument=args.instrument,
+            target_label=config["label"],
             dates=dates,
             cut_offs=cut_offs,
             scores=scores,
@@ -435,6 +526,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.prices:
         emit_prices(
             args.prices,
+            instrument=args.instrument,
+            currency_label=config["label"],
+            decimals=decimals,
             dates=dates,
             cut_offs=cut_offs,
             closes=closes,

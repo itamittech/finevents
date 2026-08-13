@@ -1,8 +1,15 @@
-# The gold POC dashboard
+# The POC dashboard
 
 One self-contained page: `index.html`. No build step, no dependencies, no server
 required — double-click it, or serve the folder. It ships unchanged to
 S3 + CloudFront when the time comes (ADR-0020).
+
+Three instruments, switchable at the top: **gold (₽/gram, the full seven
+rungs)** and, at the builder's request for a side-by-side finance view,
+**USD/RUB and USD/INR — univariate rungs only** (their covariate rungs would
+need their own design plus ADR-0056 controls, and rung 2's regime is a gold
+hypothesis). Every method appears under a friendly name — "Chronos-2",
+"Base rates (climatology)" — with the internal rung key on hover.
 
 **Built before the daily runner on purpose** (resequenced 2026-08-13, builder's
 decision): the page fixes the data contract, so P5's runner writes files the
@@ -12,20 +19,24 @@ dashboard already reads instead of the reverse.
 
 ```bash
 uv run python scripts/evaluate_gold_poc.py --json ui/data/results.js --prices ui/data/prices.js
+uv run python scripts/evaluate_gold_poc.py --instrument usd_rub --json ui/data/results_usd_rub.js --prices ui/data/prices_usd_rub.js
+uv run python scripts/evaluate_gold_poc.py --instrument usd_inr --json ui/data/results_usd_inr.js --prices ui/data/prices_usd_inr.js
 uv run python scripts/forecast_gold_today.py
 ```
 
-The first re-scores the full clean window (~5 min, model weights needed) and
-persists it; the second seals an unscored latest forecast (~2 min). Reload the
-page after either.
+Gold re-scores in ~5 min (model weights needed), each FX pair in ~3; the last
+command seals gold's unscored latest forecast. Reload the page after any of
+them. Per-instrument files merge into `window.POC_REGISTRY`, so any subset in
+any order works and missing instruments simply do not appear in the switcher.
 
 ## What is in `ui/data/`
 
 | File | Written by | Committed? | Contents |
 |---|---|---|---|
-| `results.js` | `evaluate_gold_poc.py --json` | yes | Ladder means, paired Newey–West intervals, verdicts, per-day RPS, outcomes **and each rung's full five-bucket distribution per day** (the day-by-day view), by-outcome splits, rung-2 backoff levels |
-| `latest.js` | `forecast_gold_today.py` | yes | Every rung's bucket probabilities at the last session, σ and edges in percent — sealed, unscored |
-| `prices.js` | `evaluate_gold_poc.py --prices` | **no — local only** | The fan chart's price layer: the close series, each model's price-space deciles per day, the daily flat zone. Carries CBR-derived values, and the CBR terms question in DATA_SOURCES.md is open — `.gitignore` admits the other two by name and deliberately not this one |
+| `results.js` | `evaluate_gold_poc.py --json` | yes | Gold's ladder: means, paired Newey–West intervals, verdicts, per-day RPS, outcomes **and each rung's full five-bucket distribution per day** (the day-by-day view), by-outcome splits, rung-2 backoff levels |
+| `results_usd_rub.js`, `results_usd_inr.js` | `--instrument … --json` | yes | The same record for the FX pairs, univariate rungs only, merged into `POC_REGISTRY` |
+| `latest.js` | `forecast_gold_today.py` | yes | Every gold rung's bucket probabilities at the last session, σ and edges in percent — sealed, unscored |
+| `prices*.js` | `--prices` | **no — local only** | The fan chart's price layer per instrument: the close series, each model's price-space deciles per day, the daily flat zone. These carry source-derived price values; the CBR terms question in DATA_SOURCES.md is open, so `.gitignore` admits the results files by name and deliberately none of these |
 
 The page degrades gracefully when a file is missing or stale: the fan chart
 shows how to generate `prices.js`, and an older `results.js` without per-day
