@@ -48,7 +48,7 @@ Increment 0 is built and locally green; it lands when the first `sam deploy` run
 | Path | What it is |
 |---|---|
 | `docs/adr/README.md` | Index of all 54 ADRs, standing risks, open decisions. **Start here.** |
-| `docs/Requirement.md` | **188** numbered REQ-ids. **No code for a feature without one.** |
+| `docs/Requirement.md` | **191** numbered REQ-ids. **No code for a feature without one.** |
 | `docs/Design.md` | Module layout, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | Build order, dependencies, and the hard leakage gate |
 | `docs/SystemDesign.md` | End-to-end architecture; §2.1 is the agency boundary |
@@ -70,7 +70,7 @@ ADRs are **immutable once accepted**. To change a decision, write a superseding 
 
 A daily pipeline that scrapes financial instruments and world events, then learns the correlation between events and price movements so its forecasts improve over time without being re-taught.
 
-**Terminology note.** `ProjectSummary.txt` describes this as an *agentic system*. Per [ADR-0041](docs/adr/0041-no-agents-deterministic-pipeline.md) it contains **no agents** — nothing has tools or runs its own loop. Every model call is single-shot against a prompt assembled by code. The three-tier boundary is set out in [SystemDesign §2.1](docs/SystemDesign.md). Do not reintroduce the agentic framing in new documents unless that ADR is superseded.
+**Terminology note.** `ProjectSummary.txt` describes this as an *agentic system*. Per [ADR-0041](docs/adr/0041-no-agents-deterministic-pipeline.md) the *pipeline* contains **no agents** — ingest, features, scoring and the numeric lane are deterministic code, and their model calls are single-shot against prompts assembled by code. **[ADR-0057](docs/adr/0057-strands-for-the-reasoning-layer.md) (2026-08-13) supersedes that in part:** the POC's reasoning layer (`llm_raw` / `llm_mem` rungs and their curator) is an agent built on Strands — bounded turns, every prompt and response recorded, output sealed under the same contract as every rung. The three-tier boundary is set out in [SystemDesign §2.1](docs/SystemDesign.md). Do not widen agency beyond that layer without another superseding ADR.
 
 Tracked data — **11 instruments** (REQ-201), indices not individual equities:
 - Indices: NIFTY 50, SENSEX, S&P 500, Nasdaq, Dow
@@ -110,7 +110,7 @@ Constraints that shape implementation choices:
 | Concern | Choice |
 |---|---|
 | Language | Python |
-| Agent framework | **None.** Strands SDK was removed by ADR-0041 — there are no agents to build. Do not re-add it. |
+| Agent framework | **Strands, for the reasoning layer only** — [ADR-0057](docs/adr/0057-strands-for-the-reasoning-layer.md) supersedes ADR-0041 in part (builder's decision, 2026-08-13). Provider and model come from the environment (OpenAI GPT-5.6 initially); everything outside that layer remains the ADR-0041 deterministic pipeline |
 | Frontend | Static SPA on S3 + CloudFront (ADR-0020 superseded Streamlit) |
 | Scraping | Firecrawl |
 | Production | AWS serverless |
@@ -124,7 +124,7 @@ Work flows from documents to code. **The chain is `Requirement.md` (REQ-xxx) →
 
 | Document | State |
 |---|---|
-| `docs/Requirement.md` | ✅ **188** numbered REQ-ids, each with a verification code. 20 are reachable from no task — see Tasks.md gap list |
+| `docs/Requirement.md` | ✅ **191** numbered REQ-ids, each with a verification code. 23 are reachable from no task — see Tasks.md gap list; the three REQ-13xx ids are Execution.md P8 items |
 | `docs/Design.md` | ✅ Modules, interfaces, schemas, algorithms |
 | `docs/Tasks.md` | ✅ 13 phases in dependency order |
 | `docs/SystemDesign.md` | ✅ |

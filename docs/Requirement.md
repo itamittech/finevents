@@ -344,6 +344,19 @@ Requirement.md (REQ-xxx) → Design.md / SystemDesign.md → ADR → Tasks.md �
 
 ---
 
+## REQ-13xx — POC reasoning layer (the P8 series)
+
+**POC scope, ahead of the production agent (REQ-6xx).** The builder's 2026-08-13
+evolution: a reasoning model reads the numeric rungs' record and recent events and
+predicts beside them, with accreting memory. [ADR-0057](adr/0057-strands-for-the-reasoning-layer.md)
+governs the framework; [`docs/design/poc-mini-wiki.md`](design/poc-mini-wiki.md) the memory.
+
+| ID | Requirement | Traces to | Verify |
+|---|---|---|---|
+| REQ-1301 | The reasoning rungs run on the Strands framework with **provider and model taken from the environment, never code**, and emit the same five-bucket contract as every rung — sealed before outcomes exist and matured against sealed edges, exactly as REQ-1303's record requires. A run that cannot produce the contract seals nothing that day, visibly. | ADR-0057 | `I` |
+| REQ-1302 | Every reasoning run's prompt, tool invocations and response are persisted locally per sealed prediction, with the record's hash in the seal. Committed artefacts carry event references as URLs and timestamps only — never fetched article text. | ADR-0057 | `I` |
+| REQ-1303 | Memory is the mini-wiki: evidence rows and statistics **computed by code** (seedable from Lane-A output, provenance-tagged `seeded`/`observed`), lessons **written only by the curator run** — capped, falsifiable, citing evidence dates. `llm_raw` (memory withheld) and `llm_mem` (memory included) seal daily so memory's value is a paired measurement, not a belief. | ADR-0057, ADR-0038 | `I` |
+
 ## Requirements deliberately excluded from v1
 
 Recorded so their absence is a decision rather than an oversight.
@@ -354,7 +367,7 @@ Recorded so their absence is a decision rather than an oversight.
 | Ensembling the tracks | Disagreement between them is signal; averaging destroys it | 0032 |
 | Multivariate Chronos | Deliberate handicap so a loss is attributable to event reasoning | 0030 |
 | Agent replay / backtest | Contaminated and unnecessary; forward-only is cleaner and free | 0037 |
-| Any agent, tool use, or agent loop | Examined and declined; replaced by link pre-loading and the sweep | 0041 |
+| Any agent, tool use, or agent loop | Examined and declined for the *pipeline*; replaced by link pre-loading and the sweep. **Partially lifted 2026-08-13:** the POC reasoning layer is a bounded Strands agent (REQ-1301–1303) | 0041, 0057 |
 | Managed knowledge base or vector store | Cannot be queried as-of a past date | 0025 |
 | AgentCore Memory, Gateway, Identity | Adopted piecewise; these three do not fit | 0028 |
 | Runtime model escalation by severity | Makes behaviour non-reproducible across runs | 0027 |

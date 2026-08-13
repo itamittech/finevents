@@ -1,6 +1,8 @@
 # ADR-0041: The agency boundary — a deterministic pipeline, no agents
 
-- **Status:** Accepted
+- **Status:** Accepted; **superseded in part by [ADR-0057](0057-strands-for-the-reasoning-layer.md)**
+  (2026-08-13) — the POC reasoning layer may be an agent built on Strands. The pipeline
+  decisions here (no scraper agents, deterministic curation and sweep) stand unamended.
 - **Date:** 2026-08-09
 - **Records:** a boundary that had emerged from ADRs 0004, 0021, 0025, 0029 and 0034 without ever being decided
 - **Amends:** [ADR-0028](0028-agentcore-runtime-and-observability.md) (rationale, not choice); removes Strands SDK from the tech stack
