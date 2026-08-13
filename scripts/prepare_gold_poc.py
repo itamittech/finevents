@@ -84,6 +84,7 @@ def load() -> tuple[Series, list[Series]]:
         read_simple("fred_dtwexbgs.csv", "dtwexbgs", "dollar_index"),
         read_simple("fred_dcoilwtico.csv", "dcoilwtico", "wti"),
         read_simple("fred_vixcls.csv", "vixcls", "vix"),
+        read_simple("fred_dexinus.csv", "dexinus", "usd_inr"),
     ]
     return gold, covariates
 

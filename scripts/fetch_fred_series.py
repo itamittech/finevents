@@ -64,6 +64,11 @@ RESTRICTIONS: dict[str, tuple[bool, str]] = {
     "DTWEXBGS": (False, "Board of Governors of the Federal Reserve System (US)"),
     "DCOILWTICO": (False, "U.S. Energy Information Administration"),
     "VIXCLS": (True, "Chicago Board Options Exchange"),
+    # INR per USD. Checked 2026-08-13: no copyright banner, no restriction tag.
+    # Relevant to the MCX gold INR instrument (REQ-202) rather than to the CBR
+    # rouble series — for a RUB-denominated target, USD/RUB is the FX leg that
+    # actually sits inside the price.
+    "DEXINUS": (False, "Board of Governors of the Federal Reserve System (US)"),
 }
 
 CITATIONS = {

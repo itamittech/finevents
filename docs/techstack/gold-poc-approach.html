@@ -1,0 +1,415 @@
+<title>The gold POC — what the models are, and what we're doing with them</title>
+
+<style>
+  :root {
+    --paper:      #F2F4F7;
+    --card:       #FFFFFF;
+    --ink:        #141A24;
+    --ink-soft:   #4A5568;
+    --ink-faint:  #8592A6;
+    --rule:       #D5DBE3;
+    --known:      #0B6E77;
+    --known-wash: #0B6E7714;
+    --hidden:     #9C5B06;
+    --hidden-wash:#9C5B060F;
+    --model:      #5B48CC;
+    --model-wash: #5B48CC14;
+
+    --measure: 68ch;
+    --sans: ui-sans-serif, "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --mono: ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0D1219; --card: #151C26; --ink: #E5EBF3; --ink-soft: #A3B0C2;
+      --ink-faint: #6B7A8D; --rule: #28323F;
+      --known: #4FC5CE; --known-wash: #4FC5CE1A;
+      --hidden: #E0A548; --hidden-wash: #E0A54814;
+      --model: #A093FF; --model-wash: #A093FF1A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0D1219; --card: #151C26; --ink: #E5EBF3; --ink-soft: #A3B0C2;
+    --ink-faint: #6B7A8D; --rule: #28323F;
+    --known: #4FC5CE; --known-wash: #4FC5CE1A;
+    --hidden: #E0A548; --hidden-wash: #E0A54814;
+    --model: #A093FF; --model-wash: #A093FF1A;
+  }
+  :root[data-theme="light"] {
+    --paper: #F2F4F7; --card: #FFFFFF; --ink: #141A24; --ink-soft: #4A5568;
+    --ink-faint: #8592A6; --rule: #D5DBE3;
+    --known: #0B6E77; --known-wash: #0B6E7714;
+    --hidden: #9C5B06; --hidden-wash: #9C5B060F;
+    --model: #5B48CC; --model-wash: #5B48CC14;
+  }
+
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--serif); font-size: 17px; line-height: 1.65;
+    margin: 0; padding: 0 20px 96px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--measure); margin: 0 auto; }
+  .bleed { max-width: 1000px; margin-inline: auto; }
+
+  header {
+    max-width: 1000px; margin: 0 auto; padding: 56px 0 28px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 700;
+    font-size: clamp(30px, 5vw, 46px); letter-spacing: -0.028em;
+    line-height: 1.05; text-wrap: balance; margin: 0 0 16px;
+  }
+  .standfirst { font-size: 19px; color: var(--ink-soft); max-width: 60ch; margin: 0; text-wrap: pretty; }
+
+  h2 {
+    font-family: var(--sans); font-weight: 650; font-size: 25px;
+    letter-spacing: -0.018em; line-height: 1.2; text-wrap: balance; margin: 56px 0 4px;
+  }
+  h2 + .dek {
+    color: var(--ink-faint); font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.05em; margin: 0 0 22px;
+  }
+  h3 {
+    font-family: var(--sans); font-weight: 620; font-size: 17px;
+    letter-spacing: -0.008em; margin: 34px 0 8px;
+  }
+  p { margin: 0 0 16px; text-wrap: pretty; }
+  code {
+    font-family: var(--mono); font-size: 0.855em; background: var(--model-wash);
+    padding: 0.1em 0.36em; border-radius: 4px; word-break: break-word;
+  }
+  strong { font-weight: 600; }
+
+  figure { margin: 30px auto 8px; }
+  .figscroll { overflow-x: auto; }
+  figure svg { display: block; width: 100%; min-width: 700px; height: auto; }
+  figcaption {
+    font-family: var(--sans); font-size: 13.5px; line-height: 1.5;
+    color: var(--ink-soft); margin-top: 14px; max-width: 74ch;
+  }
+
+  .s-known { fill: var(--known); }
+  .s-hidden { fill: var(--hidden); }
+  .s-model { fill: var(--model); }
+  .s-ink { fill: var(--ink); }
+  .s-faint { fill: var(--ink-faint); }
+  .s-soft { fill: var(--ink-soft); }
+  .box { fill: var(--card); stroke: var(--rule); }
+  .box-known { fill: var(--known-wash); stroke: var(--known); }
+  .box-model { fill: var(--model-wash); stroke: var(--model); }
+  .box-hidden { fill: var(--hidden-wash); stroke: var(--hidden); }
+  .ln { stroke: var(--ink-faint); fill: none; }
+  .ln-known { stroke: var(--known); fill: none; }
+  .ln-hidden { stroke: var(--hidden); fill: none; }
+  .tick-known { stroke: var(--known); }
+  .tick-hidden { stroke: var(--hidden); }
+
+  .tscroll { overflow-x: auto; margin: 22px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td {
+    text-align: left; padding: 11px 14px 11px 0;
+    border-bottom: 1px solid var(--rule); vertical-align: top;
+  }
+  th {
+    font-family: var(--sans); font-size: 11px; font-weight: 620;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint);
+    border-bottom-width: 1.5px;
+  }
+  td:first-child { font-family: var(--sans); font-weight: 560; padding-right: 22px; }
+  .num { font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .pull {
+    border-left: 3px solid var(--known); background: var(--known-wash);
+    padding: 18px 22px; margin: 28px 0; border-radius: 0 6px 6px 0;
+  }
+  .caveat {
+    border-left: 3px solid var(--hidden); background: var(--hidden-wash);
+    padding: 18px 22px; margin: 28px 0; border-radius: 0 6px 6px 0;
+  }
+  .pull p:last-child, .caveat p:last-child { margin-bottom: 0; }
+
+  footer {
+    max-width: var(--measure); margin: 72px auto 0; padding-top: 20px;
+    border-top: 1px solid var(--rule); font-family: var(--mono);
+    font-size: 11.5px; color: var(--ink-faint); line-height: 1.7;
+  }
+  @media (max-width: 640px) { body { font-size: 16px; } }
+</style>
+
+<header>
+  <p class="eyebrow">FinEvents · gold POC · reference</p>
+  <h1>Two small models, one gold price</h1>
+  <p class="standfirst">
+    Chronos-2 and TimesFM are not language models with a finance hat on. They are
+    forecasters — small, pretrained, and specifically designed to run without ever seeing
+    your data before.
+  </p>
+</header>
+
+<div class="wrap">
+  <h2>What these models actually are</h2>
+  <p class="dek">time-series foundation models — pretrained forecasters</p>
+
+  <p>
+    Both are transformers pretrained on very large collections of time series — energy
+    demand, retail sales, web traffic, weather, finance — so that they learn the general
+    shapes sequences take. You then hand one a series it has never seen and it forecasts.
+    <strong>No training, no fitting, no gradients.</strong> That property is called
+    <em>zero-shot</em>, and it is the whole reason this POC is cheap.
+  </p>
+
+  <div class="tscroll">
+    <table>
+      <thead>
+        <tr><th></th><th>Chronos-2 (Amazon)</th><th>TimesFM 2.5 (Google)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Parameters</td><td class="num">120 M</td><td class="num">200 M</td></tr>
+        <tr><td>Weights on disk</td><td class="num">456 MB</td><td class="num">882 MB</td></tr>
+        <tr><td>Architecture</td><td>Encoder</td><td>Decoder-only, patched</td></tr>
+        <tr>
+          <td>Core idea</td>
+          <td>The original Chronos <em>tokenised</em> numbers — scaling and quantising real values into a fixed vocabulary, then training a language model over them. Literally treating prices as words.</td>
+          <td>Splits the series into fixed-length <em>patches</em>, the way a vision transformer splits an image into squares, and predicts the next patch.</td>
+        </tr>
+        <tr><td>Max context</td><td class="num">8,192 steps</td><td>long-context, patched</td></tr>
+        <tr><td>Covariates</td><td>Native — past-only and known-future, real or categorical</td><td>Via the <code>xreg</code> extra</td></tr>
+        <tr><td>Output</td><td colspan="2">Quantiles of the future value — a distribution, not a single number</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Why they run on your laptop</h2>
+  <p class="dek">four reasons, and none of them is "we got lucky"</p>
+
+  <p>
+    The instinct that a "foundation model" needs a datacentre comes from language models.
+    That intuition does not transfer, for four separate reasons:
+  </p>
+
+  <div class="tscroll">
+    <table>
+      <thead><tr><th></th><th>A useful LLM</th><th>These models</th></tr></thead>
+      <tbody>
+        <tr><td>Size</td><td class="num">7 B – 500 B params</td><td class="num">120 M – 200 M</td></tr>
+        <tr><td>Generation</td><td>One token at a time, thousands of passes</td><td>The whole forecast in one pass</td></tr>
+        <tr><td>Vocabulary</td><td>~100,000 tokens</td><td>A few thousand buckets, or none at all</td></tr>
+        <tr><td>Your use</td><td>Often fine-tuned — gradients, optimiser state, ~4× the weights in RAM</td><td>Zero-shot — forward passes only</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    A 120M-parameter forward pass over a 60-step window is arithmetic your CPU finishes in
+    milliseconds. The 1.34 GB of weights sits in RAM once and is reused. Nothing is being
+    learned, so there is no optimiser state, no backward pass, and no training data resident.
+  </p>
+
+  <div class="pull">
+    <p>
+      <strong>And the slow part isn't slow either.</strong> Evaluating 145 cut-off dates is
+      not 145 sequential forecasts — it is 145 independent context windows, which both models
+      take as a single batch. That is why a 2017 mobile CPU is enough: the workload is wide,
+      not deep.
+    </p>
+  </div>
+</div>
+
+<div class="bleed">
+  <h2>The approach, in one picture</h2>
+  <p class="dek">what the model sees, and what it must not</p>
+</div>
+
+<figure class="bleed">
+  <div class="figscroll">
+    <svg viewBox="0 0 900 400" role="img"
+         aria-label="A cut-off date divides the gold series. To its left, 60 trailing sessions plus ten covariates are visible to the model. To its right, the t+1 and t+5 outcomes are hidden. The visible window goes to Chronos-2 or TimesFM, which emits quantiles; those become five bucket probabilities; the hidden realised return lands in one bucket, and the two are compared by ranked probability score.">
+
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/>
+        </marker>
+      </defs>
+
+      <!-- ============ the timeline ============ -->
+      <text class="s-known" x="30" y="30" font-family="ui-monospace, monospace"
+            font-size="11" letter-spacing="1.4">KNOWABLE AT THE CUT-OFF</text>
+      <text class="s-hidden" x="586" y="30" font-family="ui-monospace, monospace"
+            font-size="11" letter-spacing="1.4">NOT YET KNOWABLE</text>
+
+      <rect class="box-known" x="30" y="42" width="540" height="86" rx="7" stroke-width="1"/>
+      <rect class="box-hidden" x="586" y="42" width="284" height="86" rx="7" stroke-width="1"/>
+
+      <!-- price ticks, visible -->
+      <g stroke-width="2.4" class="tick-known">
+        <line x1="48"  y1="104" x2="48"  y2="86"/><line x1="66"  y1="104" x2="66"  y2="78"/>
+        <line x1="84"  y1="104" x2="84"  y2="92"/><line x1="102" y1="104" x2="102" y2="70"/>
+        <line x1="120" y1="104" x2="120" y2="82"/><line x1="138" y1="104" x2="138" y2="66"/>
+        <line x1="156" y1="104" x2="156" y2="88"/><line x1="174" y1="104" x2="174" y2="74"/>
+        <line x1="192" y1="104" x2="192" y2="94"/><line x1="210" y1="104" x2="210" y2="68"/>
+        <line x1="228" y1="104" x2="228" y2="84"/><line x1="246" y1="104" x2="246" y2="72"/>
+        <line x1="264" y1="104" x2="264" y2="90"/><line x1="282" y1="104" x2="282" y2="64"/>
+        <line x1="300" y1="104" x2="300" y2="80"/><line x1="318" y1="104" x2="318" y2="76"/>
+        <line x1="336" y1="104" x2="336" y2="92"/><line x1="354" y1="104" x2="354" y2="70"/>
+        <line x1="372" y1="104" x2="372" y2="86"/><line x1="390" y1="104" x2="390" y2="62"/>
+        <line x1="408" y1="104" x2="408" y2="78"/><line x1="426" y1="104" x2="426" y2="88"/>
+        <line x1="444" y1="104" x2="444" y2="68"/><line x1="462" y1="104" x2="462" y2="82"/>
+        <line x1="480" y1="104" x2="480" y2="74"/><line x1="498" y1="104" x2="498" y2="90"/>
+        <line x1="516" y1="104" x2="516" y2="66"/><line x1="534" y1="104" x2="534" y2="80"/>
+        <line x1="552" y1="104" x2="552" y2="72"/>
+      </g>
+
+      <!-- price ticks, hidden -->
+      <g stroke-width="2.4" class="tick-hidden" stroke-dasharray="3 2">
+        <line x1="604" y1="104" x2="604" y2="76"/><line x1="640" y1="104" x2="640" y2="84"/>
+        <line x1="676" y1="104" x2="676" y2="66"/><line x1="712" y1="104" x2="712" y2="88"/>
+        <line x1="748" y1="104" x2="748" y2="70"/>
+      </g>
+
+      <!-- the cut-off -->
+      <line class="ln" x1="578" y1="34" x2="578" y2="150" stroke-width="1.6" stroke-dasharray="4 4"/>
+      <text class="s-ink" x="578" y="146" text-anchor="middle"
+            font-family="ui-sans-serif, sans-serif" font-size="11.5" font-weight="600">cut-off</text>
+
+      <text class="s-soft" x="300" y="122" text-anchor="middle"
+            font-family="ui-sans-serif, sans-serif" font-size="11">
+        60 trailing sessions + 10 covariates
+      </text>
+      <text class="s-hidden" x="676" y="122" text-anchor="middle"
+            font-family="ui-sans-serif, sans-serif" font-size="11">t+1 … t+5</text>
+
+      <!-- ============ the flow ============ -->
+      <rect class="box" x="30" y="196" width="150" height="62" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="105" y="222" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="12.5" font-weight="600">context window</text>
+      <text class="s-faint" x="105" y="240" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10">never past cut-off</text>
+
+      <rect class="box-model" x="212" y="196" width="150" height="62" rx="7" stroke-width="1.3"/>
+      <text class="s-model" x="287" y="222" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="12.5" font-weight="600">Chronos-2</text>
+      <text class="s-model" x="287" y="240" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="12.5" font-weight="600">TimesFM 2.5</text>
+
+      <rect class="box" x="394" y="196" width="150" height="62" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="469" y="222" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="12.5" font-weight="600">quantiles</text>
+      <text class="s-faint" x="469" y="240" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10">a distribution</text>
+
+      <rect class="box" x="576" y="196" width="150" height="62" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="651" y="222" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="12.5" font-weight="600">5 buckets</text>
+      <text class="s-faint" x="651" y="240" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10">σ-relative</text>
+
+      <rect class="box" x="758" y="196" width="112" height="62" rx="7" stroke-width="1"/>
+      <text class="s-ink" x="814" y="222" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="12.5" font-weight="600">RPS</text>
+      <text class="s-faint" x="814" y="240" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10">lower is better</text>
+
+      <line class="ln-known" x1="182" y1="227" x2="210" y2="227" stroke-width="1.4" marker-end="url(#a1)"/>
+      <line class="ln" x1="364" y1="227" x2="392" y2="227" stroke-width="1.4" marker-end="url(#a1)"/>
+      <line class="ln" x1="546" y1="227" x2="574" y2="227" stroke-width="1.4" marker-end="url(#a1)"/>
+      <line class="ln" x1="728" y1="227" x2="756" y2="227" stroke-width="1.4" marker-end="url(#a1)"/>
+
+      <!-- feed from the visible window into the context box -->
+      <path class="ln-known" d="M 300 130 L 300 168 L 105 168 L 105 194" stroke-width="1.4" marker-end="url(#a1)"/>
+
+      <!-- the realised outcome arrives later -->
+      <rect class="box-hidden" x="576" y="316" width="150" height="52" rx="7" stroke-width="1.3"/>
+      <text class="s-hidden" x="651" y="338" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="12.5" font-weight="600">realised bucket</text>
+      <text class="s-hidden" x="651" y="356" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10">known only at t+1</text>
+
+      <path class="ln-hidden" d="M 676 130 L 676 300 L 676 314" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a1)"/>
+      <path class="ln-hidden" d="M 726 342 L 814 342 L 814 262" stroke-width="1.4" marker-end="url(#a1)"/>
+
+      <text class="s-faint" x="440" y="386" text-anchor="middle"
+            font-family="ui-sans-serif, sans-serif" font-size="11">
+        slide the cut-off one session and repeat — 145 times for the clean window
+      </text>
+    </svg>
+  </div>
+  <figcaption>
+    Everything the model receives comes from the left of the cut-off; the outcome it is
+    scored against comes from the right and does not exist yet at prediction time. The
+    bucket boundaries are computed <em>before</em> the forecast and stored with it, so a
+    later change to the σ window cannot retroactively move a past score.
+  </figcaption>
+</figure>
+
+<div class="wrap">
+  <h3>Why buckets rather than a price</h3>
+  <p>
+    "Gold will be 10,412.30 tomorrow" is unfalsifiable in any useful sense — it is wrong by
+    some amount, always. Instead the forecast is a probability across five bands defined in
+    <em>this instrument's own volatility</em>:
+  </p>
+
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Bucket</th><th>Condition</th><th class="num">Gold, t+1, today</th></tr></thead>
+      <tbody>
+        <tr><td>large down</td><td><code>r &lt; −1.5σ</code></td><td class="num">below −2.76%</td></tr>
+        <tr><td>small down</td><td><code>−1.5σ ≤ r &lt; −0.5σ</code></td><td class="num">−2.76% … −0.93%</td></tr>
+        <tr><td>flat</td><td><code>−0.5σ ≤ r &lt; 0.5σ</code></td><td class="num">−0.93% … +0.94%</td></tr>
+        <tr><td>small up</td><td><code>0.5σ ≤ r &lt; 1.5σ</code></td><td class="num">+0.94% … +2.84%</td></tr>
+        <tr><td>large up</td><td><code>r ≥ 1.5σ</code></td><td class="num">above +2.84%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Scoring uses <strong>ranked probability score</strong>, which knows the buckets are
+    <em>ordered</em>: predicting "large up" when the answer was "small up" costs less than
+    predicting "large down". Plain accuracy would treat those two mistakes as identical.
+  </p>
+
+  <h2>The five things being compared</h2>
+  <p class="dek">all scored on identical days, or the comparison means nothing</p>
+
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Rung</th><th>What it sees</th><th>Why it's there</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>climatology</td>
+          <td>Nothing but the historical frequency of each bucket</td>
+          <td><strong>The bar.</strong> Says "flat" 62.5% of the time because gold really is flat 62.5% of the time</td>
+        </tr>
+        <tr><td>chronos · uni</td><td>Gold alone</td><td>Does the model beat naive history at all?</td></tr>
+        <tr><td>chronos · cov</td><td>Gold + 10 covariates</td><td>Do the covariates add anything?</td></tr>
+        <tr><td>timesfm · uni</td><td>Gold alone</td><td>Is the first result about <em>forecasting</em> or about <em>Chronos</em>?</td></tr>
+        <tr><td>timesfm · cov</td><td>Gold + 10 covariates</td><td>Same question for the covariates</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Two models rather than one is not redundancy. If Chronos beats climatology and TimesFM
+    does not, the finding is about Chronos, not about forecasting gold — and that is a very
+    different claim.
+  </p>
+
+  <div class="caveat">
+    <p>
+      <strong>The result lives in 145 days, not 2,859.</strong> Both models were pretrained on
+      corpora that close before 2026, and neither publishes an exact cutoff. Anything scored on
+      2015–2025 is partly measuring what the model memorised. The full history is reported
+      because it is informative about the machinery; only the 2026 window can carry a claim.
+    </p>
+  </div>
+
+  <h3>What "done" looks like</h3>
+  <p>
+    A table of five RPS numbers at two horizons, on 145 unseen days, from a data path where
+    nothing to the right of any cut-off was ever visible. If the models don't beat 0.625-flat
+    climatology, <em>that is the result</em> — and it is worth knowing before building the
+    other nine-tenths of the system on the assumption that they would.
+  </p>
+</div>
+
+<footer>
+  FinEvents · gold POC · P2 complete, P3 next<br>
+  Design §4.1 (σ and buckets) · §4.2 (RPS) · §4.13 (quantile → bucket) · ADR-0008 · ADR-0030/0031 · REQ-503/504<br>
+  Measured on the real panel 2026-08-13: 2,859 sessions, 10 covariates, 145 in the clean window
+</footer>

@@ -22,6 +22,7 @@ drifting into tutorials.
 | Note | Covers | Written against |
 |---|---|---|
 | [`sam-deploy-flow.html`](sam-deploy-flow.html) | Where SAM becomes CloudFormation (server-side, not locally); a side-by-side of both dialects on three real cases; whether SAM is portable to other clouds | [ADR-0015](../adr/0015-aws-sam-for-infrastructure.md), [ADR-0024](../adr/0024-single-account-per-environment-stacks.md), [ADR-0054](../adr/0054-toolchain.md) · 2026-08-10 |
+| [`gold-poc-approach.html`](gold-poc-approach.html) | What Chronos-2 and TimesFM are, why 120M/200M-parameter models run on a laptop, and the gold POC's cut-off → buckets → RPS mechanism | [ADR-0008](../adr/0008-volatility-relative-movement-buckets.md), [ADR-0030](../adr/0030-chronos-as-baseline-and-shown-forecast.md), [ADR-0031](../adr/0031-timesfm-third-track-and-ensemble-baselines.md) · Design §4.1, §4.2, §4.13 · 2026-08-13 |
 
 ## Conventions
 
