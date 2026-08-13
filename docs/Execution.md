@@ -25,6 +25,8 @@ RESOLVED:           T0.13 Python version — ADR-0054. The intersection does not
                     frozen clock, property tests over REQ-105–108 + REQ-407.
                     DATA_SOURCES.md question 1 (FRED terms) — answered 2026-08-13.
                     TimesFM 2.5 licence (Apache-2.0) — one of the ten pre-build items.
+                    ADR-0056 accepted 2026-08-13 — the random-walk covariate control
+                    is binding: covariate rungs carry a *_rwcov control from P5 on.
 ```
 
 ### The POC track
@@ -174,7 +176,9 @@ overclaimed.
 **The retrospective consequence matters most.** ADR-0047 makes the covariate-informed
 configurations rungs 3 and 4 — the bar the agent is measured against. If that bar is
 handicapped by spurious regression, the agent beating it means less than it appears.
-ADR-0056 (Proposed — the builder's decision) turns that from an unknown into a number.
+ADR-0056 — **accepted 2026-08-13** — turns that from an unknown into a number: a
+`*_rwcov` control rung ships beside each `*_cov` rung from P5 onward, and no covariate
+set is called informative unless it beats its control on a paired comparison.
 
 **What is green locally.** `uv run pytest` — **205 tests** (192 without the model weights,
 which is CI's view; four of them pin the overlap-aware Newey–West error). `uv run

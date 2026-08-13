@@ -1,7 +1,7 @@
 # ADR-0056: A random-walk covariate control, because covariate rungs are vulnerable to spurious regression
 
-- **Status:** Proposed
-- **Date:** 2026-08-13 · revised the same day after a review pass found two defects in the round-1 harness (see *What the review corrected*)
+- **Status:** Accepted (2026-08-13)
+- **Date:** 2026-08-13 · revised the same day after a review pass found two defects in the round-1 harness (see *What the review corrected*); accepted by the builder after the revision
 - **Serves:** REQ-503, REQ-504, REQ-806
 - **Relates to:** ADR-0047 (which makes the covariate-informed rungs the bar the agent is measured against)
 
