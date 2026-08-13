@@ -59,12 +59,15 @@
   .hero .watch { flex: 1 1 300px; border-left: 3px solid var(--accent); padding-left: 1.1rem; }
   .hero .watch .t { font-weight: 650; }
   .hero .watch p { color: var(--muted); font-size: .92rem; margin-top: .3rem; }
-  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-  .toggle button {
-    border: 0; background: transparent; padding: .34rem .95rem; cursor: pointer;
-    font: inherit; font-size: .85rem; color: var(--muted);
+  /* Selection must be unmissable in every chip scope — the control bar, the
+     section filters, and chart legends all share one visual language. */
+  #controls button.on, .filters button.on, .legend button.on {
+    background: var(--ink); color: var(--paper); border-color: var(--ink);
   }
-  .toggle button.on { background: var(--ink); color: var(--paper); }
+  #controls button:hover:not(.on), .filters button:hover:not(.on), .legend button:hover:not(.on) {
+    border-color: var(--ink);
+  }
+  tbody tr.pickable:hover td { background: rgba(60, 54, 38, 0.05); }
   .bar { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: .9rem; }
   .scroll { overflow-x: auto; }
   .scroll table { min-width: 620px; }
@@ -126,13 +129,18 @@
   #tooltip {
     position: fixed; pointer-events: none; background: var(--ink); color: var(--paper);
     font-size: .74rem; padding: .45rem .6rem; border-radius: 6px; display: none;
-    font-variant-numeric: tabular-nums; z-index: 5; max-width: 240px;
+    font-variant-numeric: tabular-nums; z-index: 30; max-width: 240px;
   }
   #tooltip .d { color: #cfc9b8; margin-bottom: .2rem; }
   .empty { border: 1px dashed var(--line); border-radius: 10px; padding: 2rem; margin-top: 1.5rem; color: var(--muted); }
   .empty code { display: block; background: var(--ink); color: var(--paper); border-radius: 6px; padding: .55rem .8rem; margin-top: .6rem; font-size: .82rem; }
   footer { color: var(--muted); font-size: .78rem; margin-top: 1.6rem; line-height: 1.7; }
-  @media (max-width: 640px) { body { padding: 1.2rem .7rem 3rem; } section { padding: 1rem; } }
+  @media (max-width: 640px) {
+    body { padding: 1.2rem .7rem 3rem; }
+    section { padding: 1rem; }
+    /* A wrapped bar can eat half a phone screen — anchored beats sticky there. */
+    #controls { position: static; }
+  }
 </style>
 </head>
 <body>
