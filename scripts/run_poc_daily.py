@@ -57,6 +57,13 @@ LIVE = ROOT / "ui" / "data" / "live.js"
 HORIZONS = (1, 5)
 CONTEXT = 512
 
+#: The builder's hunch (2026-08-13): gold moves with oil and the FX complex.
+#: Daily-return correlation says gold–oil is ~0 while the levels trend together —
+#: the exact shape spurious regression feeds on — so the hunch seals as its own
+#: rungs and is judged against the *_rwcov control on live days (ADR-0056),
+#: not asserted from an offline probe.
+OILFX_COVARIATES = ("wti", "usd_rub", "usd_inr", "dollar_index")
+
 
 def refetch() -> None:
     for fetcher in ("fetch_metals_history.py", "fetch_fred_series.py"):
@@ -119,14 +126,17 @@ def main(argv: list[str] | None = None) -> int:
         summary.append(f"gold      {as_of} already sealed — maturation only")
     else:
         covariates = {c.name: c for c in panel.covariates}
+        oilfx = {name: covariates[name] for name in OILFX_COVARIATES}
         walk = Series("rw", dates, random_walk(rw_seed, len(closes)))
         target = panel.target
         outputs = {
             "chronos_uni": chronos.forecast(target, None, list(HORIZONS)),
             "chronos_cov": chronos.forecast(target, covariates, list(HORIZONS)),
+            "chronos_oilfx": chronos.forecast(target, oilfx, list(HORIZONS)),
             "chronos_rwcov": chronos.forecast(target, {"rw": walk}, list(HORIZONS)),
             "timesfm_uni": timesfm.forecast(target, None, list(HORIZONS)),
             "timesfm_cov": timesfm.forecast(target, covariates, list(HORIZONS)),
+            "timesfm_oilfx": timesfm.forecast(target, oilfx, list(HORIZONS)),
             "timesfm_rwcov": timesfm.forecast(target, {"rw": walk}, list(HORIZONS)),
         }
         history_buckets = {h: historical_buckets(closes, h) for h in HORIZONS}
@@ -154,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
             rw_seed=rw_seed,
         )
         state["instruments"]["gold"]["records"] = records
-        summary.append(f"gold      sealed {as_of}   9 rungs, rw seed {rw_seed}")
+        summary.append(f"gold      sealed {as_of}   11 rungs, rw seed {rw_seed}")
 
     records, newly = mature(records, [d.isoformat() for d in dates], list(closes))
     state["instruments"]["gold"]["records"] = records
