@@ -15,6 +15,7 @@ You need [uv](https://docs.astral.sh/uv/) and Python 3.13 ([ADR-0054](docs/adr/0
 ```bash
 uv sync --group dev
 uv run pre-commit install
+cp .env.example .env   # then fill in your values; .env itself can never be committed
 ```
 
 **Install the hooks before your first commit.** They do nothing until installed, and the checks they run are the ones that cannot be recovered from after the fact — a credential that reaches history is compromised whether or not it is later removed, and this repository is intended to be public.

@@ -21,7 +21,11 @@ BLOCKED_NAMES = {".env", "credentials.json", "credentials", ".netrc", ".pypirc"}
 BLOCKED_SUFFIXES = {".pem", ".key", ".pfx", ".p12", ".keystore", ".jks"}
 BLOCKED_GLOBS = (".env.*", "*_rsa", "*_dsa", "*_ed25519")
 
-# Allowed because they carry names, never values.
+# Allowed because they carry names, never values — and since 2026-08-13 that
+# is verified rather than assumed: an example file with any non-empty
+# assignment is blocked (`_example_violations`). Before that, the allowed
+# path skipped scanning entirely, so a real key pasted into .env.example
+# would have sailed through.
 ALLOWED_NAMES = {".env.example", ".env.template", ".env.sample"}
 
 PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -47,12 +51,32 @@ PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 SELF = Path(__file__).name
 
 
+def _example_violations(path: Path) -> list[str]:
+    """An example env file may name variables; it may never value them."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return []
+    reasons: list[str] = []
+    for number, raw in enumerate(text.splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        if value.strip().strip("'\""):
+            reasons.append(
+                f"line {number}: {key.strip()} has a value — an example file "
+                "carries names, never values"
+            )
+    return reasons
+
+
 def check_file(path: Path) -> list[str]:
     reasons: list[str] = []
     name = path.name
 
     if name in ALLOWED_NAMES:
-        return reasons
+        return _example_violations(path) if path.is_file() else reasons
     if name in BLOCKED_NAMES:
         reasons.append(f"{name} is an environment/credential file — never stage it")
     if path.suffix.lower() in BLOCKED_SUFFIXES:
