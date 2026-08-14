@@ -77,6 +77,19 @@ class Prediction(BaseModel):
     rationale: str = Field(max_length=600, description="one short paragraph; recorded locally")
 
 
+class LessonModel(BaseModel):
+    """One falsifiable, cited lesson. `poc_wiki.apply_curation` re-enforces the
+    rules in code — the schema is the first gate, never the only one."""
+
+    text: str = Field(max_length=220)
+    cites: list[str] = Field(min_length=1, description="evidence dates, YYYY-MM-DD")
+
+
+class CuratorUpdate(BaseModel):
+    lessons: list[LessonModel] = Field(max_length=15)
+    day_note: str | None = Field(default=None, max_length=220)
+
+
 def api_key_present() -> bool:
     return bool(os.environ.get(ENV_KEY))
 
@@ -86,12 +99,16 @@ def model_id() -> str:
 
 
 def clean_distribution(values: tuple[float, ...]) -> tuple[float, ...]:
-    """Floor negatives, renormalise. A schema-valid row can still sum to 0.98."""
+    """Floor negatives, renormalise, round-with-repair. A schema-valid row can
+    still sum to 0.98 — and plain 4dp rounding can leave 0.9999, which the RPS
+    scorer rightly refuses (found on the first live maturation)."""
+    from poc_live_track import round_distribution
+
     floored = [max(0.0, v) for v in values]
     total = sum(floored)
     if total <= 0:
         raise ValueError(f"degenerate distribution {values}")
-    return tuple(round(v / total, 4) for v in floored)
+    return tuple(round_distribution([v / total for v in floored]))
 
 
 def _fmt_probs(probs: list[float] | tuple[float, ...]) -> str:
@@ -106,6 +123,7 @@ def assemble_brief(
     track_records: list[dict],
     ladder: dict | None,
     events: dict | None,
+    memory: str | None = None,
 ) -> str:
     """The one prompt, assembled by code from the same files the dashboard reads.
 
@@ -178,6 +196,10 @@ def assemble_brief(
                     f"[{event['mentions']} mentions, goldstein {event['goldstein']}]"
                 )
 
+    if memory is not None:
+        lines.append("\n== Your memory page (P8d — statistics by code, lessons by you) ==")
+        lines.append(memory)
+
     lines.append(
         "\n== Task ==\n"
         "Weigh the events against the base rates and the other methods. If the events "
@@ -188,18 +210,21 @@ def assemble_brief(
     return "\n".join(lines)
 
 
-def record_run(instrument: str, as_of: str, brief: str, response: dict, model: str) -> dict:
+def record_run(
+    instrument: str, as_of: str, brief: str, response: dict, model: str, variant: str = "raw"
+) -> dict:
     """Persist the full transcript locally; return the hashes the seal carries."""
     RECORDS.mkdir(parents=True, exist_ok=True)
     response_text = json.dumps(response, sort_keys=True)
     brief_sha = hashlib.sha256(brief.encode("utf-8")).hexdigest()
     response_sha = hashlib.sha256(response_text.encode("utf-8")).hexdigest()
-    path = RECORDS / f"{instrument}_{as_of}.json"
+    path = RECORDS / f"{instrument}_{as_of}_{variant}.json"
     path.write_text(
         json.dumps(
             {
                 "instrument": instrument,
                 "as_of": as_of,
+                "variant": variant,
                 "model": model,
                 "recorded_utc": datetime.now(UTC).isoformat(timespec="seconds"),
                 "brief": brief,
@@ -214,21 +239,59 @@ def record_run(instrument: str, as_of: str, brief: str, response: dict, model: s
     return {"model": model, "brief_sha256": brief_sha, "response_sha256": response_sha}
 
 
-def predict(brief: str, model: str) -> Prediction:
-    """One bounded structured-output turn. The only function needing the key."""
+def _structured_call(schema: type[BaseModel], system_prompt: str, prompt: str, model: str):
+    """One bounded structured-output turn. The only path that needs the key."""
     from strands import Agent
     from strands.models.openai import OpenAIModel
 
+    # OpenAIModel's final parameter is a **kwargs catcher (named model_config),
+    # so model settings pass as direct keywords — found on first live contact.
     provider = OpenAIModel(
         client_args={"api_key": os.environ[ENV_KEY]},
-        model_config={"model_id": model},
+        model_id=model,
     )
-    agent = Agent(
-        model=provider,
-        system_prompt="You are a careful, calibrated financial forecaster. "
-        "You never invent conviction the evidence does not support.",
+    agent = Agent(model=provider, system_prompt=system_prompt)
+    return agent.structured_output(schema, prompt)
+
+
+PREDICTOR_SYSTEM = (
+    "You are a careful, calibrated financial forecaster. "
+    "You never invent conviction the evidence does not support."
+)
+
+CURATOR_SYSTEM = (
+    "You are the memory curator, a separate role from the forecaster. You maintain a "
+    "small page of falsifiable, evidence-cited lessons. You revise or retire lessons "
+    "the evidence has turned against; you add nothing on quiet days; you never keep "
+    "a lesson you cannot cite."
+)
+
+
+def predict(brief: str, model: str) -> Prediction:
+    return _structured_call(Prediction, PREDICTOR_SYSTEM, brief, model)
+
+
+def curate(
+    instrument: str, as_of: str, page_text: str, evidence_text: str, model: str
+) -> CuratorUpdate:
+    """The curator's bounded turn (poc-mini-wiki.md): revise lessons, cite or die.
+
+    `poc_wiki.apply_curation` re-checks every rule in code afterwards — the
+    model proposes, the code disposes.
+    """
+    prompt = (
+        f"You maintain the memory page for {instrument}. Today is {as_of}.\n\n"
+        f"== The page as it stands ==\n{page_text}\n\n"
+        f"== New evidence since the last curation ==\n{evidence_text}\n\n"
+        "Rewrite the complete lesson list (at most 15). Every lesson must be "
+        "falsifiable — 'when X, expect Y within Z sessions' — and cite the evidence "
+        "dates that support it. Drop or revise anything the new evidence contradicts. "
+        "A quiet day deserves no new lessons. Optionally add one short day_note only "
+        "if something notable happened."
     )
-    return agent.structured_output(Prediction, brief)
+    update = _structured_call(CuratorUpdate, CURATOR_SYSTEM, prompt, model)
+    record_run(instrument, as_of, prompt, update.model_dump(), model, variant="curator")
+    return update
 
 
 def reasoning_rung(
@@ -239,38 +302,56 @@ def reasoning_rung(
     track_records: list[dict],
     ladder: dict | None,
     events: dict | None,
+    memory_page: str | None = None,
 ) -> tuple[dict[str, dict[str, tuple[float, ...]]] | None, dict | None]:
-    """The runner's entry point: (per-horizon llm_raw distributions, seal metadata).
+    """The runner's entry point: (per-horizon llm distributions, seal metadata).
 
-    Returns (None, None) with a visible message when the key is absent — the
-    numeric seals must never wait on the reasoning layer (same rule as the
-    event feed).
+    Two bets when a memory page exists: `llm_raw` (page withheld) and `llm_mem`
+    (page included) — their paired difference is the running value of memory
+    (poc-mini-wiki.md). Each call is isolated: one variant failing, or the key
+    being absent, never blocks the other variant or the numeric seals. Failures
+    are printed and carried in the seal metadata as errors, not hidden.
     """
-    brief = assemble_brief(
-        instrument,
-        as_of=as_of,
-        horizons=horizons,
-        track_records=track_records,
-        ladder=ladder,
-        events=events,
-    )
     if not api_key_present():
         print(
-            f"  {instrument:<9} llm_raw skipped — {ENV_KEY} not set "
-            "(the brief was still assembled; see --show-brief)"
+            f"  {instrument:<9} llm rungs skipped — {ENV_KEY} not set "
+            "(briefs still assemble; see --show-brief)"
         )
         return None, None
 
     model = model_id()
-    prediction = predict(brief, model)
-    meta = record_run(instrument, as_of, brief, prediction.model_dump(), model)
-    return (
-        {
-            "1": {"llm_raw": clean_distribution(prediction.t1.as_tuple())},
-            "5": {"llm_raw": clean_distribution(prediction.t5.as_tuple())},
-        },
-        meta,
-    )
+    variants: list[tuple[str, str | None]] = [("raw", None)]
+    if memory_page is not None:
+        variants.append(("mem", memory_page))
+
+    additions: dict[str, dict[str, tuple[float, ...]]] = {"1": {}, "5": {}}
+    meta: dict = {"model": model}
+    for variant, page in variants:
+        rung = f"llm_{variant}"
+        brief = assemble_brief(
+            instrument,
+            as_of=as_of,
+            horizons=horizons,
+            track_records=track_records,
+            ladder=ladder,
+            events=events,
+            memory=page,
+        )
+        try:
+            prediction = predict(brief, model)
+            additions["1"][rung] = clean_distribution(prediction.t1.as_tuple())
+            additions["5"][rung] = clean_distribution(prediction.t5.as_tuple())
+            meta[variant] = record_run(
+                instrument, as_of, brief, prediction.model_dump(), model, variant=variant
+            )
+            print(f"  {instrument:<9} {rung} sealed-ready (transcript recorded)")
+        except Exception as error:  # noqa: BLE001 — first contact with a live API
+            meta[variant] = {"error": f"{type(error).__name__}: {error}"[:300]}
+            print(f"  {instrument:<9} {rung} FAILED — {type(error).__name__}: {error}")
+
+    if not additions["1"] and not additions["5"]:
+        return None, meta
+    return additions, meta
 
 
 def _read_payload(path: Path, prefix: str) -> dict | None:

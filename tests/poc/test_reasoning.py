@@ -155,15 +155,40 @@ def test_the_schema_refuses_out_of_range_probabilities() -> None:
 def test_record_run_hashes_exactly_what_it_writes(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(poc_reasoning, "RECORDS", tmp_path)
     response = {"t1": {"flat": 1.0}, "rationale": "test"}
-    meta = record_run("gold", "2026-08-13", "the brief", response, "gpt-5.6-sol")
+    meta = record_run("gold", "2026-08-13", "the brief", response, "gpt-5.6-sol", variant="mem")
 
     assert meta["brief_sha256"] == hashlib.sha256(b"the brief").hexdigest()
     expected = hashlib.sha256(json.dumps(response, sort_keys=True).encode()).hexdigest()
     assert meta["response_sha256"] == expected
 
-    stored = json.loads((tmp_path / "gold_2026-08-13.json").read_text(encoding="utf-8"))
+    stored = json.loads((tmp_path / "gold_2026-08-13_mem.json").read_text(encoding="utf-8"))
     assert stored["brief"] == "the brief"
     assert stored["model"] == "gpt-5.6-sol"
+    assert stored["variant"] == "mem"
+
+
+def test_the_memory_section_appears_only_when_a_page_is_given() -> None:
+    common = dict(
+        as_of="2026-08-13",
+        horizons=horizons_fixture(),
+        track_records=[],
+        ladder=None,
+        events=None,
+    )
+    raw = assemble_brief("gold", **common)
+    mem = assemble_brief("gold", **common, memory="MEMORY PAGE — gold (version 1)")
+    assert "Your memory page" not in raw
+    assert "Your memory page" in mem
+    assert "MEMORY PAGE — gold" in mem
+
+    # The paired test's premise: the two briefs are identical except the page.
+    marker = "\n== Task =="
+    raw_head, raw_task = raw.split(marker, 1)
+    mem_head, mem_task = mem.split(marker, 1)
+    assert raw_task == mem_task
+    assert mem_head.startswith(raw_head)
+    inserted = mem_head.removeprefix(raw_head)
+    assert "Your memory page" in inserted and "MEMORY PAGE — gold (version 1)" in inserted
 
 
 # --- the .env loader -------------------------------------------------------------

@@ -36,8 +36,33 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from gold_poc_data import UNIVARIATE_SERIES, load_panel, load_univariate, read_metal  # noqa: E402
-from poc_live_track import mature, parse, random_walk, seal, seed_for, serialize  # noqa: E402
-from poc_reasoning import read_events, read_results, reasoning_rung  # noqa: E402
+from poc_live_track import (  # noqa: E402
+    mature,
+    parse,
+    random_walk,
+    round_distribution,
+    seal,
+    seed_for,
+    serialize,
+)
+from poc_reasoning import (  # noqa: E402
+    api_key_present,
+    curate,
+    model_id,
+    read_events,
+    read_results,
+    reasoning_rung,
+)
+from poc_wiki import (  # noqa: E402
+    append_version,
+    apply_curation,
+    compute_statistics,
+    evidence_digest,
+    latest_page_text,
+    load_wiki,
+    save_wiki,
+    valid_evidence_dates,
+)
 
 from finevents.features.conditional import (  # noqa: E402
     DayFeatures,
@@ -101,7 +126,7 @@ def sealed_horizons(
             "edges": [round(e, 10) for e in edges.edges],
             "edges_pct": [round(p, 2) for p in edges.as_percent()],
             "rungs": {
-                rung: [round(p, 4) for p in probs]
+                rung: round_distribution(probs)
                 for rung, probs in distributions_for(h, edges).items()
             },
         }
@@ -132,6 +157,56 @@ def main(argv: list[str] | None = None) -> int:
     rw_seed = seed_for(as_of)
 
     records = state["instruments"].setdefault("gold", {"records": []})["records"]
+
+    # Mature FIRST: today's fetch may have brought the fix that closes earlier
+    # seals, and the curator (P8d) must see those outcomes before today's
+    # llm_mem bet reads the page it maintains.
+    records, newly = mature(records, [d.isoformat() for d in dates], list(closes))
+    state["instruments"]["gold"]["records"] = records
+    if newly:
+        summary.append(f"gold      matured {newly} horizon(s)")
+
+    # ---- memory (P8d): statistics by code, lessons by the curator ------------
+    wiki = load_wiki()
+    if newly:
+        statistics = compute_statistics(records, read_results("gold"))
+        versions = wiki["instruments"].get("gold", {}).get("versions", [])
+        prior_lessons = versions[-1]["lessons"] if versions else []
+        lessons, note = prior_lessons, "statistics refreshed (code-only)"
+        if api_key_present():
+            try:
+                update = curate(
+                    "gold",
+                    as_of,
+                    latest_page_text(wiki, "gold") or "No page yet.",
+                    evidence_digest(records, read_events()),
+                    model_id(),
+                )
+                lessons, rejected = apply_curation(
+                    prior_lessons,
+                    [lesson.model_dump() for lesson in update.lessons],
+                    valid_evidence_dates(records),
+                )
+                note = update.day_note
+                for reason in rejected:
+                    print(f"  gold      curator: {reason}")
+                summary.append(f"gold      curated memory — {len(lessons)} lesson(s)")
+            except Exception as error:  # noqa: BLE001 — live API; lessons carry forward
+                print(f"  gold      curator FAILED — {type(error).__name__}: {error}")
+        append_version(
+            wiki, "gold", as_of=as_of, statistics=statistics, lessons=lessons, curator_note=note
+        )
+    if not wiki["instruments"].get("gold", {}).get("versions"):
+        append_version(
+            wiki,
+            "gold",
+            as_of=as_of,
+            statistics=compute_statistics(records, read_results("gold")),
+            lessons=[],
+            curator_note="initial page — seeded statistics, no lessons yet",
+        )
+    save_wiki(wiki)
+
     if any(r["as_of"] == as_of for r in records):
         summary.append(f"gold      {as_of} already sealed — maturation only")
     else:
@@ -180,6 +255,7 @@ def main(argv: list[str] | None = None) -> int:
             track_records=records,
             ladder=read_results("gold"),
             events=read_events(),
+            memory_page=latest_page_text(wiki, "gold"),
         )
         if llm_addition is not None:
             for h, extra in llm_addition.items():
@@ -189,11 +265,6 @@ def main(argv: list[str] | None = None) -> int:
         state["instruments"]["gold"]["records"] = records
         rung_count = len(sealed_h["1"]["rungs"])
         summary.append(f"gold      sealed {as_of}   {rung_count} rungs, rw seed {rw_seed}")
-
-    records, newly = mature(records, [d.isoformat() for d in dates], list(closes))
-    state["instruments"]["gold"]["records"] = records
-    if newly:
-        summary.append(f"gold      matured {newly} horizon(s)")
 
     # ---- silver: the mirror experiment (covariate = gold, same CBR fix) ------
     spanel = align(read_metal("silver"), [read_metal("gold")])

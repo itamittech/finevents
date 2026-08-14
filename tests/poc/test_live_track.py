@@ -122,6 +122,33 @@ def test_an_already_matured_score_survives_a_source_revision() -> None:
     assert records[0]["matured"]["1"] == first
 
 
+# --- rounding: sealed rows must be proper distributions -----------------------
+
+
+def test_round_distribution_repairs_the_residual_exactly() -> None:
+    from poc_live_track import round_distribution
+
+    adversarial = (0.33333, 0.33333, 0.33334, 0.0, 0.0)
+    repaired = round_distribution(adversarial)
+    assert round(sum(repaired), 10) == 1.0
+    # A case that plainly rounds to 0.9999 without repair:
+    probs = (0.11111, 0.22222, 0.33333, 0.22222, 0.11111)
+    assert round(sum(round_distribution(probs)), 10) == 1.0
+
+
+def test_maturation_scores_legacy_rows_with_rounding_residue() -> None:
+    """Records sealed before round-with-repair carry sums like 0.9999 and can
+    never be rewritten (seal-once). Scoring must normalise, not crash — this
+    is exactly the failure the first live maturation produced."""
+    legacy = sealed_record(
+        "2026-08-12", [-0.1, -0.05, 0.05, 0.1], {"m": [0.1057, 0.197, 0.4499, 0.2222, 0.0251]}
+    )
+    assert sum(legacy["horizons"]["1"]["rungs"]["m"]) != 1.0  # the residue is real
+    records, newly = mature([legacy], ["2026-08-12", "2026-08-13"], [100.0, 100.5])
+    assert newly == 1
+    assert 0.0 <= records[0]["matured"]["1"]["rps"]["m"] <= 1.0
+
+
 # --- determinism and the file round trip -------------------------------------
 
 

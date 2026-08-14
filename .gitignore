@@ -83,6 +83,7 @@ ui/data/*
 !ui/data/latest.js
 !ui/data/live.js
 !ui/data/events.js
+!ui/data/wiki.js
 
 # Python bytecode from the analysis scripts
 __pycache__/

@@ -61,6 +61,30 @@ def seed_for(as_of: str) -> int:
     return int(as_of.replace("-", ""))
 
 
+def round_distribution(probs: tuple[float, ...] | list[float], dp: int = 4) -> list[float]:
+    """Round to `dp` places AND repair the residual onto the largest bucket.
+
+    Found on the first live maturation (2026-08-13): plain rounding sealed rows
+    summing to 0.9999, which the RPS scorer rightly refuses. A sealed record
+    must be a proper distribution as stored, so the rounding error goes to the
+    bucket best able to absorb it, deterministically.
+    """
+    rounded = [round(p, dp) for p in probs]
+    residual = round(1.0 - sum(rounded), dp + 2)
+    if residual:
+        rounded[rounded.index(max(rounded))] = round(max(rounded) + residual, dp)
+    return rounded
+
+
+def _normalised(probs: tuple[float, ...]) -> tuple[float, ...]:
+    """Legacy defence: records sealed before round_distribution existed carry
+    ≤5e-4 rounding residue, and seal-once forbids rewriting them. Scoring
+    normalises deterministically instead — a change to RPS far below any
+    reported precision."""
+    total = sum(probs)
+    return probs if abs(total - 1.0) < 1e-9 else tuple(p / total for p in probs)
+
+
 def bucket_from_edges(edges: list[float], log_return: float) -> int:
     """`Bucket` assignment from *sealed* edges.
 
@@ -124,7 +148,7 @@ def mature(
             log_return = math.log(closes[target] / closes[anchor])
             outcome = bucket_from_edges(sealed["edges"], log_return)
             scores = {
-                rung: round(ranked_probability_score(tuple(probs), Bucket(outcome)), 6)
+                rung: round(ranked_probability_score(_normalised(tuple(probs)), Bucket(outcome)), 6)
                 for rung, probs in sealed["rungs"].items()
             }
             record["matured"][h_key] = {
