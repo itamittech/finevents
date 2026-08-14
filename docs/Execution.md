@@ -15,17 +15,18 @@ CURRENT STEP:       P5 — the daily runner. DONE. `scripts/run_poc_daily.py`:
                     Seal-once and sealed-edge scoring are pinned by 8 tests.
                     First live seals taken 2026-08-13; ui/data/live.js is the
                     record and the dashboard shows it.
-NEXT STEP:          P6 — schedule the daily runner (~11:00). The whole P8 series
-                    is DONE and LIVE through P8e (2026-08-14, the builder's gap
-                    review): the reasoning pair now runs for ALL FIVE instruments
-                    with the v2 brief — related markets, recent price action, its
-                    own graded record — and every bet carries a point estimate
-                    (point_pct) sealed beside the distribution. The dashboard
-                    leads with "Today", the agent board shows model-bet-vs-actual
-                    in price space (local sidecar), and the wiki curator engages
-                    per instrument at its next maturation. The builder's call:
-                    2026-08-14 ran loose (reseals allowed, scored rows untouched);
-                    STRICT testing starts Monday 2026-08-17 — P6 first.
+NEXT STEP:          OPERATE. P6 is DONE (2026-08-14): `FinEventsDailyRunner` is
+                    registered with Windows Task Scheduler — daily 11:00 IST,
+                    first fire Monday 2026-08-17, logs to data/runner_logs/,
+                    missed runs catch up (StartWhenAvailable), seal-once makes
+                    any double-fire a no-op. The whole P8 series is LIVE through
+                    P8e: the reasoning pair runs for ALL FIVE instruments with
+                    the v2 brief (related markets, recent price action, its own
+                    graded record) and every bet seals a point estimate; the
+                    agent board shows model-bet-vs-actual. STRICT testing starts
+                    Monday — from then, no reseals, ever; watch the learning
+                    curve and let the record accrue. The AWS ladder resumes
+                    after the POC verdict.
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
@@ -57,7 +58,7 @@ against history is one of three explicitly permitted uses of history (T6.12).
 | **P3** | **Chronos-2 and TimesFM, univariate + covariate-informed** | ✅ **done** — install measured, both wrappers behind one `Forecaster`, all four tracks byte-identical on repeat (REQ-507) |
 | **P4** | **Quantile → bucket (REQ-508), RPS vs climatology** | ✅ **done, then re-scored after a same-day review pass** — seven rungs on 143 unseen days. **The result is a null; see below** |
 | **P5** | **The daily runner** | ✅ **done** — `scripts/run_poc_daily.py`: fetch (halts on failure) → seal every rung from the latest print → mature what closed. Gold seals 9 rungs including the **`chronos_rwcov` / `timesfm_rwcov` controls ADR-0056 requires** (one seeded random walk, seed = as-of date, recorded per record); FX pairs seal univariate. **Seal-once** (a re-run is byte-identical — verified by hash) and **sealed-edge scoring** (a source revision can never move a taken score) are pinned by `tests/poc/`. `ui/data/live.js` is the record; the dashboard's "live track record" section reads it. No wall clock anywhere: as-of, seed and maturation all derive from the data |
-| P6 | Schedule it locally | follows P8 — H.10's weekly USD/INR lag and CBR's next-day fix are handled by construction |
+| **P6** | **Schedule it locally** | ✅ done (2026-08-14) — `scripts/register_daily_task.ps1` registers **`FinEventsDailyRunner`** in Windows Task Scheduler: daily **11:00 IST**, first fire **Monday 2026-08-17**, calling `scripts/run_daily_scheduled.cmd` (repo-relative, uv-PATH fallback, output to gitignored `data/runner_logs/<date>.log`). User-level task, interactive token, **no stored credentials** — the laptop must be on and logged in; `StartWhenAvailable` catches up missed mornings and seal-once makes double-fires byte-identical no-ops. H.10's weekly USD/INR lag and CBR's next-day fix stay handled by construction — the hour only decides which print gets sealed. Verified end-to-end by a manual `schtasks /run` through the scheduler service itself. The runner does not touch git: committed record files change daily and the builder pushes when they choose |
 | **P8a** | **WTI ("petrol") joins the board** | ✅ done — 4th instrument, univariate ladder + daily seals. Series starts 2020-07 on principle: WTI's −$37 print (2020-04-20) has no log-return. Loading unified in `gold_poc_data.UNIVARIATE_SERIES`. **Follow-up at the builder's direction:** the oil+FX hunch seals as its own gold rungs (`*_oilfx` — WTI + USD/RUB + USD/INR + dollar index) from the next print, judged live against the `*_rwcov` control per ADR-0056. Measured context: gold–oil daily-return correlation ≈ 0 (the connection is a levels trend — spurious-regression territory); oil was already inside the 10-covariate `*_cov` set. Exploratory probe (both models, 40 spread 2026 cut-offs, labelled exploratory): `wti only` and `oil+fx` are **worse than univariate** on 5 of 8 model×horizon cells with intervals excluding zero — TimesFM `oil+fx` t+5 worst at +0.0456 — while `silver only` (the return-correlated covariate) stays harmless. The live `*_oilfx` vs `*_rwcov` record is the confirmatory judge |
 | **P8a″** | **Silver — the mirror experiment** (builder's direction) | ✅ done — 5th instrument. Correction of the premise it started from: covariates never *added* skill anywhere; silver-as-covariate was merely the one that did gold **no harm** (returns co-move at 0.68 — the set's only co-integrated pair). The mirror: silver forecast with **gold as sole covariate** (same CBR fix — no re-dating), `*_cov` + `*_rwcov` sealed daily, offline ladder on the same 143 days. Tests whether harmlessness is symmetric and whether return co-movement can ever add skill |
 | **P8b** | **Deterministic event feed** (GDELT, code-only filter — increment 5 pulled forward) | ✅ done — the T0.12 gate cleared first: DATA_SOURCES question 2 answered from GDELT's own terms (dataset-level attribution, recorded 2026-08-13), which unblocks the fetcher. `scripts/gdelt_events.py`: one cached daily file per day, a filter whose every threshold is a named constant (7 conflict-side CAMEO roots, ≥50 mentions, best per type × country, ≤12/day), 6 tests. `ui/data/events.js` publishes metadata + source URLs only (REQ-1107/1108) with attribution embedded; the dashboard shows the week (84 events over 7 days at first run) and the daily runner refreshes it non-fatally — prices seal even when the news feed hiccups |
