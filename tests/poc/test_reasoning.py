@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -163,6 +164,32 @@ def test_record_run_hashes_exactly_what_it_writes(tmp_path, monkeypatch) -> None
     stored = json.loads((tmp_path / "gold_2026-08-13.json").read_text(encoding="utf-8"))
     assert stored["brief"] == "the brief"
     assert stored["model"] == "gpt-5.6-sol"
+
+
+# --- the .env loader -------------------------------------------------------------
+
+
+def test_env_file_loads_but_never_overrides_and_skips_placeholders(tmp_path, monkeypatch) -> None:
+    from poc_env import load_env_file
+
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "# comment\n"
+        "OPENAI_API_KEY=\n"  # placeholder — must set nothing
+        "FINEVENTS_LLM_MODEL='gpt-5.6-terra'\n"
+        "ALREADY_SET=from-file\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("FINEVENTS_LLM_MODEL", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("ALREADY_SET", "from-environment")
+
+    loaded = load_env_file(env_file)
+
+    assert loaded == 1  # only the model line: placeholder empty, ALREADY_SET taken
+    assert os.environ["FINEVENTS_LLM_MODEL"] == "gpt-5.6-terra"  # quotes stripped
+    assert "OPENAI_API_KEY" not in os.environ
+    assert os.environ["ALREADY_SET"] == "from-environment"  # the real env wins
 
 
 # --- the seal integration --------------------------------------------------------

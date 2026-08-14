@@ -39,6 +39,12 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from poc_env import load_env_file  # noqa: E402
+
+# The builder keeps the key in .env (gitignored, hook-blocked). Loaded once at
+# import; real environment variables always win over the file.
+load_env_file()
+
 ROOT = Path(__file__).resolve().parent.parent
 RECORDS = ROOT / "data" / "reasoning"
 LIVE = ROOT / "ui" / "data" / "live.js"
