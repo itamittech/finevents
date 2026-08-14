@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""The latest forecast for every rung, sealed-style and unscored — for the dashboard.
+"""DEPRECATED (P8d, 2026-08-13): the daily runner's sealed record supersedes this.
+
+`run_poc_daily.py` seals every rung — including the reasoning pair — into
+`ui/data/live.js`, and the dashboard's "Today's sealed bets" section reads that.
+Kept only for ad-hoc gold forecasts outside the daily loop.
+
+Original purpose: the latest forecast for every rung, sealed-style and unscored.
 
 Run:  python scripts/forecast_gold_today.py
 

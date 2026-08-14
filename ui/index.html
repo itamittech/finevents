@@ -169,7 +169,6 @@
 </main>
 
 <script src="./data/results.js"></script>
-<script src="./data/latest.js"></script>
 <script src="./data/prices.js"></script>
 <script src="./data/results_usd_rub.js"></script>
 <script src="./data/prices_usd_rub.js"></script>
@@ -287,13 +286,12 @@ function pack(inst) {
     return {
       D: slice.results || window.POC_DATA,
       P: slice.prices || window.POC_PRICES,
-      L: slice.latest || window.POC_LATEST,
     };
   }
-  return { D: slice.results, P: slice.prices, L: slice.latest };
+  return { D: slice.results, P: slice.prices };
 }
 const AVAILABLE = Object.keys(INSTRUMENTS).filter(k => pack(k).D);
-let D = null, P = null, L = null; // the active instrument's data — set by render()
+let D = null, P = null; // the active instrument's data — set by render()
 const BUCKET_COLOR = ["var(--b0)","var(--b1)","var(--b2)","var(--b3)","var(--b4)"];
 const BUCKET_LITE = [false, false, true, false, false];
 const RUNG_STYLE = {
@@ -803,17 +801,27 @@ function dayByDay() {
   return wrap;
 }
 
-function latest() {
-  if (!L || !L.horizons || !L.horizons[state.horizon]) return null;
-  const hz = L.horizons[state.horizon];
-  const wrap = el("section", null);
-  wrap.appendChild(el("h2", { text: `Latest forecast · t+${state.horizon} — sealed ${L.as_of}, unscored` }));
+function sealedToday() {
+  // The newest LIVE sealed record — the real "latest forecast", including the
+  // reasoning rungs, straight from the same file the track record reads.
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  if (!track || !track.records.length) return null;
+  const newest = track.records[track.records.length - 1];
+  const hz = newest.horizons[state.horizon];
+  if (!hz) return null;
 
+  const wrap = el("section", null);
+  wrap.appendChild(el("h2", { text:
+    `Today's sealed bets · ${newest.as_of} · t+${state.horizon} — graded when reality lands` }));
+
+  const ordered = [
+    ...D.rungs.filter(r => hz.rungs[r]),
+    ...Object.keys(hz.rungs).filter(r => !D.rungs.includes(r)).sort(),
+  ];
   const table = el("table", null);
   const body = el("tbody", null);
-  for (const rung of D.rungs) {
+  for (const rung of ordered) {
     const probs = hz.rungs[rung];
-    if (!probs) continue;
     const strip = el("div", { class: "strip" });
     probs.forEach((p, i) => {
       const seg = el("div", {
@@ -829,17 +837,31 @@ function latest() {
       onclick: () => setFocus(rung),
     });
     tr.appendChild(el("td", { class: "rname", title: rung }, el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }), document.createTextNode(rname(rung))));
-    const cell = el("td", null, strip);
-    tr.appendChild(cell);
+    tr.appendChild(el("td", null, strip));
     body.appendChild(tr);
   }
   table.appendChild(body);
   wrap.appendChild(el("div", { class: "scroll" }, table));
+
   const e = hz.edges_pct;
   wrap.appendChild(el("div", { class: "note", text:
-    `Bucket edges at ±0.5σ / ±1.5σ from today's σ = ${hz.sigma_pct}%:  ` +
+    `Bucket edges at ±0.5σ / ±1.5σ from the sealed σ = ${hz.sigma_pct}%:  ` +
     `large down < ${e[0]}%  ·  small down < ${e[1]}%  ·  flat < ${e[2]}%  ·  small up < ${e[3]}%  ·  large up above.  ` +
-    `Scores when the corresponding CBR fixes land — nothing here is graded yet.` }));
+    "Sealed before any outcome existed; every bet is graded against these exact edges." }));
+
+  if (newest.llm) {
+    const bits = [`Reasoning rungs — model ${newest.llm.model}`];
+    for (const variant of ["raw", "mem"]) {
+      const meta = newest.llm[variant];
+      if (!meta) continue;
+      bits.push(meta.error
+        ? `llm_${variant}: FAILED (${meta.error})`
+        : `llm_${variant}: brief ${meta.brief_sha256.slice(0, 10)}… response ${meta.response_sha256.slice(0, 10)}…`);
+    }
+    wrap.appendChild(el("div", { class: "note", text:
+      bits.join(" · ") + " — full prompt and response transcripts are recorded locally " +
+      "(data/reasoning/), hash-sealed here so the record can be audited (REQ-1302)." }));
+  }
   return wrap;
 }
 
@@ -1193,7 +1215,7 @@ function footer() {
 }
 
 function render() {
-  ({ D, P, L } = pack(state.instrument));
+  ({ D, P } = pack(state.instrument));
   if (!state.horizon || !D.horizons.includes(state.horizon))
     state.horizon = D.horizons.includes("5") ? "5" : D.horizons[0];
   if (!D.rungs.includes(state.rung))
@@ -1205,7 +1227,7 @@ function render() {
   c.appendChild(hero());
   c.appendChild(priceChart());
   c.appendChild(dayByDay());
-  const l = latest(); if (l) c.appendChild(l);
+  const sealed = sealedToday(); if (sealed) c.appendChild(sealed);
   c.appendChild(eventsFeed());
   c.appendChild(liveTrack());
   c.appendChild(ladder());
