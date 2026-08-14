@@ -292,6 +292,26 @@ function pack(inst) {
 }
 const AVAILABLE = Object.keys(INSTRUMENTS).filter(k => pack(k).D);
 let D = null, P = null; // the active instrument's data — set by render()
+
+// The method list is the UNION of the offline ladder's rungs and whatever the
+// newest LIVE seal carries — the reasoning rungs (and any live-only config)
+// exist only forward (ADR-0037), so the offline list alone would hide them,
+// which is exactly what the builder caught.
+function newestLiveRecord() {
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  return track && track.records.length ? track.records[track.records.length - 1] : null;
+}
+function methodList() {
+  const offline = D ? D.rungs : [];
+  const live = newestLiveRecord();
+  const extras = live
+    ? Object.keys(live.horizons[Object.keys(live.horizons)[0]].rungs)
+        .filter(r => !offline.includes(r))
+        .sort()
+    : [];
+  return [...offline, ...extras];
+}
+const liveOnly = r => D && !D.rungs.includes(r);
 const BUCKET_COLOR = ["var(--b0)","var(--b1)","var(--b2)","var(--b3)","var(--b4)"];
 const BUCKET_LITE = [false, false, true, false, false];
 const RUNG_STYLE = {
@@ -385,7 +405,7 @@ function controls() {
     text: "t+" + h, class: h === state.horizon ? "on" : "",
     onclick: () => { state.horizon = h; render(); },
   })));
-  group("method", D.rungs.map(r => el("button", {
+  group("method", methodList().map(r => el("button", {
     class: r === state.rung ? "on" : "", title: r,
     onclick: () => setFocus(r),
   }, el("span", { class: "sw", style: "background:" + ((RUNG_STYLE[r] || {}).color || "#888") }),
@@ -624,8 +644,12 @@ function priceChart() {
       `${typical}% on a typical day.${biggest}` }));
   } else if (!one) {
     wrap.appendChild(el("div", { class: "note", style: "margin-top:.7rem", text:
-      `${rname(state.rung)} promises buckets, not price ranges — pick a model method in the ` +
-      "bar above to see its ribbon, its verdict, and its breakouts ringed in red." }));
+      state.rung.startsWith("llm_")
+        ? `${rname(state.rung)} is live-only by design (forward-only, ADR-0037): it has no ` +
+          "offline price history to draw a ribbon from. Its sealed bets are in “Today's " +
+          "sealed bets” below, and its scores accrue in the live track record day by day."
+        : `${rname(state.rung)} promises buckets, not price ranges — pick a model method in ` +
+          "the bar above to see its ribbon, its verdict, and its breakouts ringed in red." }));
   }
 
   wrap.appendChild(el("div", { class: "scroll", style: "margin-top:.4rem" }, svg));
@@ -684,6 +708,14 @@ function dayByDay() {
     wrap.appendChild(el("div", { class: "note", style: "margin-top:1rem", text:
       "This view needs the per-day distributions — regenerate ui/data/results.js with " +
       "evaluate_gold_poc.py --json (a re-score may still be running), then reload." }));
+    return wrap;
+  }
+  if (liveOnly(state.rung)) {
+    wrap.appendChild(el("div", { class: "aim", style: "margin-top:.9rem", text:
+      `${rname(state.rung)} is live-only by design — forward-only (ADR-0037) means it never ` +
+      "runs against the past, so it has no history to draw here. Its bets appear in " +
+      "“Today's sealed bets”, and its hits accumulate in the live track record one real " +
+      "day at a time." }));
     return wrap;
   }
 
@@ -850,6 +882,16 @@ function sealedToday() {
     "Sealed before any outcome existed; every bet is graded against these exact edges." }));
 
   if (newest.llm) {
+    for (const variant of ["raw", "mem"]) {
+      const meta = newest.llm[variant];
+      if (!meta || !meta.rationale) continue;
+      const label = variant === "raw" ? "without memory" : "with memory";
+      const quote = el("div", { class: "aim", style: "margin:.8rem 0 .2rem" });
+      quote.appendChild(el("div", { style: "font-weight:650", text:
+        `What ${newest.llm.model} said (${label}):` }));
+      quote.appendChild(el("p", { style: "margin-top:.25rem", text: `“${meta.rationale}”` }));
+      wrap.appendChild(quote);
+    }
     const bits = [`Reasoning rungs — model ${newest.llm.model}`];
     for (const variant of ["raw", "mem"]) {
       const meta = newest.llm[variant];
@@ -1129,7 +1171,10 @@ function chart() {
     "shown window — solid or dashed exactly as in its legend chip, with the focused method " +
     "bold. A method with real skill drifts below zero and stays there. Click a chip to " +
     "focus a method everywhere; the always-flat dummy is excluded (it dwarfs the scale). " +
-    "This becomes the learning curve as live days append." }));
+    "This becomes the learning curve as live days append." +
+    (liveOnly(state.rung)
+      ? ` (${rname(state.rung)} is live-only — it earns a line here as its live days score.)`
+      : "") }));
   return wrap;
 }
 
@@ -1218,7 +1263,7 @@ function render() {
   ({ D, P } = pack(state.instrument));
   if (!state.horizon || !D.horizons.includes(state.horizon))
     state.horizon = D.horizons.includes("5") ? "5" : D.horizons[0];
-  if (!D.rungs.includes(state.rung))
+  if (!methodList().includes(state.rung))
     state.rung = D.rungs.includes("chronos_uni") ? "chronos_uni" : D.rungs[0];
   meta();
   controls();

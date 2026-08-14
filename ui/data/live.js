@@ -282,16 +282,16 @@ window.POC_LIVE = {
          0.1726
         ],
         "llm_raw": [
-         0.055,
-         0.2,
-         0.445,
-         0.23,
-         0.07
+         0.062,
+         0.198,
+         0.434,
+         0.225,
+         0.081
         ],
         "llm_mem": [
          0.055,
-         0.205,
-         0.435,
+         0.2,
+         0.44,
          0.235,
          0.07
         ]
@@ -390,18 +390,18 @@ window.POC_LIVE = {
          0.1475
         ],
         "llm_raw": [
-         0.055,
-         0.215,
-         0.39,
-         0.245,
-         0.095
+         0.07,
+         0.229,
+         0.367,
+         0.228,
+         0.106
         ],
         "llm_mem": [
-         0.059,
-         0.218,
-         0.389,
-         0.244,
-         0.09
+         0.057,
+         0.217,
+         0.391,
+         0.241,
+         0.094
         ]
        }
       }
@@ -412,12 +412,14 @@ window.POC_LIVE = {
       "raw": {
        "model": "gpt-5.6-sol",
        "brief_sha256": "70ed140fa667a8936f458025897c706a13d35217d31839ddf066c91d56911f76",
-       "response_sha256": "d2c091091397af2ea0a0d28bafeaf8918a9ff7407ee7b2c537af9d73f21c34e4"
+       "response_sha256": "24216e212ea5fcbd9bd882bee72e5be9d4252afb985a4b31b4c46e38e5e3e7a4",
+       "rationale": "The event shortlist is noisy and lacks a clear, gold-specific transmission channel, so I assign it no material directional signal. With only one live observation, I also give the live rankings negligible weight and stay close to the offline-leading climatology and univariate base rates, retaining only a mild upside asymmetry."
       },
       "mem": {
        "model": "gpt-5.6-sol",
        "brief_sha256": "9e27b4c7f442b4d3af53721150e044dddcfd438096d24cc74bb7c4790f4c47a8",
-       "response_sha256": "047a3eee4e7c5f8848cc905d06d3f8ee29963303b8f6c0ac771517e9e9673e05"
+       "response_sha256": "82adfcd905551397a04f2939aa5d5181b8f49bfca3652eec262f31486c20d2dc",
+       "rationale": "The event shortlist is noisy and lacks a clear, instrument-specific catalyst for gold, so it carries little forecast signal. With only one live observation and no method detectably beating base rates offline, the distributions stay close to climatology, with only a modest upside tilt and substantial central mass."
       }
      }
     }

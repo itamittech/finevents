@@ -344,6 +344,10 @@ def reasoning_rung(
             meta[variant] = record_run(
                 instrument, as_of, brief, prediction.model_dump(), model, variant=variant
             )
+            # The rationale is the model's own words about its own bet — derived
+            # work we choose to publish with the seal (the builder wants "what
+            # the LLM told" visible on the page). Full transcript stays local.
+            meta[variant]["rationale"] = prediction.rationale[:500]
             print(f"  {instrument:<9} {rung} sealed-ready (transcript recorded)")
         except Exception as error:  # noqa: BLE001 — first contact with a live API
             meta[variant] = {"error": f"{type(error).__name__}: {error}"[:300]}
