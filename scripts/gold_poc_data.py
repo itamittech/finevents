@@ -114,3 +114,88 @@ def load_series(
 def load_panel(fred_knowledge_lag_days: int = FRED_KNOWLEDGE_LAG_DAYS) -> Panel:
     gold, covariates = load_series(fred_knowledge_lag_days)
     return align(gold, covariates)
+
+
+#: The related-market roster the reasoning brief quotes (P8e): every series the
+#: POC tracks, plus the macro complex. `pct` rows are percent moves; `pp` rows
+#: are level deltas in percentage points — a yield's percent-change is noise
+#: around zero, so the delta is the honest unit.
+CONTEXT_ROSTER: tuple[tuple[str, str], ...] = (
+    ("gold", "pct"),
+    ("silver", "pct"),
+    ("usd_rub", "pct"),
+    ("usd_inr", "pct"),
+    ("wti", "pct"),
+    ("dollar_index", "pct"),
+    ("vix", "pct"),
+    ("real_10y", "pp"),
+)
+
+
+def pct_move(prev: float, current: float) -> float:
+    return (current / prev - 1.0) * 100.0
+
+
+def recent_moves(dates: list[str], values: list[float], sessions: int) -> list[tuple[str, float]]:
+    """The last `sessions` daily percent moves, oldest first, dated by the
+    session each move landed on. Pure, so the brief's inputs are testable."""
+    out: list[tuple[str, float]] = []
+    for i in range(max(1, len(values) - sessions), len(values)):
+        out.append((dates[i], pct_move(values[i - 1], values[i])))
+    return out
+
+
+def _context_series() -> dict[str, Series]:
+    lag = FRED_KNOWLEDGE_LAG_DAYS
+    return {
+        "gold": read_metal("gold"),
+        "silver": read_metal("silver"),
+        "usd_rub": read_simple("fx_usdrub_cbr.csv", "usd_rub", "usd_rub"),
+        "usd_inr": read_simple("fred_dexinus.csv", "dexinus", "usd_inr", knowledge_lag_days=lag),
+        "wti": read_simple("fred_dcoilwtico.csv", "dcoilwtico", "wti", knowledge_lag_days=lag),
+        "dollar_index": read_simple(
+            "fred_dtwexbgs.csv", "dtwexbgs", "dollar_index", knowledge_lag_days=lag
+        ),
+        "vix": read_simple("fred_vixcls.csv", "vixcls", "vix", knowledge_lag_days=lag),
+        "real_10y": read_simple("fred_dfii10.csv", "dfii10", "real_10y", knowledge_lag_days=lag),
+    }
+
+
+def market_context(instrument: str, sessions: int = 10) -> dict:
+    """What the reasoning brief may say about the market itself (P8e).
+
+    Everything leaves here as a MOVE — a percent change, or a pp delta for the
+    yield — never a level. The brief travels to a hosted model and is recorded
+    locally, and moves are the derived form the publication boundary already
+    blesses for committed work (REQ-1106/1107); raw levels enter no prompt.
+
+    `recent` is the target's own last daily moves; `related` is every other
+    series' 1- and 5-session move at its own latest knowledge date (FRED series
+    lag one knowledge day by construction — no live-time lookahead is possible,
+    the files simply end at what is knowable); `actuals` maps recent target
+    dates to their realised daily move, for grading past bets inside the brief.
+    """
+    roster = _context_series()
+    target = load_univariate(instrument) if instrument in UNIVARIATE_SERIES else roster[instrument]
+    t_dates = [d.isoformat() for d in target.dates]
+    t_values = [float(v) for v in target.values]
+    related = []
+    for name, kind in CONTEXT_ROSTER:
+        if name == instrument:
+            continue
+        series = roster[name]
+        if len(series.values) < 6:
+            continue
+        v = [float(x) for x in series.values]
+        if kind == "pp":
+            d1, d5 = v[-1] - v[-2], v[-1] - v[-6]
+        else:
+            d1, d5 = pct_move(v[-2], v[-1]), pct_move(v[-6], v[-1])
+        related.append(
+            {"name": name, "kind": kind, "date": series.dates[-1].isoformat(), "d1": d1, "d5": d5}
+        )
+    return {
+        "recent": recent_moves(t_dates, t_values, sessions),
+        "related": related,
+        "actuals": dict(recent_moves(t_dates, t_values, 40)),
+    }

@@ -7,16 +7,17 @@
 <!--
   The gold POC dashboard (POC scaffolding toward REQ-901/903/908).
 
-  Self-contained by design: no CDN, no fonts, no fetch. Data arrives as two
-  script globals (./data/results.js, ./data/latest.js) so the page opens from
-  file:// on a laptop and ships unchanged to S3 + CloudFront later (ADR-0020).
+  Self-contained by design: no CDN, no fonts, no fetch. Data arrives as script
+  globals (./data/*.js) so the page opens from file:// on a laptop and ships
+  unchanged to S3 + CloudFront later (ADR-0020).
 
-  Everything shown is derived work - scores, probabilities, sigma, edges
-  (REQ-1106). No raw closes, no VIXCLS values (REQ-1107).
+  Every COMMITTED file is derived work - scores, probabilities, sigma, edges
+  (REQ-1106). No raw closes, no VIXCLS values (REQ-1107). The two price layers
+  (prices*.js, live_prices.js) are local-only and the page degrades without them.
 
   Regenerate:
+    uv run python scripts/run_poc_daily.py          (the live record, daily)
     uv run python scripts/evaluate_gold_poc.py --json ui/data/results.js
-    uv run python scripts/forecast_gold_today.py
 -->
 <style>
   :root {
@@ -118,6 +119,13 @@
   .stat .l { font-size: .76rem; color: var(--muted); max-width: 20ch; }
   .stat .ref { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
   .aim { border-left: 3px solid var(--accent); padding: .1rem 0 .1rem 1rem; margin-top: 1rem; color: #4c493f; font-size: .9rem; max-width: 72ch; }
+  /* The page grew past what one scroll can hold in the head: zones name the
+     three time-frames (today / live / offline), the jump bar teleports. */
+  .zone { margin: 2.1rem 0 -0.2rem; font-size: .72rem; font-weight: 650; letter-spacing: .18em; color: var(--muted); text-transform: uppercase; border-bottom: 2px solid var(--line); padding-bottom: .35rem; }
+  #jump { display: flex; flex-wrap: wrap; gap: .2rem .95rem; font-size: .78rem; padding: .5rem 0 .1rem; }
+  #jump a { color: var(--muted); text-decoration: none; }
+  #jump a:hover { color: var(--ink); text-decoration: underline; }
+  section, .zone { scroll-margin-top: 92px; }
   svg text { font-family: inherit; }
   .note { color: var(--muted); font-size: .8rem; margin-top: .7rem; }
   .story { list-style: none; }
@@ -161,6 +169,8 @@
 
   <div id="controls"></div>
 
+  <div id="jump"></div>
+
   <div id="content"></div>
 
   <div id="tooltip"></div>
@@ -179,6 +189,7 @@
 <script src="./data/results_silver.js"></script>
 <script src="./data/prices_silver.js"></script>
 <script src="./data/live.js"></script>
+<script src="./data/live_prices.js"></script>
 <script src="./data/events.js"></script>
 <script>
 "use strict";
@@ -292,6 +303,25 @@ function pack(inst) {
 }
 const AVAILABLE = Object.keys(INSTRUMENTS).filter(k => pack(k).D);
 let D = null, P = null; // the active instrument's data — set by render()
+
+// The LOCAL price sidecar (written by run_poc_daily, never committed): recent
+// closes per instrument, so point bets can be shown in price space. The page
+// works without it — bets then stay in percent, which is the committed truth.
+const LP = window.POC_LIVE_PRICES || {};
+const lpClose = dateIso => (LP[state.instrument] || {})[dateIso];
+function latestClose() {
+  const m = LP[state.instrument];
+  if (m) {
+    const dates = Object.keys(m).sort();
+    const d = dates[dates.length - 1];
+    return { date: d, v: m[d] };
+  }
+  if (P) {
+    const i = P.series.close.length - 1;
+    return { date: P.series.dates[i], v: P.series.close[i] };
+  }
+  return null;
+}
 
 // The method list is the UNION of the offline ladder's rungs and whatever the
 // newest LIVE seal carries — the reasoning rungs (and any live-only config)
@@ -449,23 +479,32 @@ function hero() {
   return wrap;
 }
 
-function priceChart() {
+function identityCard() {
+  // "What IS this price?" — the first question, answered before any chart,
+  // with the freshest close the local sidecar knows (falls back to the
+  // report-window price layer, degrades to no number at all when public).
   const info = INSTRUMENTS[state.instrument];
-  const wrap = el("section", null);
-  wrap.appendChild(el("h2", { text: `The price, and each method's promised range · t+${state.horizon}` }));
-
-  const card = el("div", { class: "aim", style: "margin:.4rem 0 .9rem" });
-  card.appendChild(el("div", { style: "font-weight:650", text: "What you're looking at: " + info.title }));
+  const wrap = el("section", { id: "what" });
+  wrap.appendChild(el("h2", { text: "What you're looking at" }));
+  const card = el("div", { class: "aim", style: "margin:.2rem 0 .2rem" });
+  card.appendChild(el("div", { style: "font-weight:650", text: info.title }));
   card.appendChild(el("p", { style: "margin-top:.25rem", text: info.blurb }));
-  if (P) {
-    const last = P.series.close[P.series.close.length - 1];
+  const last = latestClose();
+  if (last) {
     const ounce = info.ounce
-      ? ` — about ₽${Math.round(last * info.ounce).toLocaleString("en-US")} per troy ounce (31.1035 g)`
+      ? ` — about ₽${Math.round(last.v * info.ounce).toLocaleString("en-US")} per troy ounce (31.1035 g)`
       : "";
     card.appendChild(el("p", { style: "margin-top:.25rem", text:
-      `Latest: ${priceFmt(last)} ${info.unit}${ounce}.` }));
+      `Latest close (${last.date}): ${priceFmt(last.v)} ${info.unit}${ounce}.` }));
   }
   wrap.appendChild(card);
+  return wrap;
+}
+
+function priceChart() {
+  const info = INSTRUMENTS[state.instrument];
+  const wrap = el("section", { id: "price" });
+  wrap.appendChild(el("h2", { text: `The price, and each method's promised range · t+${state.horizon}` }));
 
   wrap.appendChild(el("p", { class: "note", text:
     "Before each day happened, the method drew a zone: “the price will land in here, 8 days " +
@@ -683,7 +722,7 @@ function directionOf(probs) {
 }
 
 function dayByDay() {
-  const wrap = el("section", null);
+  const wrap = el("section", { id: "daily" });
   wrap.appendChild(el("h2", { text: "Day by day — what each method said, and what happened" }));
   wrap.appendChild(el("p", { class: "note", text:
     "Every day each method spreads 100% of its belief across five outcomes, sized by that " +
@@ -842,7 +881,7 @@ function sealedToday() {
   const hz = newest.horizons[state.horizon];
   if (!hz) return null;
 
-  const wrap = el("section", null);
+  const wrap = el("section", { id: "today" });
   wrap.appendChild(el("h2", { text:
     `Today's sealed bets · ${newest.as_of} · t+${state.horizon} — graded when reality lands` }));
 
@@ -884,12 +923,21 @@ function sealedToday() {
   if (newest.llm) {
     for (const variant of ["raw", "mem"]) {
       const meta = newest.llm[variant];
-      if (!meta || !meta.rationale) continue;
+      if (!meta || meta.error) continue;
       const label = variant === "raw" ? "without memory" : "with memory";
       const quote = el("div", { class: "aim", style: "margin:.8rem 0 .2rem" });
       quote.appendChild(el("div", { style: "font-weight:650", text:
         `What ${newest.llm.model} said (${label}):` }));
-      quote.appendChild(el("p", { style: "margin-top:.25rem", text: `“${meta.rationale}”` }));
+      const pp = (meta.point_pct || {})[state.horizon];
+      if (pp !== undefined) {
+        const b0 = lpClose(newest.as_of);
+        const conv = b0 === undefined ? ""
+          : ` → ${priceFmt(b0 * (1 + pp / 100))} ${INSTRUMENTS[state.instrument].short}`;
+        quote.appendChild(el("p", { style: "margin-top:.3rem; font-weight:650", text:
+          `Its exact call for t+${state.horizon}: ${fmt(pp, 2)}%${conv}` }));
+      }
+      if (meta.rationale)
+        quote.appendChild(el("p", { style: "margin-top:.25rem", text: `“${meta.rationale}”` }));
       wrap.appendChild(quote);
     }
     const bits = [`Reasoning rungs — model ${newest.llm.model}`];
@@ -907,9 +955,122 @@ function sealedToday() {
   return wrap;
 }
 
+function agentBoard() {
+  // The builder's ask, verbatim: "Model Bet -> X, Actual Price -> Y". One row
+  // per sealed reasoning bet at the focused horizon; graded rows show the
+  // realised move (in price space when the local sidecar is present) and
+  // whether the bucket call landed. Forward-only: this table IS the agent's
+  // entire history — it began at its first live day.
+  const wrap = el("section", { id: "agent" });
+  wrap.appendChild(el("h2", { text:
+    `The agent, bet by bet · t+${state.horizon} — its exact call vs what happened` }));
+
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  const withLlm = track ? track.records.filter(r => r.llm) : [];
+  if (!withLlm.length) {
+    wrap.appendChild(el("p", { class: "note", text:
+      "No reasoning bets sealed for this instrument yet. The agent is forward-only " +
+      "(ADR-0037): its record starts at its first live day — the daily runner seals one, " +
+      "given an OPENAI_API_KEY." }));
+    return wrap;
+  }
+
+  const info = INSTRUMENTS[state.instrument];
+  const h = state.horizon;
+  let sealedN = 0, gradedN = 0, exactN = 0;
+  const absErr = [];
+
+  const table = el("table", null);
+  const head = el("tr", null);
+  for (const [t, cls] of [["sealed", ""], ["bet", ""], ["model bet", "num"], ["it said", ""],
+                          ["actual", "num"], ["result", ""], ["its RPS (day's best)", "num"]])
+    head.appendChild(el("th", { text: t, class: cls }));
+  table.appendChild(el("thead", null, head));
+  const body = el("tbody", null);
+
+  for (const r of withLlm) {
+    const hz = r.horizons[h];
+    const m = (r.matured || {})[h];
+    const b0 = lpClose(r.as_of);
+    for (const variant of ["raw", "mem"]) {
+      const meta = r.llm[variant];
+      if (!meta || meta.error) continue;
+      const rung = "llm_" + variant;
+      const probs = hz && hz.rungs[rung];
+      if (!probs) continue;
+      sealedN++;
+      const pp = (meta.point_pct || {})[h];
+      let betCell = pp === undefined ? "—" : `${fmt(pp, 2)}%`;
+      if (pp !== undefined && b0 !== undefined)
+        betCell += ` → ${priceFmt(b0 * (1 + pp / 100))} ${info.short}`;
+
+      let actualCell = "waiting", rpsCell = "—";
+      let resultNode = el("span", { class: "verdict v-nd", text: "waiting" });
+      if (m) {
+        gradedN++;
+        const c1 = lpClose(m.target_date);
+        actualCell = `“${D.buckets[m.outcome]}”`;
+        if (b0 !== undefined && c1 !== undefined) {
+          const actPct = (c1 / b0 - 1) * 100;
+          actualCell = `${fmt(actPct, 2)}% → ${priceFmt(c1)} ${info.short}`;
+          if (pp !== undefined) absErr.push(Math.abs(pp - actPct));
+        }
+        const off = Math.abs(modeOf(probs) - m.outcome);
+        if (off === 0) { exactN++; resultNode = el("span", { class: "verdict v-better", text: "✓ exact bucket" }); }
+        else if (off === 1) resultNode = el("span", { class: "verdict v-nd", text: "± one off" });
+        else resultNode = el("span", { class: "verdict v-worse", text: "✗ missed" });
+        const mine = m.rps[rung];
+        const best = Math.min(...Object.values(m.rps));
+        if (mine !== undefined) rpsCell = `${mine.toFixed(3)} (${best.toFixed(3)})`;
+      }
+
+      const tr = el("tr", {
+        class: rung === state.rung ? "focused pickable" : "pickable",
+        onclick: () => setFocus(rung),
+      });
+      tr.appendChild(el("td", { text: r.as_of }));
+      tr.appendChild(el("td", { class: "rname", title: rung },
+        el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }),
+        document.createTextNode(variant === "raw" ? "no memory" : "with memory")));
+      tr.appendChild(el("td", { class: "num", text: betCell }));
+      tr.appendChild(el("td", { text: `“${D.buckets[modeOf(probs)]}”` }));
+      tr.appendChild(el("td", { class: "num", text: actualCell }));
+      tr.appendChild(el("td", null, resultNode));
+      tr.appendChild(el("td", { class: "num", text: rpsCell }));
+      body.appendChild(tr);
+    }
+  }
+  table.appendChild(body);
+  wrap.appendChild(el("div", { class: "scroll" }, table));
+
+  const stats = el("div", { class: "stats" });
+  const block = (v, label) => {
+    const s = el("div", { class: "stat" });
+    s.appendChild(el("div", { class: "v", text: v }));
+    s.appendChild(el("div", { class: "l", text: label }));
+    return s;
+  };
+  stats.appendChild(block(String(sealedN), `bets sealed at t+${h}`));
+  stats.appendChild(block(`${exactN} / ${gradedN}`, "graded bets that called the exact bucket"));
+  if (absErr.length) {
+    const mean = absErr.reduce((a, b) => a + b, 0) / absErr.length;
+    stats.appendChild(block(fmt(mean, 2) + "%", "average miss of its exact call"));
+  }
+  wrap.appendChild(stats);
+
+  wrap.appendChild(el("div", { class: "note", text:
+    "“Model bet” is the agent's own single number, sealed before the outcome existed; the " +
+    "five-bucket distribution beside it is what gets RPS-scored, so the exact call can " +
+    "never be gamed into the headline. Price conversions use the local price layer" +
+    (Object.keys(LP).length ? "" : " (absent here — bets shown in percent, the committed truth)") +
+    "; the “with memory” row is the same model reading its own wiki page — the paired " +
+    "difference is what memory is worth (P8d)." }));
+  return wrap;
+}
+
 function eventsFeed() {
   const E = window.POC_EVENTS;
-  const wrap = el("section", null);
+  const wrap = el("section", { id: "events" });
   wrap.appendChild(el("h2", { text: "The week's events — filtered by code, no model" }));
 
   if (!E || !E.days || !E.days.length) {
@@ -948,7 +1109,7 @@ function eventsFeed() {
 
 function liveTrack() {
   const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
-  const wrap = el("section", null);
+  const wrap = el("section", { id: "live" });
   wrap.appendChild(el("h2", { text: "The live track record — sealed daily, scored when reality arrives" }));
 
   if (!track || !track.records.length) {
@@ -1028,7 +1189,7 @@ function liveTrack() {
 }
 
 function ladder() {
-  const wrap = el("section", null);
+  const wrap = el("section", { id: "board" });
   wrap.appendChild(el("h2", { text:
     `The scoreboard · t+${state.horizon} — ${D.window.days} unseen days, RPS (lower is better)` }));
 
@@ -1083,7 +1244,7 @@ function ladder() {
 }
 
 function chart() {
-  const wrap = el("section", null);
+  const wrap = el("section", { id: "race" });
   wrap.appendChild(el("h2", { text:
     `The race · t+${state.horizon} — cumulative gap to climatology, below zero is ahead` }));
 
@@ -1179,7 +1340,7 @@ function chart() {
 }
 
 function byOutcome() {
-  const wrap = el("section", null);
+  const wrap = el("section", { id: "outcome" });
   wrap.appendChild(el("h2", { text:
     `By what actually happened · t+${state.horizon} — mean RPS per realised bucket` }));
   const per = D.by_outcome[state.horizon];
@@ -1253,10 +1414,23 @@ function footer() {
     : "";
   f.appendChild(el("div", { text:
     `Generated from data through ${D.generated} · every committed number is derived work ` +
-    "(scores, probabilities, σ, edges) — REQ-1106/1107; the price layer stays on this " +
+    "(scores, probabilities, σ, edges) — REQ-1106/1107; both price layers stay on this " +
     "machine. " + rung2 +
-    "Regenerate: evaluate_gold_poc.py --instrument <gold|usd_rub|usd_inr> --json … --prices … · " +
-    "forecast_gold_today.py" }));
+    "Daily: run_poc_daily.py (seals every rung, GPT-5.6 included, and refreshes memory) · " +
+    "offline report: evaluate_gold_poc.py --instrument <gold|silver|usd_rub|usd_inr|wti> " +
+    "--json … --prices …" }));
+}
+
+function jumps() {
+  const bar = document.getElementById("jump");
+  bar.textContent = "";
+  const targets = [
+    ["what", "What is this"], ["today", "Today's bets"], ["agent", "The agent"],
+    ["events", "Events"], ["live", "Live record"], ["price", "The price"],
+    ["daily", "Day by day"], ["board", "Scoreboard"], ["race", "The race"],
+  ];
+  for (const [id, label] of targets)
+    if (document.getElementById(id)) bar.appendChild(el("a", { href: "#" + id, text: label }));
 }
 
 function render() {
@@ -1269,17 +1443,26 @@ function render() {
   controls();
   const c = document.getElementById("content");
   c.textContent = "";
+  const zone = t => c.appendChild(el("div", { class: "zone", text: t }));
+  // Three time-frames, newest first: what sealed TODAY, the LIVE record it
+  // joins, and the OFFLINE report that set the bar before any live day.
   c.appendChild(hero());
+  c.appendChild(identityCard());
+  zone("Today — sealed before the outcome exists");
+  const sealed = sealedToday(); if (sealed) c.appendChild(sealed);
+  c.appendChild(agentBoard());
+  c.appendChild(eventsFeed());
+  zone("The live experiment — one sealed record per trading day");
+  c.appendChild(liveTrack());
+  zone(`The offline report — ${D.window.days} unseen days that set the bar`);
   c.appendChild(priceChart());
   c.appendChild(dayByDay());
-  const sealed = sealedToday(); if (sealed) c.appendChild(sealed);
-  c.appendChild(eventsFeed());
-  c.appendChild(liveTrack());
   c.appendChild(ladder());
   c.appendChild(chart());
   c.appendChild(byOutcome());
   c.appendChild(story());
   footer();
+  jumps();
 }
 
 if (!AVAILABLE.length) {

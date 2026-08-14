@@ -15,6 +15,13 @@ name — "Chronos-2", "Base rates (climatology)" — with the internal rung key
 on hover, and per-instrument overrides where the covariate differs ("Chronos-2
 + gold" on the silver page).
 
+Since P8e the page is zoned by time-frame — **Today** (sealed bets, the
+agent board, the week's events), **the live experiment** (the growing track
+record), **the offline report** (the 143-day bar) — with a jump bar under the
+controls. "The agent, bet by bet" is the builder's ask verbatim: model bet →
+actual, per sealed reasoning bet, in price space when the local sidecar is
+present. All five instruments carry the GPT-5.6 pair.
+
 **Built before the daily runner on purpose** (resequenced 2026-08-13, builder's
 decision): the page fixes the data contract, so P5's runner writes files the
 dashboard already reads instead of the reverse.
@@ -41,7 +48,8 @@ any order works and missing instruments simply do not appear in the switcher.
 | `results_usd_rub.js`, `results_usd_inr.js` | `--instrument … --json` | yes | The same record for the FX pairs, univariate rungs only, merged into `POC_REGISTRY` |
 | `latest.js` | `forecast_gold_today.py` | superseded (P8d) | No longer loaded: "Today's sealed bets" reads the newest `live.js` record instead, which carries every rung including the reasoning pair and the llm audit hashes |
 | `wiki.js` | `run_poc_daily.py` (P8d) | yes | The mini-wiki: versioned memory pages — statistics computed by code (`seeded`/`observed`), curator-written lessons (capped, cited, code-enforced) |
-| `live.js` | `run_poc_daily.py` (P5) | yes | The live track record: one sealed record per instrument per day — every rung's probabilities, σ, edges, the ADR-0056 random-walk seed — plus matured outcomes and RPS, scored against the **sealed** edges. Seal-once: re-running a day is a byte-identical no-op |
+| `live.js` | `run_poc_daily.py` (P5) | yes | The live track record: one sealed record per instrument per day — every rung's probabilities, σ, edges, the ADR-0056 random-walk seed — plus matured outcomes and RPS, scored against the **sealed** edges. From P8e the llm metadata carries each variant's **point bet** (`point_pct` per horizon) and rationale beside the transcript hashes. Seal-once: re-running a day is a byte-identical no-op |
+| `live_prices.js` | `run_poc_daily.py` (P8e) | **no — local only** | Recent closes per instrument, so "The agent, bet by bet" and the sealed-bets section can show point bets and actuals in **price space**. Raw source-derived values, excluded by the ui/data allowlist; without it the page shows percent moves, which are the committed truth |
 | `events.js` | `gdelt_events.py` (P8b) | yes | The week's deterministic event shortlist — metadata and source URLs only, never article text (REQ-1107/1108), GDELT's dataset-level attribution embedded (DATA_SOURCES q2). Raw daily files cache in gitignored `data/gdelt/` |
 | `prices*.js` | `--prices` | **no — local only** | The fan chart's price layer per instrument: the close series, each model's price-space deciles per day, the daily flat zone. These carry source-derived price values; the CBR terms question in DATA_SOURCES.md is open, so `.gitignore` admits the results files by name and deliberately none of these |
 

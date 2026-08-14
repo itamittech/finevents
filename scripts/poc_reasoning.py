@@ -9,8 +9,9 @@ maturation. Model id comes from `FINEVENTS_LLM_MODEL` (default: gpt-5.6-sol) —
 configuration, never code.
 
 Run:  python scripts/poc_reasoning.py --show-brief gold
-      prints the exact brief the agent will read — keyless, from today's sealed
-      record, so what you inspect is what the model gets.
+      (any instrument: gold, silver, usd_rub, usd_inr, wti) — prints the exact
+      brief the agent will read, keyless, from today's sealed record, so what
+      you inspect is what the model gets.
 
 Guardrails carried from ADR-0057:
 - one bounded structured-output turn, zero tools;
@@ -49,7 +50,23 @@ ROOT = Path(__file__).resolve().parent.parent
 RECORDS = ROOT / "data" / "reasoning"
 LIVE = ROOT / "ui" / "data" / "live.js"
 EVENTS = ROOT / "ui" / "data" / "events.js"
-RESULTS = {"gold": ROOT / "ui" / "data" / "results.js"}
+RESULTS = {
+    "gold": ROOT / "ui" / "data" / "results.js",
+    "silver": ROOT / "ui" / "data" / "results_silver.js",
+    "usd_rub": ROOT / "ui" / "data" / "results_usd_rub.js",
+    "usd_inr": ROOT / "ui" / "data" / "results_usd_inr.js",
+    "wti": ROOT / "ui" / "data" / "results_wti.js",
+}
+
+#: What each target IS — the first thing the model must know, because "gold"
+#: alone hides the rouble leg, and a point bet needs its units understood.
+IDENTITY = {
+    "gold": "gold priced in roubles per gram (the Bank of Russia daily fix — an XAU/RUB series)",
+    "silver": "silver priced in roubles per gram (Bank of Russia daily fix)",
+    "usd_rub": "the US dollar priced in roubles (Bank of Russia official rate)",
+    "usd_inr": "the US dollar priced in Indian rupees (Fed H.10 reference rate)",
+    "wti": "WTI crude oil in US dollars per barrel",
+}
 
 ENV_KEY = "OPENAI_API_KEY"
 ENV_MODEL = "FINEVENTS_LLM_MODEL"
@@ -59,13 +76,24 @@ BUCKETS = ("large down", "small down", "flat", "small up", "large up")
 
 
 class HorizonBet(BaseModel):
-    """Five ordinal bucket probabilities. The schema is the contract (REQ-1301)."""
+    """Five ordinal bucket probabilities plus one exact call (REQ-1301).
+
+    The distribution is the scored contract (RPS against sealed edges). The
+    point estimate is the builder's ask — "the model should predict one exact
+    value" — sealed beside it and displayed against the realised move; it is
+    reported, not RPS-scored, so it can never be gamed into the headline."""
 
     large_down: float = Field(ge=0, le=1)
     small_down: float = Field(ge=0, le=1)
     flat: float = Field(ge=0, le=1)
     small_up: float = Field(ge=0, le=1)
     large_up: float = Field(ge=0, le=1)
+    point_pct: float = Field(
+        ge=-25,
+        le=25,
+        description="your single best estimate of the percent move over this horizon, "
+        "sign included — e.g. -0.42 for a 0.42% fall",
+    )
 
     def as_tuple(self) -> tuple[float, ...]:
         return (self.large_down, self.small_down, self.flat, self.small_up, self.large_up)
@@ -124,23 +152,59 @@ def assemble_brief(
     ladder: dict | None,
     events: dict | None,
     memory: str | None = None,
+    market: dict | None = None,
 ) -> str:
-    """The one prompt, assembled by code from the same files the dashboard reads.
+    """The one prompt, assembled by code from the same data the dashboard reads.
 
     Deterministic: identical inputs give the identical string, which is what
     makes the recorded SHA-256 meaningful. Contains event *metadata* only —
-    no URLs, no article text (REQ-1107) — and every number in it is already
-    published derived work.
+    no URLs, no article text (REQ-1107) — and every number is derived work:
+    percent moves, probabilities, scores, never raw price levels. The brief
+    itself stays local under data/reasoning/; the seal publishes its hash.
+
+    `market` (P8e) is `gold_poc_data.market_context`'s output: the target's own
+    recent moves, every related market's 1-/5-session move, and realised moves
+    for grading past bets — the covariate and history context the builder found
+    missing from v1.
     """
     lines: list[str] = []
     lines.append(
-        f"You are the reasoning rung of FinEvents, forecasting {instrument} as of {as_of}."
+        "You are the reasoning rung of FinEvents, forecasting "
+        f"{IDENTITY.get(instrument, instrument)} as of {as_of}."
     )
     lines.append(
-        "Output five-bucket probability distributions for t+1 and t+5 trading sessions. "
-        "Buckets are sigma-relative to this instrument's own recent volatility; you are "
-        "scored by ranked probability score, so calibrated beats confident-and-wrong."
+        "For t+1 and t+5 trading sessions, output a five-bucket probability distribution "
+        "AND point_pct — your single best estimate of the percent move, sign included. "
+        "Buckets are sigma-relative to this instrument's own recent volatility; the "
+        "distribution is scored by ranked probability score, so calibrated beats "
+        "confident-and-wrong. The point estimate is published beside the realised move."
     )
+
+    actuals: dict[str, float] = (market or {}).get("actuals", {})
+    recent = (market or {}).get("recent") or []
+    if recent:
+        compounded = 1.0
+        for _, pct in recent:
+            compounded *= 1.0 + pct / 100.0
+        lines.append(f"\n== Recent price action ({instrument} itself, daily % moves) ==")
+        for day, pct in recent:
+            lines.append(f"  {day}: {pct:+.2f}%")
+        lines.append(
+            f"  compounded over these {len(recent)} sessions: {(compounded - 1) * 100:+.2f}%"
+        )
+
+    related = (market or {}).get("related") or []
+    if related:
+        lines.append(
+            "\n== Related markets (each at its own latest session; "
+            "US series lag one knowledge day) =="
+        )
+        for row in related:
+            unit = "pp" if row["kind"] == "pp" else "%"
+            lines.append(
+                f"  {row['name']:<13} {row['date']}:  "
+                f"1-day {row['d1']:+.2f}{unit}, 5-day {row['d5']:+.2f}{unit}"
+            )
 
     lines.append("\n== Today's bucket geometry ==")
     for h in ("1", "5"):
@@ -169,9 +233,37 @@ def assemble_brief(
         lines.append(f"{len(track_records)} day(s) sealed; mean live RPS over matured horizons:")
         for rung, values in sorted(sums.items()):
             lines.append(f"  {rung:<18} {sum(values) / len(values):.4f}  ({len(values)} scored)")
-        for record in scored[-3:]:
+        for record in scored[-5:]:
             for h, matured in sorted(record["matured"].items()):
-                lines.append(f"  {record['as_of']} t+{h}: realised '{BUCKETS[matured['outcome']]}'")
+                actual = actuals.get(matured["target_date"])
+                act = f" ({actual:+.2f}%)" if actual is not None else ""
+                ranked = sorted(matured["rps"].items(), key=lambda pair: pair[1])
+                line = (
+                    f"  {record['as_of']} t+{h}: realised '{BUCKETS[matured['outcome']]}'{act}; "
+                    f"best {ranked[0][0]} {ranked[0][1]:.3f}"
+                )
+                rps = matured["rps"]
+                yours = {r: rps[r] for r in ("llm_raw", "llm_mem") if r in rps}
+                if yours:
+                    line += "; yours " + ", ".join(f"{r} {v:.3f}" for r, v in sorted(yours.items()))
+                lines.append(line)
+        past_points: list[str] = []
+        for record in scored[-5:]:
+            llm = record.get("llm") or {}
+            for h, matured in sorted(record["matured"].items()):
+                actual = actuals.get(matured["target_date"])
+                if actual is None:
+                    continue
+                for variant in ("raw", "mem"):
+                    point = ((llm.get(variant) or {}).get("point_pct") or {}).get(h)
+                    if point is not None:
+                        past_points.append(
+                            f"  {record['as_of']} t+{h} llm_{variant}: "
+                            f"you called {point:+.2f}%, it moved {actual:+.2f}%"
+                        )
+        if past_points:
+            lines.append("Your own past point calls, graded:")
+            lines.extend(past_points)
 
     if ladder:
         lines.append("\n== The offline ladder (2026 report window, before you existed) ==")
@@ -202,10 +294,14 @@ def assemble_brief(
 
     lines.append(
         "\n== Task ==\n"
-        "Weigh the events against the base rates and the other methods. If the events "
-        "carry no signal for this instrument, say so in the rationale and stay close to "
-        "the base rates — refusing to invent conviction is the calibrated move. Fill the "
-        "output schema exactly."
+        "Make your own forecast. The numeric methods above are evidence, not a menu — "
+        "they read only price series, so anything you can infer from the events, the "
+        "related markets or your memory is signal they cannot have; disagreement between "
+        "them is itself information. When the evidence is thin, calibrated means staying "
+        "near the base rates — say so in the rationale, and say what would have changed "
+        "your mind. When you do see something, let the probabilities move and name the "
+        "evidence. Give point_pct for each horizon: one number, the percent move you "
+        "consider most likely. Fill the output schema exactly."
     )
     return "\n".join(lines)
 
@@ -255,7 +351,8 @@ def _structured_call(schema: type[BaseModel], system_prompt: str, prompt: str, m
 
 
 PREDICTOR_SYSTEM = (
-    "You are a careful, calibrated financial forecaster. "
+    "You are a careful, calibrated financial forecaster who forms an independent view "
+    "from all the evidence given — you are never limited to the other methods' numbers. "
     "You never invent conviction the evidence does not support."
 )
 
@@ -303,6 +400,7 @@ def reasoning_rung(
     ladder: dict | None,
     events: dict | None,
     memory_page: str | None = None,
+    market: dict | None = None,
 ) -> tuple[dict[str, dict[str, tuple[float, ...]]] | None, dict | None]:
     """The runner's entry point: (per-horizon llm distributions, seal metadata).
 
@@ -336,6 +434,7 @@ def reasoning_rung(
             ladder=ladder,
             events=events,
             memory=page,
+            market=market,
         )
         try:
             prediction = predict(brief, model)
@@ -344,10 +443,15 @@ def reasoning_rung(
             meta[variant] = record_run(
                 instrument, as_of, brief, prediction.model_dump(), model, variant=variant
             )
-            # The rationale is the model's own words about its own bet — derived
-            # work we choose to publish with the seal (the builder wants "what
-            # the LLM told" visible on the page). Full transcript stays local.
+            # The rationale and the point bets are the model's own words and
+            # numbers about its own bet — derived work we choose to publish
+            # with the seal (the builder wants "what the LLM told" visible,
+            # bet vs actual). Full transcript stays local.
             meta[variant]["rationale"] = prediction.rationale[:500]
+            meta[variant]["point_pct"] = {
+                "1": round(prediction.t1.point_pct, 2),
+                "5": round(prediction.t5.point_pct, 2),
+            }
             print(f"  {instrument:<9} {rung} sealed-ready (transcript recorded)")
         except Exception as error:  # noqa: BLE001 — first contact with a live API
             meta[variant] = {"error": f"{type(error).__name__}: {error}"[:300]}
@@ -368,9 +472,23 @@ def _read_payload(path: Path, prefix: str) -> dict | None:
 
 
 def read_results(instrument: str) -> dict | None:
-    """The instrument's offline ladder payload, when one exists."""
+    """The instrument's offline ladder payload, when one exists.
+
+    Gold ships as a bare `window.POC_DATA` global; the other instruments ship
+    in `evaluate_gold_poc.registry_text`'s merge format — both parse here so
+    every instrument's brief and memory page can carry its seeded ladder.
+    """
     path = RESULTS.get(instrument)
-    return _read_payload(path, "window.POC_DATA = ") if path else None
+    if not path or not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8")
+    if text.startswith("window.POC_DATA = "):
+        return json.loads(text.removeprefix("window.POC_DATA = ").removesuffix(";\n"))
+    anchor = text.find("|| {}, ")
+    if anchor == -1:
+        return None
+    payload = json.loads(text[anchor + len("|| {}, ") :].rstrip().removesuffix(");"))
+    return payload.get("results", payload)
 
 
 def read_events() -> dict | None:
@@ -393,6 +511,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"no sealed record for {instrument} — run scripts/run_poc_daily.py first")
         return 1
     newest = records[-1]
+    try:
+        # The same market context the live run reads (CSV loads only, no models);
+        # briefs still assemble without it when the data files are absent.
+        from gold_poc_data import market_context
+
+        market = market_context(instrument)
+    except Exception as error:  # noqa: BLE001 — inspection tool, degrade visibly
+        print(f"(market context unavailable — {type(error).__name__}: {error})\n")
+        market = None
     brief = assemble_brief(
         instrument,
         as_of=newest["as_of"],
@@ -400,6 +527,7 @@ def main(argv: list[str] | None = None) -> int:
         track_records=records,
         ladder=read_results(instrument),
         events=read_events(),
+        market=market,
     )
     print(brief)
     print(

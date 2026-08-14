@@ -76,6 +76,17 @@ def events_fixture() -> dict:
     }
 
 
+def market_fixture() -> dict:
+    return {
+        "recent": [("2026-08-13", 0.42), ("2026-08-14", -0.18)],
+        "related": [
+            {"name": "wti", "kind": "pct", "date": "2026-08-13", "d1": 1.23, "d5": -3.41},
+            {"name": "real_10y", "kind": "pp", "date": "2026-08-13", "d1": 0.03, "d5": -0.05},
+        ],
+        "actuals": {"2026-08-14": -0.18},
+    }
+
+
 # --- the distribution cleaner -------------------------------------------------
 
 
@@ -103,11 +114,51 @@ def test_the_brief_is_deterministic_and_carries_every_block() -> None:
             }
         },
         events=events_fixture(),
+        market=market_fixture(),
     )
     first, second = build(), build()
     assert first == second  # the recorded SHA-256 is only meaningful if this holds
-    for required in ("sigma 1.796", "chronos_uni", "base rates", "Fighting", "1234 mentions"):
+    for required in (
+        "sigma 1.796",
+        "chronos_uni",
+        "base rates",
+        "Fighting",
+        "1234 mentions",
+        "roubles per gram",  # the identity line — what this price IS
+        "Recent price action",
+        "Related markets",
+        "wti           2026-08-13:  1-day +1.23%, 5-day -3.41%",
+        "real_10y      2026-08-13:  1-day +0.03pp, 5-day -0.05pp",
+        "evidence, not a menu",  # the task asks for the model's OWN forecast
+        "point_pct",
+    ):
         assert required in first
+
+
+def test_past_point_calls_are_graded_inside_the_brief() -> None:
+    scored_record = {
+        "as_of": "2026-08-13",
+        "matured": {
+            "1": {
+                "target_date": "2026-08-14",
+                "outcome": 3,
+                "rps": {"climatology": 0.12, "llm_raw": 0.09},
+            }
+        },
+        "llm": {"model": "gpt-5.6-sol", "raw": {"point_pct": {"1": 0.3, "5": 1.1}}},
+    }
+    brief = assemble_brief(
+        "gold",
+        as_of="2026-08-14",
+        horizons=horizons_fixture(),
+        track_records=[scored_record],
+        ladder=None,
+        events=None,
+        market=market_fixture(),
+    )
+    assert "realised 'small up' (-0.18%)" in brief  # actual move beside the bucket
+    assert "yours llm_raw 0.090" in brief  # the agent sees its own score
+    assert "you called +0.30%, it moved -0.18%" in brief  # and its own point call, graded
 
 
 def test_the_brief_never_carries_urls_or_article_text() -> None:
@@ -138,15 +189,25 @@ def test_the_brief_survives_an_empty_history() -> None:
 # --- the schema -----------------------------------------------------------------
 
 
+def flat_bet(point_pct: float = 0.0) -> HorizonBet:
+    return HorizonBet(
+        large_down=0.2, small_down=0.2, flat=0.2, small_up=0.2, large_up=0.2, point_pct=point_pct
+    )
+
+
 def test_the_schema_refuses_out_of_range_probabilities() -> None:
     with pytest.raises(ValidationError):
-        HorizonBet(large_down=1.5, small_down=0, flat=0, small_up=0, large_up=0)
+        HorizonBet(large_down=1.5, small_down=0, flat=0, small_up=0, large_up=0, point_pct=0.0)
     with pytest.raises(ValidationError):
-        Prediction(
-            t1=HorizonBet(large_down=0.2, small_down=0.2, flat=0.2, small_up=0.2, large_up=0.2),
-            t5=HorizonBet(large_down=0.2, small_down=0.2, flat=0.2, small_up=0.2, large_up=0.2),
-            rationale="x" * 700,
-        )
+        Prediction(t1=flat_bet(), t5=flat_bet(), rationale="x" * 700)
+
+
+def test_the_point_estimate_is_required_and_bounded() -> None:
+    with pytest.raises(ValidationError):  # a bet with no exact call is no bet (P8e)
+        HorizonBet(large_down=0.2, small_down=0.2, flat=0.2, small_up=0.2, large_up=0.2)
+    with pytest.raises(ValidationError):
+        flat_bet(point_pct=30.0)  # a 30% daily call is a malfunction, not a forecast
+    assert flat_bet(point_pct=-0.42).point_pct == -0.42
 
 
 # --- the audit record -----------------------------------------------------------
@@ -189,6 +250,42 @@ def test_the_memory_section_appears_only_when_a_page_is_given() -> None:
     assert mem_head.startswith(raw_head)
     inserted = mem_head.removeprefix(raw_head)
     assert "Your memory page" in inserted and "MEMORY PAGE — gold (version 1)" in inserted
+
+
+# --- offline results, both file formats ------------------------------------------
+
+
+def test_read_results_parses_the_registry_format_too(tmp_path, monkeypatch) -> None:
+    payload = {"window": {"days": 143}, "ladder": {"1": [], "5": []}}
+    registry = tmp_path / "results_wti.js"
+    registry.write_text(
+        "window.POC_REGISTRY = window.POC_REGISTRY || {};\n"
+        'window.POC_REGISTRY["wti"] = Object.assign(window.POC_REGISTRY["wti"] || {}, '
+        + json.dumps({"results": payload}, indent=1)
+        + ");\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setitem(poc_reasoning.RESULTS, "wti", registry)
+    assert poc_reasoning.read_results("wti") == payload
+
+    monkeypatch.setitem(poc_reasoning.RESULTS, "wti", tmp_path / "missing.js")
+    assert poc_reasoning.read_results("wti") is None
+
+
+# --- the market context's pure parts ---------------------------------------------
+
+
+def test_recent_moves_are_dated_percent_changes() -> None:
+    from gold_poc_data import recent_moves  # pure stdlib import chain
+
+    dates = ["d0", "d1", "d2", "d3"]
+    moves = recent_moves(dates, [100.0, 101.0, 100.0, 102.0], sessions=2)
+    assert [d for d, _ in moves] == ["d2", "d3"]  # never asks for a move before day one
+    assert moves[0][1] == pytest.approx(-0.9901, abs=1e-4)
+    assert moves[1][1] == pytest.approx(2.0, abs=1e-9)
+    assert recent_moves(dates, [100.0, 101.0, 100.0, 102.0], sessions=99) == recent_moves(
+        dates, [100.0, 101.0, 100.0, 102.0], sessions=3
+    )
 
 
 # --- the .env loader -------------------------------------------------------------

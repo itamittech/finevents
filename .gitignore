@@ -70,9 +70,10 @@ data/
 
 # The dashboard's generated record is the one deliberate exception to **/data/:
 # it is OUR derived work — scores, probabilities, verdicts — which REQ-1106
-# publishes. Admitted BY NAME: ui/data/prices.js must stay local — it carries
+# publishes. Admitted BY NAME: the price layers (ui/data/prices*.js and
+# ui/data/live_prices.js, the P8e sidecar) must stay local — they carry
 # CBR-derived price values and the CBR terms question in DATA_SOURCES.md is
-# still open (ADR-0044/ADR-0050). The page degrades gracefully without it.
+# still open (ADR-0044/ADR-0050). The page degrades gracefully without them.
 !ui/data/
 ui/data/*
 !ui/data/results.js

@@ -282,18 +282,18 @@ window.POC_LIVE = {
          0.1726
         ],
         "llm_raw": [
-         0.062,
-         0.198,
-         0.434,
-         0.225,
-         0.081
+         0.055,
+         0.18,
+         0.4,
+         0.27,
+         0.095
         ],
         "llm_mem": [
-         0.055,
-         0.2,
-         0.44,
-         0.235,
-         0.07
+         0.07,
+         0.17,
+         0.38,
+         0.26,
+         0.12
         ]
        }
       },
@@ -390,18 +390,18 @@ window.POC_LIVE = {
          0.1475
         ],
         "llm_raw": [
-         0.07,
-         0.229,
-         0.367,
-         0.228,
-         0.106
+         0.06,
+         0.18,
+         0.35,
+         0.28,
+         0.13
         ],
         "llm_mem": [
-         0.057,
-         0.217,
-         0.391,
-         0.241,
-         0.094
+         0.07,
+         0.17,
+         0.35,
+         0.26,
+         0.15
         ]
        }
       }
@@ -411,15 +411,23 @@ window.POC_LIVE = {
       "model": "gpt-5.6-sol",
       "raw": {
        "model": "gpt-5.6-sol",
-       "brief_sha256": "70ed140fa667a8936f458025897c706a13d35217d31839ddf066c91d56911f76",
-       "response_sha256": "24216e212ea5fcbd9bd882bee72e5be9d4252afb985a4b31b4c46e38e5e3e7a4",
-       "rationale": "The event shortlist is noisy and lacks a clear, gold-specific transmission channel, so I assign it no material directional signal. With only one live observation, I also give the live rankings negligible weight and stay close to the offline-leading climatology and univariate base rates, retaining only a mild upside asymmetry."
+       "brief_sha256": "c69eb9cefd3544a3919609992f546c9640b21315102b33994c28e67de48a94ea",
+       "response_sha256": "bc1c14ef52e334180c8244f79aaaa84404f497d5a239cc09b3fe6c828172c0d0",
+       "rationale": "The 16.1% ten-session rise, alongside strong silver and a weakening rouble, supports a modest positive drift, but the move is extended and the declining VIX/flat real yields do not confirm a fresh safe-haven shock. The event list is noisy rather than clear evidence of new systemic escalation, so I stay fairly close to base rates, with flat modal and only a measured upward tilt. A sharp reversal in silver or USD/RUB would shift me downward; a clear geopolitical escalation accompanied by rising vo",
+       "point_pct": {
+        "1": 0.55,
+        "5": 1.3
+       }
       },
       "mem": {
        "model": "gpt-5.6-sol",
-       "brief_sha256": "9e27b4c7f442b4d3af53721150e044dddcfd438096d24cc74bb7c4790f4c47a8",
-       "response_sha256": "82adfcd905551397a04f2939aa5d5181b8f49bfca3652eec262f31486c20d2dc",
-       "rationale": "The event shortlist is noisy and lacks a clear, instrument-specific catalyst for gold, so it carries little forecast signal. With only one live observation and no method detectably beating base rates offline, the distributions stay close to climatology, with only a modest upside tilt and substantial central mass."
+       "brief_sha256": "5c31298e5a754a1450a20b98ebe50517a23d4d55c7166450c2b57151cef92ee6",
+       "response_sha256": "813532760974d11bba8b5b8173cda902189cdd8a1443f3231d6ac116191d5b17",
+       "rationale": "I stay fairly close to the base rates because the event list contains no clean, incremental macro shock and the models disagree substantially. Still, the exceptional +16.1% ten-session momentum, rising silver, and a weaker rouble favor a modest positive skew; softer global dollar conditions also help, while falling VIX, flat real yields, and reversal risk after the sharp run limit conviction. A clearer geopolitical escalation or renewed simultaneous gains in silver and USD/RUB would have justifi",
+       "point_pct": {
+        "1": 0.65,
+        "5": 1.85
+       }
       }
      }
     }
@@ -581,6 +589,20 @@ window.POC_LIVE = {
          0.2757,
          0.2339,
          0.2685
+        ],
+        "llm_raw": [
+         0.045,
+         0.145,
+         0.32,
+         0.31,
+         0.18
+        ],
+        "llm_mem": [
+         0.05,
+         0.15,
+         0.32,
+         0.3,
+         0.18
         ]
        }
       },
@@ -626,11 +648,48 @@ window.POC_LIVE = {
          0.3025,
          0.2712,
          0.216
+        ],
+        "llm_raw": [
+         0.045,
+         0.15,
+         0.3,
+         0.31,
+         0.195
+        ],
+        "llm_mem": [
+         0.05,
+         0.17,
+         0.31,
+         0.29,
+         0.18
         ]
        }
       }
      },
-     "matured": {}
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "1e083f0d89417be5032812256f178874361997317cda93763aea6e3af40d9b1a",
+       "response_sha256": "d4deaa58464c2d06630a546c1e45e52f955ae539ac61845c0637bf2c7d29576d",
+       "rationale": "I lean moderately toward further USD/RUB gains because the rouble has weakened persistently\u2014seven of the last nine moves were positive\u2014despite a softer broad dollar and sharply higher oil, suggesting idiosyncratic rouble pressure rather than a global-dollar move. The repeated gains also favor near-term continuation, but strong oil and the already extended 10-session rise create mean-reversion risk, so I stay fairly close to the historically competitive base rates and avoid TimesFM's aggressive u",
+       "point_pct": {
+        "1": 0.48,
+        "5": 1.55
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "12664df642af6fd1dee8965534fbae0c92e5867a293250e85839d292ec005b24",
+       "response_sha256": "6b46d56879101558c717fe9c3a62ab70b46650abbe601f4ae49e6fa4fd78d508",
+       "rationale": "The 4.94% ten-session rise and broad persistence of recent gains justify a modest upward tilt, reinforced by elevated gold and geopolitical-risk signals. However, strong oil, a softer broad dollar, and the lack of a clear new Russia-specific catalyst argue against extrapolating the trend aggressively, so probabilities remain near the historically competitive base-rate/model consensus. A material sanctions or capital-control announcement would increase upside conviction; credible de-escalation or",
+       "point_pct": {
+        "1": 0.48,
+        "5": 1.35
+       }
+      }
+     }
     }
    ]
   },
@@ -672,7 +731,7 @@ window.POC_LIVE = {
         "chronos_uni": [
          0.1035,
          0.1984,
-         0.4009,
+         0.4008,
          0.2268,
          0.0705
         ],
@@ -682,6 +741,20 @@ window.POC_LIVE = {
          0.3565,
          0.1995,
          0.0847
+        ],
+        "llm_raw": [
+         0.05,
+         0.19,
+         0.45,
+         0.22,
+         0.09
+        ],
+        "llm_mem": [
+         0.05,
+         0.195,
+         0.455,
+         0.215,
+         0.085
         ]
        }
       },
@@ -724,14 +797,51 @@ window.POC_LIVE = {
         "timesfm_uni": [
          0.1024,
          0.2301,
-         0.3173,
+         0.3174,
          0.2269,
          0.1232
+        ],
+        "llm_raw": [
+         0.055,
+         0.17,
+         0.39,
+         0.25,
+         0.135
+        ],
+        "llm_mem": [
+         0.055,
+         0.17,
+         0.4,
+         0.255,
+         0.12
         ]
        }
       }
      },
-     "matured": {}
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "53918e7bea1356baf42e6daa65907cf035479df37c35a172709275a326748210",
+       "response_sha256": "ecf2216c58f711caf11e353d8f81fe7d7555203c3c147282b3702f950ec33cc7",
+       "rationale": "Evidence is thin and the offline record favors staying near climatology. I apply only a modest upward USD/INR tilt: the sharp oil and precious-metals gains and possible mean reversion after a 1.40% ten-session decline weigh against the rupee, but the softer dollar index and falling VIX offset much of that signal. The event feed is noisy and lacks a clear India-specific catalyst; a material RBI/policy shock or a strongly aligned move in oil, the broad dollar, and global risk sentiment would have ",
+       "point_pct": {
+        "1": 0.04,
+        "5": 0.16
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "1cad23e678571afe142ab3734edf128f6f2dd6e478c25135dc77955ea0d9ca7c",
+       "response_sha256": "639521a2788744a2b5f05696e18494cf9ea0a71b9794bb1dfd94c66be97f2d7b",
+       "rationale": "I stay close to the best-performing climatology because there is no matured live evidence and the event feed contains no clear India-specific catalyst. The sharp oil rise is a modest upside risk for USD/INR because India is a major importer, but softer broad-dollar performance, declining VIX, and the pair\u2019s recent downward trend offset it. I therefore apply only a small upward tilt, more visible at t+5; a stronger dollar index or India-specific geopolitical/flow shock would have justified a larg",
+       "point_pct": {
+        "1": 0.04,
+        "5": 0.16
+       }
+      }
+     }
     }
    ]
   },
@@ -780,9 +890,23 @@ window.POC_LIVE = {
         "timesfm_uni": [
          0.108,
          0.2583,
-         0.3232,
+         0.3233,
          0.1781,
          0.1323
+        ],
+        "llm_raw": [
+         0.075,
+         0.19,
+         0.395,
+         0.27,
+         0.07
+        ],
+        "llm_mem": [
+         0.08,
+         0.2,
+         0.39,
+         0.25,
+         0.08
         ]
        }
       },
@@ -825,14 +949,51 @@ window.POC_LIVE = {
         "timesfm_uni": [
          0.0324,
          0.2554,
-         0.4004,
+         0.4005,
          0.2116,
          0.1001
+        ],
+        "llm_raw": [
+         0.08,
+         0.19,
+         0.37,
+         0.265,
+         0.095
+        ],
+        "llm_mem": [
+         0.08,
+         0.2,
+         0.37,
+         0.25,
+         0.1
         ]
        }
       }
      },
-     "matured": {}
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "b96d7cc03cc51440438c2acc0f812fe7b2b7fce13885d1fd9486a41247aba4c5",
+       "response_sha256": "a974e2f3157a2a75ee82f885bdf5d5983d2fdbe037c7388a686c53a0566a89c3",
+       "rationale": "Stay close to climatological base rates because no method has shown a reliable edge and the event feed is noisy. Still, WTI\u2019s recent rebound, a softer dollar, surging precious metals, and repeated Iran/Syria headlines justify a modest upside tilt; falling VIX and the absence of a confirmed oil-supply disruption limit conviction and leave substantial reversal risk after the sharp rally. A verified outage, sanctions escalation, or decisive inventory surprise would have moved the forecast materiall",
+       "point_pct": {
+        "1": 0.55,
+        "5": 1.5
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "842bffc4ce4d68de83fcb8b4b4c043eb8c54b7675b0ffd375bd23ae4eb65f6d0",
+       "response_sha256": "a241f85ad4f542e02cfc7931890675938224fcff922ecd153b9d289051966112",
+       "rationale": "With no matured live evidence and climatology leading offline, I stay close to base rates. The recent rebound, weaker dollar, strong metals, and Iran/Syria risk give a modest upward skew, but the sharp two-session WTI gain raises reversal risk and the event metadata is too noisy for high conviction. A clear supply disruption or verified de-escalation would have shifted the forecast materially.",
+       "point_pct": {
+        "1": 0.45,
+        "5": 1.7
+       }
+      }
+     }
     }
    ]
   },
@@ -1080,6 +1241,20 @@ window.POC_LIVE = {
          0.3147,
          0.1881,
          0.1613
+        ],
+        "llm_raw": [
+         0.07,
+         0.18,
+         0.38,
+         0.25,
+         0.12
+        ],
+        "llm_mem": [
+         0.07,
+         0.18,
+         0.39,
+         0.24,
+         0.12
         ]
        }
       },
@@ -1153,11 +1328,48 @@ window.POC_LIVE = {
          0.283,
          0.2211,
          0.1752
+        ],
+        "llm_raw": [
+         0.08,
+         0.19,
+         0.34,
+         0.23,
+         0.16
+        ],
+        "llm_mem": [
+         0.07,
+         0.19,
+         0.37,
+         0.23,
+         0.14
         ]
        }
       }
      },
-     "matured": {}
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "9edc6082d908ff7cd671681aec1d10a458387f73624b301f5e0ce8b4724d4d37",
+       "response_sha256": "1d3599093d125a5be2245b5f0b77d2972d179ed72edc989c000671ac34bbe858",
+       "rationale": "The 21.1% ten-session surge argues for positive momentum but also elevated correction risk. Gold strength and rouble depreciation are independently supportive for silver in RUB, while lower VIX and nearly unchanged real yields temper the safe-haven signal; the event list adds no clean incremental catalyst. I therefore shift modestly above base rates, especially over five sessions, without following the most bullish model tail. Clear USD/RUB reversal, sharply higher real yields, or fading gold mo",
+       "point_pct": {
+        "1": 1.1,
+        "5": 2.8
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "feda9e0840d684f837d0dcb387deead1c92555f1c21bec51f7be849a1f870abb",
+       "response_sha256": "d17df45a48e544be29c85c003d1a101e608ff74606dadc298d8af38a55bda19c",
+       "rationale": "Stay fairly close to the proven base rates because the live record is only one observation and the event feed contains no clean incremental catalyst. I tilt upward because gold, USD/RUB, and oil are all rising and silver\u2019s momentum is unusually strong, but temper that signal after a 21% ten-session surge, which raises reversal risk. Clear further rouble depreciation or a new geopolitical shock would have justified more large-up mass; a gold reversal or rouble strengthening would have shifted the",
+       "point_pct": {
+        "1": 0.85,
+        "5": 2.3
+       }
+      }
+     }
     }
    ]
   }
