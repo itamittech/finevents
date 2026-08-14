@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinEvents POC — the architecture, functionally</title>
+<!-- Non-normative techstack note (CLAUDE.md): explains mechanics, decides nothing.
+     If this page disagrees with an ADR, the ADR wins and this page is stale. -->
+<style>
+  :root { --paper:#f7f5f1; --card:#fffefb; --ink:#21201c; --muted:#6f6a5e; --line:#e3ded2;
+          --accent:#a0721c; --next:#2b6cb0; --bad:#a63d2f; --good:#40702f; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--paper); color:var(--ink); font-family:"Segoe UI",system-ui,sans-serif;
+         line-height:1.5; padding:2rem 1.2rem 4rem; }
+  main { max-width:1180px; margin:0 auto; }
+  h1 { font-size:1.5rem; font-weight:650; }
+  h1 span { color:var(--accent); }
+  h2 { font-size:.82rem; font-weight:650; text-transform:uppercase; letter-spacing:.12em;
+       color:var(--muted); margin:2.2rem 0 .7rem; }
+  .sub { color:var(--muted); margin-top:.3rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:1.1rem 1.2rem; margin-top:.8rem; }
+  .scroll { overflow-x:auto; }
+  svg text { font-family:inherit; }
+  .legend { display:flex; gap:1.4rem; flex-wrap:wrap; font-size:.8rem; color:var(--muted); margin-top:.6rem; }
+  .legend i { display:inline-block; width:1.5rem; height:0; border-top:3px solid var(--ink); margin-right:.4rem; vertical-align:middle; }
+  .legend i.n { border-top:3px dashed var(--next); }
+  .legend i.h { border-top:6px solid #eee7d4; }
+  table { border-collapse:collapse; width:100%; font-size:.88rem; }
+  th,td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid #eeeae0; vertical-align:top; }
+  th { color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; }
+  td b { color:var(--accent); }
+  .note { color:var(--muted); font-size:.8rem; margin-top:.6rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1><span>FinEvents</span> · the POC, functionally — what runs today and where it's headed</h1>
+  <div class="sub">Solid = running every day on your machine. Dashed blue = the next steps (P8c/P8d), drawn into the same spine on purpose:
+  the reasoning layer's output enters the <b>same seal → mature → score machinery</b> as every other method. Nothing gets a separate, softer scoreboard.</div>
+
+  <h2>The daily flow</h2>
+  <div class="card scroll">
+  <svg viewBox="0 0 1150 640" width="100%" style="min-width:1000px; display:block" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#57534a"/>
+      </marker>
+      <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#2b6cb0"/>
+      </marker>
+    </defs>
+    <style>
+      .box { fill:#fffefb; stroke:#57534a; stroke-width:1.3; rx:8; }
+      .nbox { fill:#f4f8fc; stroke:#2b6cb0; stroke-width:1.3; stroke-dasharray:6 4; rx:8; }
+      .hband { fill:#efe9d8; }
+      .t { font-size:12.5px; fill:#21201c; font-weight:600; }
+      .s { font-size:10.5px; fill:#6f6a5e; }
+      .nt { font-size:12.5px; fill:#1d4a7a; font-weight:600; }
+      .ns { font-size:10.5px; fill:#4a6c8c; }
+      .flow { stroke:#57534a; stroke-width:1.4; fill:none; marker-end:url(#a); }
+      .nflow { stroke:#2b6cb0; stroke-width:1.4; fill:none; marker-end:url(#b); stroke-dasharray:6 4; }
+      .lane { font-size:10px; fill:#b0aa9b; letter-spacing:.15em; font-weight:700; }
+    </style>
+
+    <!-- ===== honesty band (background, right of sources) ===== -->
+    <rect x="18" y="580" width="1114" height="46" class="hband" rx="8"/>
+    <text x="34" y="599" class="t">The honesty layer, everywhere:</text>
+    <text x="34" y="615" class="s">seal once, before outcomes · score against SEALED σ-edges · forward-only, no agent replay (ADR-0037) · report window 2026+ only (models trained before it — demonstrated, not assumed) · every covariate rung beside a random-walk control (ADR-0056) · published files carry derived work only, never raw prices or article text</text>
+
+    <!-- ===== lane A: prices ===== -->
+    <text x="20" y="30" class="lane">PRICES — THE SPINE</text>
+
+    <rect x="20" y="44" width="150" height="74" class="box"/>
+    <text x="32" y="64" class="t">Bank of Russia</text>
+    <text x="32" y="80" class="s">gold · silver · platinum ·</text>
+    <text x="32" y="93" class="s">palladium ₽/g · USD/RUB</text>
+    <text x="32" y="108" class="s">daily fix, published day-ahead</text>
+
+    <rect x="20" y="130" width="150" height="74" class="box"/>
+    <text x="32" y="150" class="t">FRED</text>
+    <text x="32" y="166" class="s">yields · dollar index · WTI ·</text>
+    <text x="32" y="179" class="s">VIX · USD/INR</text>
+    <text x="32" y="193" class="s">US close, knowable next day</text>
+
+    <rect x="205" y="82" width="158" height="86" class="box"/>
+    <text x="217" y="102" class="t">Fetch + join</text>
+    <text x="217" y="118" class="s">halt on failure — never</text>
+    <text x="217" y="131" class="s">forecast from stale data</text>
+    <text x="217" y="147" class="s">knowledge-time join:</text>
+    <text x="217" y="160" class="s">FRED value date +1 day</text>
+
+    <line x1="170" y1="81" x2="205" y2="105" class="flow"/>
+    <line x1="170" y1="167" x2="205" y2="145" class="flow"/>
+
+    <rect x="398" y="48" width="168" height="156" class="box"/>
+    <text x="410" y="68" class="t">Five instruments</text>
+    <text x="410" y="87" class="s">Gold — 11 rungs (covariates,</text>
+    <text x="410" y="100" class="s">oil+FX hunch, RW controls, rung 2)</text>
+    <text x="410" y="116" class="s">Silver — mirror: gold as covariate</text>
+    <text x="410" y="132" class="s">USD/RUB · USD/INR · WTI</text>
+    <text x="410" y="145" class="s">(univariate)</text>
+    <text x="410" y="163" class="s">σ measured daily; buckets are</text>
+    <text x="410" y="176" class="s">±0.5σ / ±1.5σ — sized to the</text>
+    <text x="410" y="189" class="s">market's own noise</text>
+
+    <line x1="363" y1="125" x2="398" y2="125" class="flow"/>
+
+    <rect x="600" y="48" width="172" height="156" class="box"/>
+    <text x="612" y="68" class="t">The methods</text>
+    <text x="612" y="87" class="s">Base rates (climatology,</text>
+    <text x="612" y="100" class="s">+ by regime for gold)</text>
+    <text x="612" y="116" class="s">Chronos-2 (Amazon)</text>
+    <text x="612" y="129" class="s">TimesFM 2.5 (Google)</text>
+    <text x="612" y="145" class="s">each: alone / + covariates /</text>
+    <text x="612" y="158" class="s">+ random-walk control</text>
+    <text x="612" y="176" class="s">always-flat dummy (the floor)</text>
+    <text x="612" y="192" class="s">→ five-bucket distributions</text>
+
+    <line x1="566" y1="125" x2="600" y2="125" class="flow"/>
+
+    <rect x="806" y="48" width="150" height="156" class="box"/>
+    <text x="818" y="68" class="t">Seal → mature</text>
+    <text x="818" y="87" class="s">SEAL every method's bet</text>
+    <text x="818" y="100" class="s">before any outcome exists</text>
+    <text x="818" y="113" class="s">(re-runs: byte-identical)</text>
+    <text x="818" y="131" class="s">MATURE when reality lands:</text>
+    <text x="818" y="144" class="s">bucket via sealed edges,</text>
+    <text x="818" y="157" class="s">RPS per method</text>
+    <text x="818" y="175" class="s">143-day offline ladder +</text>
+    <text x="818" y="188" class="s">the growing live record</text>
+
+    <line x1="772" y1="125" x2="806" y2="125" class="flow"/>
+
+    <rect x="990" y="48" width="142" height="290" class="box"/>
+    <text x="1002" y="68" class="t">Dashboard</text>
+    <text x="1002" y="87" class="s">one control bar:</text>
+    <text x="1002" y="100" class="s">instrument · horizon ·</text>
+    <text x="1002" y="113" class="s">method · window</text>
+    <text x="1002" y="131" class="s">price + promised zones</text>
+    <text x="1002" y="144" class="s">day-by-day hits</text>
+    <text x="1002" y="157" class="s">event shortlist</text>
+    <text x="1002" y="170" class="s">live track record</text>
+    <text x="1002" y="183" class="s">scoreboard + race</text>
+    <text x="1002" y="201" class="s">S3-ready, no build,</text>
+    <text x="1002" y="214" class="s">derived data only</text>
+
+    <line x1="956" y1="125" x2="990" y2="125" class="flow"/>
+
+    <!-- ===== lane B: events ===== -->
+    <text x="20" y="250" class="lane">EVENTS — CONTEXT, SOON FUEL</text>
+
+    <rect x="20" y="264" width="150" height="64" class="box"/>
+    <text x="32" y="284" class="t">GDELT</text>
+    <text x="32" y="300" class="s">world events, daily file</text>
+    <text x="32" y="313" class="s">open data · attribution set</text>
+
+    <rect x="205" y="264" width="180" height="64" class="box"/>
+    <text x="217" y="284" class="t">Deterministic filter</text>
+    <text x="217" y="300" class="s">7 conflict-type codes · ≥50</text>
+    <text x="217" y="313" class="s">mentions · ≤12/day · no model</text>
+
+    <rect x="420" y="264" width="150" height="64" class="box"/>
+    <text x="432" y="284" class="t">Week's shortlist</text>
+    <text x="432" y="300" class="s">metadata + source URLs,</text>
+    <text x="432" y="313" class="s">never article text</text>
+
+    <line x1="170" y1="296" x2="205" y2="296" class="flow"/>
+    <line x1="385" y1="296" x2="420" y2="296" class="flow"/>
+    <path d="M570 296 C 760 296, 900 260, 988 220" class="flow"/>
+
+    <!-- ===== lane C: the reasoning layer (next) ===== -->
+    <text x="20" y="368" class="lane">NEXT — THE REASONING LAYER (P8c / P8d, ADR-0057)</text>
+
+    <rect x="20" y="384" width="240" height="120" class="nbox"/>
+    <text x="32" y="404" class="nt">The consolidated brief</text>
+    <text x="32" y="421" class="ns">every method's current bet · the track</text>
+    <text x="32" y="434" class="ns">record (what we said, where we were off)</text>
+    <text x="32" y="447" class="ns">· the week's events · σ and edges</text>
+    <text x="32" y="464" class="ns">assembled by code, snapshotted,</text>
+    <text x="32" y="477" class="ns">hash sealed with the prediction</text>
+
+    <rect x="310" y="384" width="210" height="120" class="nbox"/>
+    <text x="322" y="404" class="nt">Strands agent · GPT-5.6</text>
+    <text x="322" y="421" class="ns">provider + model from environment</text>
+    <text x="322" y="434" class="ns">bounded turns · zero tools at first</text>
+    <text x="322" y="447" class="ns">every prompt + response recorded</text>
+    <text x="322" y="464" class="ns">two bets daily: llm_raw (no memory)</text>
+    <text x="322" y="477" class="ns">llm_mem (with memory) — the pair</text>
+    <text x="322" y="490" class="ns">difference IS memory's value</text>
+
+    <rect x="570" y="384" width="210" height="120" class="nbox"/>
+    <text x="582" y="404" class="nt">Mini-wiki memory (P8d)</text>
+    <text x="582" y="421" class="ns">evidence rows + statistics: computed</text>
+    <text x="582" y="434" class="ns">by code, provenance-tagged</text>
+    <text x="582" y="447" class="ns">lessons: model-written, ≤15, cited,</text>
+    <text x="582" y="460" class="ns">falsifiable, retired when wrong</text>
+    <text x="582" y="477" class="ns">grows only on live days — the</text>
+    <text x="582" y="490" class="ns">Karpathy WikiLLM idea, in miniature</text>
+
+    <line x1="260" y1="444" x2="310" y2="444" class="nflow"/>
+    <path d="M570 470 C 545 470, 545 470, 520 470" class="nflow"/>
+    <path d="M520 420 C 545 420, 545 420, 570 420" class="nflow"/>
+    <text x="527" y="410" class="ns">curator</text>
+    <text x="527" y="462" class="ns">reads</text>
+
+    <!-- agent output joins the SAME spine -->
+    <path d="M520 384 C 700 330, 790 260, 848 208" class="nflow"/>
+    <text x="700" y="330" class="ns">llm rungs seal + score like every other method</text>
+
+    <!-- events feed the brief -->
+    <path d="M470 328 C 420 360, 300 370, 190 384" class="nflow"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><i></i>running today, every day</span>
+    <span><i class="n"></i>next: P8c (agent) and P8d (memory) — specified in REQ-1301–1303, ADR-0057, poc-mini-wiki.md</span>
+    <span><i class="h"></i>the honesty rules that apply to every box</span>
+  </div>
+
+  <h2>The road from here</h2>
+  <div class="card scroll">
+  <svg viewBox="0 0 1150 150" width="100%" style="min-width:1000px; display:block" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="#57534a"/>
+      </marker>
+    </defs>
+    <style>
+      .m { fill:#fffefb; stroke:#57534a; stroke-width:1.3; rx:8; }
+      .md { fill:#f4f8fc; stroke:#2b6cb0; stroke-width:1.3; stroke-dasharray:6 4; rx:8; }
+      .tt { font-size:12.5px; fill:#21201c; font-weight:600; }
+      .ss { font-size:10.5px; fill:#6f6a5e; }
+      .ln { stroke:#57534a; stroke-width:1.4; marker-end:url(#c); }
+    </style>
+    <rect x="20"  y="30" width="150" height="86" class="m"/>
+    <text x="32" y="52" class="tt">DONE · P1–P8b</text>
+    <text x="32" y="70" class="ss">5 instruments, sealed daily,</text>
+    <text x="32" y="83" class="ss">honest ladder, event feed,</text>
+    <text x="32" y="96" class="ss">dashboard</text>
+
+    <rect x="205" y="30" width="160" height="86" class="md"/>
+    <text x="217" y="52" class="tt">P8c · the agent bets</text>
+    <text x="217" y="70" class="ss">needs your OPENAI_API_KEY</text>
+    <text x="217" y="83" class="ss">llm_raw + llm_mem join the</text>
+    <text x="217" y="96" class="ss">ladder, scored like everyone</text>
+
+    <rect x="400" y="30" width="150" height="86" class="md"/>
+    <text x="412" y="52" class="tt">P8d · it learns</text>
+    <text x="412" y="70" class="ss">the wiki accretes; memory's</text>
+    <text x="412" y="83" class="ss">value measured daily, not</text>
+    <text x="412" y="96" class="ss">believed</text>
+
+    <rect x="585" y="30" width="150" height="86" class="md"/>
+    <text x="597" y="52" class="tt">P6 · it runs itself</text>
+    <text x="597" y="70" class="ss">scheduled ~11:00 daily;</text>
+    <text x="597" y="83" class="ss">the track record grows one</text>
+    <text x="597" y="96" class="ss">row per trading day</text>
+
+    <rect x="770" y="30" width="360" height="86" class="md"/>
+    <text x="782" y="52" class="tt">Then: the production ladder resumes (increments 2–17)</text>
+    <text x="782" y="70" class="ss">AWS serverless · 11 instruments · the full wiki with its 11-year seed ·</text>
+    <text x="782" y="83" class="ss">the leakage gate (G4) · agent rungs 5–6 with calibration · steering ·</text>
+    <text x="782" y="96" class="ss">a public, published record — everything the POC de-risked, at scale</text>
+
+    <line x1="170" y1="73" x2="205" y2="73" class="ln"/>
+    <line x1="365" y1="73" x2="400" y2="73" class="ln"/>
+    <line x1="550" y1="73" x2="585" y2="73" class="ln"/>
+    <line x1="735" y1="73" x2="770" y2="73" class="ln"/>
+  </svg>
+  </div>
+
+  <h2>What the machine has taught us so far</h2>
+  <div class="card">
+  <table>
+    <tr><th>Finding</th><th>Evidence</th><th>What it changes</th></tr>
+    <tr><td><b>The null holds, five for five</b></td><td>No method beats the base rates detectably on any instrument (Chronos-2 ties on USD/RUB; closest watch: gold t+5, 96/143 days won)</td><td>The bar the reasoning layer must clear is real, measured, and free</td></tr>
+    <tr><td><b>Covariates hurt in levels</b></td><td>A seeded random walk damages forecasts as much as real macro series; oil and oil+FX detectably worse on both models</td><td>Spurious regression inside in-context learning → every covariate rung carries a random-walk control (ADR-0056)</td></tr>
+    <tr><td><b>Return co-movement is the exception</b></td><td>Silver↔gold returns correlate 0.68; TimesFM+gold posts the project's first covariate point estimate on the winning side (−0.0037, 85/143)</td><td>Covariates must co-move in returns, not just trend together — and even then, only some model mechanisms can use them</td></tr>
+    <tr><td><b>The contamination boundary is real</b></td><td>The same covariate probe finds large damage on 2026 days and nothing on 2025 days</td><td>Only days after the models' training count; the 2026+ rule is demonstrated, not assumed</td></tr>
+    <tr><td><b>The models are well-calibrated</b></td><td>Chronos-2's 8-in-10 zone held gold's price 81% of days against an 80% promise</td><td>The zones are honestly sized — the open question is <i>sharpness and direction</i>, exactly where events might help</td></tr>
+  </table>
+  <div class="note">Non-normative techstack note — explains, decides nothing. The deciding documents: ADR-0037 (forward-only), ADR-0056 (controls), ADR-0057 (Strands),
+  REQ-1301–1303, docs/design/poc-mini-wiki.md, docs/Execution.md (the running order). Generated 2026-08-13.</div>
+  </div>
+</main>
+</body>
+</html>
