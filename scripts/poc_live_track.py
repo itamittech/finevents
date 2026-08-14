@@ -79,15 +79,22 @@ def seal(
     as_of: str,
     horizons: dict[str, dict],
     rw_seed: int | None,
+    llm: dict | None = None,
 ) -> tuple[list[dict], bool]:
     """Add a new sealed record, unless one for `as_of` already exists.
 
     Returns the (possibly unchanged) list and whether a seal happened. The
     existing record always wins — see the module docstring.
+
+    `llm` is the reasoning rung's audit metadata (REQ-1302): model id plus the
+    SHA-256 of the recorded brief and response. The transcript itself stays
+    local; only the hashes enter the published record.
     """
     if any(r["as_of"] == as_of for r in records):
         return records, False
     record = {"as_of": as_of, "rw_seed": rw_seed, "horizons": horizons, "matured": {}}
+    if llm is not None:
+        record["llm"] = llm
     updated = sorted([*records, record], key=lambda r: r["as_of"])
     return updated, True
 

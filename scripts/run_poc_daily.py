@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from gold_poc_data import UNIVARIATE_SERIES, load_panel, load_univariate, read_metal  # noqa: E402
 from poc_live_track import mature, parse, random_walk, seal, seed_for, serialize  # noqa: E402
+from poc_reasoning import read_events, read_results, reasoning_rung  # noqa: E402
 
 from finevents.features.conditional import (  # noqa: E402
     DayFeatures,
@@ -166,14 +167,28 @@ def main(argv: list[str] | None = None) -> int:
                 built[rung] = to_bucket_probabilities(out, h, closes[-1], edges)
             return built
 
-        records, did = seal(
-            records,
+        sealed_h = sealed_horizons(dates, closes, gold_distributions)
+
+        # The reasoning rung (P8c, ADR-0057) reads the day's numeric bets, the
+        # track record, the offline ladder and the event shortlist — then bets
+        # into the SAME seal. Keyless environments skip it visibly; the numeric
+        # seals never wait on the reasoning layer.
+        llm_addition, llm_meta = reasoning_rung(
+            "gold",
             as_of=as_of,
-            horizons=sealed_horizons(dates, closes, gold_distributions),
-            rw_seed=rw_seed,
+            horizons=sealed_h,
+            track_records=records,
+            ladder=read_results("gold"),
+            events=read_events(),
         )
+        if llm_addition is not None:
+            for h, extra in llm_addition.items():
+                sealed_h[h]["rungs"].update({k: list(v) for k, v in extra.items()})
+
+        records, did = seal(records, as_of=as_of, horizons=sealed_h, rw_seed=rw_seed, llm=llm_meta)
         state["instruments"]["gold"]["records"] = records
-        summary.append(f"gold      sealed {as_of}   11 rungs, rw seed {rw_seed}")
+        rung_count = len(sealed_h["1"]["rungs"])
+        summary.append(f"gold      sealed {as_of}   {rung_count} rungs, rw seed {rw_seed}")
 
     records, newly = mature(records, [d.isoformat() for d in dates], list(closes))
     state["instruments"]["gold"]["records"] = records

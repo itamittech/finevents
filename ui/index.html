@@ -260,6 +260,8 @@ const NAME = {
   timesfm_oilfx: "TimesFM + oil & FX",
   chronos_rwcov: "Chronos-2 + random walk (control)",
   timesfm_rwcov: "TimesFM + random walk (control)",
+  llm_raw: "GPT-5.6 reasoning (raw)",
+  llm_mem: "GPT-5.6 reasoning (with memory)",
   all_flat: "Always-flat dummy",
 };
 const rname = r =>
@@ -305,6 +307,8 @@ const RUNG_STYLE = {
   timesfm_cov:      { color: "#7aa6cf", dash: "6 4" },
   timesfm_oilfx:    { color: "#1d4a7a", dash: "3 3" },
   timesfm_rwcov:    { color: "#a8c2d8", dash: "1 3" },
+  llm_raw:          { color: "#6b4b8a", dash: "" },
+  llm_mem:          { color: "#9c7bbf", dash: "6 4" },
   all_flat:         { color: "#b0aa9b", dash: "2 4" },
 };
 // One state, one control bar. `rung` is the FOCUSED method: the price chart
