@@ -1007,8 +1007,13 @@ function agentBoard() {
 
   const info = INSTRUMENTS[state.instrument];
   const h = state.horizon;
-  let sealedN = 0, gradedN = 0, exactN = 0;
-  const absErr = [];
+  // Every honest stat needs its bar. The point call is measured against the
+  // "always 0%" forecaster (a random walk's best guess) on the SAME graded
+  // days; the exact-bucket tick against what "always flat" would have scored
+  // on those days; and the RPS against the day's best method. Two ticks and a
+  // 0.9% miss looked flattering until those bars stood beside them.
+  let sealedN = 0, gradedN = 0, exactN = 0, flatExactN = 0, beatFieldN = 0;
+  const absErr = [], zeroErr = [];
 
   const table = el("table", null);
   const head = el("tr", null);
@@ -1044,15 +1049,21 @@ function agentBoard() {
         if (b0 !== undefined && c1 !== undefined) {
           const actPct = (c1 / b0 - 1) * 100;
           actualCell = `${fmt(actPct, 2)}% → ${priceFmt(c1)} ${info.short}`;
-          if (pp !== undefined) absErr.push(Math.abs(pp - actPct));
+          if (pp !== undefined) { absErr.push(Math.abs(pp - actPct)); zeroErr.push(Math.abs(actPct)); }
         }
         const off = Math.abs(modeOf(probs) - m.outcome);
+        if (m.outcome === 2) flatExactN++;  // what "always flat" scores on this day
         if (off === 0) { exactN++; resultNode = el("span", { class: "verdict v-better", text: "✓ exact bucket" }); }
         else if (off === 1) resultNode = el("span", { class: "verdict v-nd", text: "± one off" });
         else resultNode = el("span", { class: "verdict v-worse", text: "✗ missed" });
         const mine = m.rps[rung];
         const best = Math.min(...Object.values(m.rps));
-        if (mine !== undefined) rpsCell = `${mine.toFixed(3)} (${best.toFixed(3)})`;
+        if (mine !== undefined) {
+          rpsCell = `${mine.toFixed(3)} (${best.toFixed(3)})`;
+          // "Beat the field": strictly better than every NON-agent method that day.
+          const others = Object.entries(m.rps).filter(([k]) => !k.startsWith("llm_")).map(([, v]) => v);
+          if (others.length && mine < Math.min(...others)) beatFieldN++;
+        }
       }
 
       const tr = el("tr", {
@@ -1075,19 +1086,51 @@ function agentBoard() {
   wrap.appendChild(el("div", { class: "scroll" }, table));
 
   const stats = el("div", { class: "stats" });
-  const block = (v, label) => {
+  const block = (v, label, ref) => {
     const s = el("div", { class: "stat" });
     s.appendChild(el("div", { class: "v", text: v }));
     s.appendChild(el("div", { class: "l", text: label }));
+    if (ref) s.appendChild(el("div", { class: "ref", text: ref }));
     return s;
   };
+  const meanOf = a => a.reduce((x, y) => x + y, 0) / a.length;
   stats.appendChild(block(String(sealedN), `bets sealed at t+${h}`));
-  stats.appendChild(block(`${exactN} / ${gradedN}`, "graded bets that called the exact bucket"));
-  if (absErr.length) {
-    const mean = absErr.reduce((a, b) => a + b, 0) / absErr.length;
-    stats.appendChild(block(fmt(mean, 2) + "%", "average miss of its exact call"));
-  }
+  stats.appendChild(block(`${exactN} / ${gradedN}`, "graded bets that called the exact bucket",
+    gradedN ? `always-flat would score: ${flatExactN} / ${gradedN}` : null));
+  if (absErr.length)
+    stats.appendChild(block(fmt(meanOf(absErr), 2) + "%", "average miss of its exact call",
+      `always 0% would miss: ${fmt(meanOf(zeroErr), 2)}%`));
+  if (gradedN)
+    stats.appendChild(block(`${beatFieldN} / ${gradedN}`, "graded bets that beat every other method (RPS)"));
   wrap.appendChild(stats);
+
+  if (gradedN) {
+    // The plain-English reading, so nobody has to do the comparison in their head.
+    const pointVerdict = absErr.length
+      ? (meanOf(absErr) < meanOf(zeroErr)
+          ? "its exact calls have missed by less than saying “no change” would — a hint of information, not yet a finding"
+          : "its exact calls have missed by MORE than simply saying “no change” — so far the number carries no information a trader could use")
+      : "no price layer here, so the exact call cannot be graded in price space";
+    const bucketVerdict = exactN > flatExactN
+      ? `and it has called the bucket more often than “always flat” would (${exactN} vs ${flatExactN} of ${gradedN})`
+      : exactN === flatExactN
+        ? `and on the bucket it is exactly level with always saying “flat” (${exactN} vs ${flatExactN} of ${gradedN})`
+        : `and it has called the bucket less often than always saying “flat” would (${exactN} vs ${flatExactN} of ${gradedN})`;
+    // The instrument's own typical daily move (median |move| over the sidecar's
+    // recent closes) — the floor no point forecaster gets under.
+    const closes = LP[state.instrument] || {};
+    const cd = Object.keys(closes).sort();
+    const dailyAbs = cd.slice(1).map((d, i) => Math.abs(closes[d] / closes[cd[i]] - 1) * 100).sort((a, b) => a - b);
+    const typical = dailyAbs.length >= 10 ? dailyAbs[Math.floor(dailyAbs.length / 2)] : null;
+    wrap.appendChild(el("div", { class: "aim", text:
+      `Read against the bar: over ${gradedN} graded bet${gradedN === 1 ? "" : "s"}, ${pointVerdict}; ` +
+      `${bucketVerdict}. It out-scored every other method on ${beatFieldN} of ${gradedN}. ` +
+      (typical !== null
+        ? `A next-session move here is typically about ${typical.toFixed(2)}% either way (median of the ` +
+          `last ${dailyAbs.length} sessions) — no forecaster gets under that floor; `
+        : "") +
+      `the question this board answers is only whether the agent adds anything on top of the base rates.` }));
+  }
 
   const otherH = D.horizons.find(x => x !== h);
   const otherGraded = otherH
