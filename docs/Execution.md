@@ -23,10 +23,15 @@ NEXT STEP:          OPERATE. P6 is DONE (2026-08-14): `FinEventsDailyRunner` is
                     P8e: the reasoning pair runs for ALL FIVE instruments with
                     the v2 brief (related markets, recent price action, its own
                     graded record) and every bet seals a point estimate; the
-                    agent board shows model-bet-vs-actual. STRICT testing starts
-                    Monday — from then, no reseals, ever; watch the learning
-                    curve and let the record accrue. The AWS ladder resumes
-                    after the POC verdict.
+                    agent board shows model-bet-vs-actual against its bars.
+                    BUILDER'S DECISION 2026-08-17: run the week of 08-17..08-22
+                    on the CURRENT configuration and observe — no new levers.
+                    The live-spot nowcast (B) is scoped in P8f's row and
+                    parked; its prerequisites are listed there. From here: no
+                    reseals, ever; the scheduler seals at 11:00, the digest
+                    reports at ~11:20, the builder watches. Review the week's
+                    record on or after Monday 2026-08-24 before deciding what
+                    to change. The AWS ladder resumes after the POC verdict.
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
