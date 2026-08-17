@@ -15,6 +15,143 @@ window.POC_EVENTS = {
  },
  "days": [
   {
+   "date": "2026-08-16",
+   "events": [
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "UKRAINE / RUSSIA",
+     "place": "Rostov, Rostovskaya Oblast', Russia",
+     "country": "RS",
+     "goldstein": -10.0,
+     "mentions": 1906,
+     "tone": -9.4,
+     "url": "https://www.yourlocalguardian.co.uk/news/national/26468347.ukraine-launches-one-largest-attacks-killing-least-six-russia/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "AUTHORITIES",
+     "place": "Gironde, Aquitaine, France",
+     "country": "FR",
+     "goldstein": -9.2,
+     "mentions": 1560,
+     "tone": -2.7,
+     "url": "https://kdhnews.com/news/world/firefighters-battle-a-massive-belgian-wildfire-forcing-hundreds-to-evacuate/article_6ceeee51-90d4-5ccf-b4e6-4fbf9aa0d437.html"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "FRANCE / FIREFIGHTER",
+     "place": "Gironde, Aquitaine, France",
+     "country": "FR",
+     "goldstein": -10.0,
+     "mentions": 1206,
+     "tone": -2.6,
+     "url": "https://kdhnews.com/news/world/firefighters-battle-a-massive-belgian-wildfire-forcing-hundreds-to-evacuate/article_6ceeee51-90d4-5ccf-b4e6-4fbf9aa0d437.html"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "GANG / ITALIAN",
+     "place": "Romania",
+     "country": "RO",
+     "goldstein": -9.2,
+     "mentions": 1010,
+     "tone": -2.0,
+     "url": "https://www.kedm.org/npr-news/2026-08-16/a-good-and-bad-week-for-italys-art-police-and-museum-security"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "MIGRANT / SPANISH",
+     "place": "Melilla, Spain (general), Spain",
+     "country": "SP",
+     "goldstein": -9.5,
+     "mentions": 970,
+     "tone": -2.7,
+     "url": "https://www.northernpublicradio.org/2026-08-16/what-really-happened-in-ceuta-why-we-may-never-find-out"
+    },
+    {
+     "label": "Military posture",
+     "code": "15",
+     "actors": "FARMER / FIREFIGHTER",
+     "place": "Hautes Fagnes, Waals Gewest, Belgium",
+     "country": "BE",
+     "goldstein": -7.2,
+     "mentions": 756,
+     "tone": -2.5,
+     "url": "https://www.enfieldindependent.co.uk/news/national/26468991.fire-crews-battle-blazes-belgium-greece-two-die-island-near-athens/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "FIGHTER JET / ROMANIAN",
+     "place": "Romania",
+     "country": "RO",
+     "goldstein": -10.0,
+     "mentions": 750,
+     "tone": -7.3,
+     "url": "https://www.breakingnews.ie/world/ukraine-launches-one-of-its-largest-attacks-killing-at-least-six-in-russia-1940521.html"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "AUSTRALIA",
+     "place": "Germany",
+     "country": "GM",
+     "goldstein": -10.0,
+     "mentions": 598,
+     "tone": -4.3,
+     "url": "https://www.theleader.com.au/story/9330413/echidna-john-hanscombe-australias-mounting-toll-of-violence-against-women/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "POLICE",
+     "place": "Rzeszow, Podkarpackie, Poland",
+     "country": "PL",
+     "goldstein": -5.0,
+     "mentions": 585,
+     "tone": -6.3,
+     "url": "https://www.hampshirechronicle.co.uk/news/national/26468258.twelve-killed-bus-crash-hungary-highway/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "RESIDENTS / GERMAN",
+     "place": "Monschau, Nordrhein-Westfalen, Germany",
+     "country": "GM",
+     "goldstein": -5.0,
+     "mentions": 578,
+     "tone": -2.8,
+     "url": "https://www.winnipegfreepress.com/arts-and-life/life/greenpage/2026/08/16/firefighters-battle-a-massive-belgian-wildfire-forcing-hundreds-to-evacuate"
+    },
+    {
+     "label": "Threat",
+     "code": "13",
+     "actors": "SCIENTIST",
+     "place": "California, United States",
+     "country": "US",
+     "goldstein": -4.4,
+     "mentions": 558,
+     "tone": 1.5,
+     "url": "https://www.klcc.org/npr-news/2026-08-16/billions-of-sea-stars-have-died-a-northwest-tribe-is-trying-to-save-the-species"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "RUSSIAN / UKRAINE",
+     "place": "Sumy, Sums'ka Oblast', Ukraine",
+     "country": "UP",
+     "goldstein": -10.0,
+     "mentions": 486,
+     "tone": -9.4,
+     "url": "https://www.yourlocalguardian.co.uk/news/national/26468347.ukraine-launches-one-largest-attacks-killing-least-six-russia/"
+    }
+   ]
+  },
+  {
    "date": "2026-08-15",
    "events": [
     {
@@ -833,143 +970,6 @@ window.POC_EVENTS = {
      "mentions": 715,
      "tone": -5.7,
      "url": "https://www.durangoherald.com/articles/associated-press/ukrainian-drone-attack-on-the-russian-city-of-nizhnekamsk-kills-12-authorities-say/"
-    }
-   ]
-  },
-  {
-   "date": "2026-08-09",
-   "events": [
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "UNITED STATES / PRISON",
-     "place": "United States",
-     "country": "US",
-     "goldstein": -5.0,
-     "mentions": 1912,
-     "tone": -11.2,
-     "url": "https://beat1053.iheart.com/content/2026-08-09-tupac-murder-trial-set-to-start-monday/"
-    },
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "YEMEN",
-     "place": "Hajjah, ?ajjah, Yemen",
-     "country": "YM",
-     "goldstein": -7.0,
-     "mentions": 1344,
-     "tone": -4.8,
-     "url": "https://www.winnipegfreepress.com/business/2026/08/09/yemens-houthis-claim-attack-on-aramco-oil-facility-in-saudi-arabia-and-other-middle-east-news"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "SAUDI ARABIA",
-     "place": "Jazan, Jizan, Saudi Arabia",
-     "country": "SA",
-     "goldstein": -10.0,
-     "mentions": 1314,
-     "tone": -2.6,
-     "url": "https://www.winnipegfreepress.com/business/2026/08/09/yemens-houthis-claim-attack-on-aramco-oil-facility-in-saudi-arabia-and-other-middle-east-news"
-    },
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "CAPTAIN",
-     "place": "",
-     "country": "",
-     "goldstein": -4.4,
-     "mentions": 1100,
-     "tone": -5.7,
-     "url": "https://wrno.iheart.com/content/2026-08-09-boat-captain-arrested-after-fatal-capsizing-near-liberty-island/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "YEMEN / KINGDOM",
-     "place": "Hajjah, ?ajjah, Yemen",
-     "country": "YM",
-     "goldstein": -10.0,
-     "mentions": 1086,
-     "tone": -2.7,
-     "url": "https://www.winnipegfreepress.com/business/2026/08/09/yemens-houthis-claim-attack-on-aramco-oil-facility-in-saudi-arabia-and-other-middle-east-news"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "POLICE",
-     "place": "",
-     "country": "",
-     "goldstein": -10.0,
-     "mentions": 1030,
-     "tone": -8.9,
-     "url": "https://www.wpbf.com/article/florida-boynton-beach-police-search-for-suspect-after-shooting/73383597"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "KYIV / RUSSIAN",
-     "place": "Moscow, Moskva, Russia",
-     "country": "RS",
-     "goldstein": -10.0,
-     "mentions": 1020,
-     "tone": -5.9,
-     "url": "https://www.wimbledonguardian.co.uk/news/national/26448653.russia-ukraine-exchange-overnight-strikes-leaving-seven-dead/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "YEMENI / DJIBOUTI",
-     "place": "Red Sea, Djibouti (general), Djibouti",
-     "country": "DJ",
-     "goldstein": -10.0,
-     "mentions": 982,
-     "tone": -2.7,
-     "url": "https://www.wsls.com/business/2026/08/09/yemens-houthis-claim-attack-on-aramco-oil-facility-in-saudi-arabia-and-other-middle-east-news/"
-    },
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "CUBA",
-     "place": "Havana, Ciudad de La Habana, Cuba",
-     "country": "CU",
-     "goldstein": -7.0,
-     "mentions": 840,
-     "tone": -9.0,
-     "url": "http://www.dallassun.com/news/279226682/short-bursts-of-electricity-disrupt-routines-in-havana"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "OKINAWA",
-     "place": "Guangdong, Jilin, China",
-     "country": "CH",
-     "goldstein": -10.0,
-     "mentions": 763,
-     "tone": -6.9,
-     "url": "https://wgiram.iheart.com/content/2026-08-09-typhoon-dolphin-hits-china-over-1-million-evacuated/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "SAUDI ARABIA / KINGDOM",
-     "place": "Tehran, Tehran, Iran",
-     "country": "IR",
-     "goldstein": -10.0,
-     "mentions": 755,
-     "tone": -2.7,
-     "url": "https://www.winnipegfreepress.com/business/2026/08/09/yemens-houthis-claim-attack-on-aramco-oil-facility-in-saudi-arabia-and-other-middle-east-news"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "COMMUNITY",
-     "place": "Melbourne, Victoria, Australia",
-     "country": "AS",
-     "goldstein": -10.0,
-     "mentions": 680,
-     "tone": -4.9,
-     "url": "https://www.bunburymail.com.au/story/9326468/fed-up-locals-demand-change-after-shop-owners-death/"
     }
    ]
   }

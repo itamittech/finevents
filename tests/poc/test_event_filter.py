@@ -100,3 +100,64 @@ def test_the_payload_carries_metadata_and_urls_never_article_text() -> None:
         "url",
     }
     assert event["url"].startswith("https://")
+
+
+# --- the window walk: unpublished head days must never blank the shortlist ------
+
+
+def _zip_of_one_row(day: str) -> bytes:
+    import io
+    import zipfile
+
+    columns = row()
+    columns[1] = day.replace("-", "")
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr(f"{columns[1]}.export.CSV", "\t".join(columns) + "\n")
+    return buffer.getvalue()
+
+
+def test_three_unpublished_head_days_do_not_blank_the_window() -> None:
+    """The 2026-08-17 review: the walk used to stop after three misses, so a
+    late GDELT morning (today, yesterday, the day before all 404) would have
+    written an EMPTY shortlist. Now the head misses are skipped and the window
+    is filled from the days that ARE published."""
+    from datetime import date
+
+    from gdelt_events import collect_window
+
+    today = date(2026, 8, 17)
+    published = {date(2026, 8, d).isoformat() for d in range(3, 15)}  # 08-03..08-14
+
+    def fetch(day: date) -> bytes | None:
+        return _zip_of_one_row(day.isoformat()) if day.isoformat() in published else None
+
+    days, skipped = collect_window(fetch, today, wanted=7)
+    assert skipped == ["2026-08-17", "2026-08-16", "2026-08-15"]  # three head misses
+    assert list(days) == [f"2026-08-{d:02d}" for d in range(14, 7, -1)]  # 08-14..08-08
+    assert all(len(v) == 1 for v in days.values())
+
+
+def test_the_lookback_bounds_the_walk_and_a_full_window_stops_early() -> None:
+    from datetime import date
+
+    from gdelt_events import LOOKBACK_DAYS, collect_window
+
+    calls: list[date] = []
+
+    def never(day: date) -> None:
+        calls.append(day)
+        return None
+
+    days, skipped = collect_window(never, date(2026, 8, 17), wanted=7)
+    assert days == {} and len(skipped) == LOOKBACK_DAYS + 1  # bounded, degrades to empty
+    assert len(calls) == LOOKBACK_DAYS + 1
+
+    calls.clear()
+
+    def always(day: date) -> bytes:
+        calls.append(day)
+        return _zip_of_one_row(day.isoformat())
+
+    days, skipped = collect_window(always, date(2026, 8, 17), wanted=3)
+    assert len(days) == 3 and skipped == [] and len(calls) == 3  # stops when full

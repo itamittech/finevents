@@ -6,16 +6,19 @@ token, so the machine must be on with the user logged in when it fires.
 StartWhenAvailable catches up a missed 11:00 (laptop asleep) at the next
 chance; seal-once makes any double-fire a byte-identical no-op.
 
-  .\scripts\register_daily_task.ps1                        # daily at 11:00, from today
-  .\scripts\register_daily_task.ps1 -StartDate 2026-08-17  # first fire that morning
+  .\scripts\register_daily_task.ps1                        # daily at 12:45, from today
+  .\scripts\register_daily_task.ps1 -StartDate 2026-08-18  # first fire that day
 
-The hour is convenience, not correctness: the runner forecasts from the last
-available print, so WHEN it fires only decides which date gets sealed
-(run_poc_daily.py - "timing is handled by construction rather than by clock").
-Re-running is safe; -Force re-registers over an existing task of the same name.
+The hour matters for ONE input: GDELT publishes yesterday's event file at
+07:00 GMT sharp (measured 2026-08-17), so the run must fire after that -
+12:45 IST is 07:15 GMT. It stays two hours before the target CBR fix is
+struck (London AM ~09:30 GMT), so no knowledge-time question arises. For
+prices the hour is convenience: the runner forecasts from the last available
+print, so WHEN it fires only decides which date gets sealed. Re-running is
+safe; -Force re-registers over an existing task of the same name.
 #>
 param(
-    [string]$At = "11:00",
+    [string]$At = "12:45",
     [string]$StartDate = (Get-Date -Format "yyyy-MM-dd"),
     [string]$TaskName = "FinEventsDailyRunner"
 )

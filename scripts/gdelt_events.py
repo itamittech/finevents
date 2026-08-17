@@ -10,8 +10,14 @@ is a named constant below; nothing is learned, nothing is prompted.
 
 **Cache.** One GDELT v1 daily export per day lands in `data/gdelt/` (gitignored —
 raw acquired data, ADR-0044). A day's file is fetched once; the daily run then
-downloads only the day it is missing. GDELT publishes a day's file the following
-morning, so "today" often is not there yet — that is a skip, not an error.
+downloads only the day it is missing. GDELT publishes day X's file at **07:00 GMT
+on X+1** (measured from Last-Modified headers, 2026-08-17: 07:00:11, 07:00:06,
+07:00:07 on consecutive days), so "today" is never there and "yesterday" only
+after 07:00 GMT — a skip, not an error. The window is the newest `--days`
+published days found within a bounded look-back; unpublished head days do not
+shorten it. Before 2026-08-17 three consecutive misses ended the walk, which
+would have written an EMPTY shortlist on any morning GDELT ran late — found on
+review, fixed the same day.
 
 **Filter.** Keep rows whose CAMEO root code is in HIGH_IMPACT (military posture,
 threats, protests, coercion, assaults, fights, mass violence) with at least
@@ -57,6 +63,10 @@ HIGH_IMPACT = {
 }
 MIN_MENTIONS = 50
 DAILY_CAP = 12
+#: How many calendar days back the walk may look for `--days` published days.
+#: Bounded so a long GDELT outage degrades to a shorter window rather than an
+#: unbounded crawl; cached days cost nothing to revisit.
+LOOKBACK_DAYS = 14
 
 #: GDELT v1 daily export column positions (58 tab-separated columns, no header).
 COL_DATE = 1
@@ -195,23 +205,40 @@ def events_from_zip(content: bytes) -> list[Event]:
     return [event for row in reader if (event := parse_row(row)) is not None]
 
 
+def collect_window(
+    fetch, today: date, wanted: int, lookback: int = LOOKBACK_DAYS
+) -> tuple[dict[str, list[Event]], list[str]]:
+    """The newest `wanted` published days within `lookback` calendar days.
+
+    Walks back from `today`; a day `fetch` cannot supply is skipped, not counted
+    against the window — GDELT's head days are unpublished by construction, and
+    a late morning must never blank the shortlist. Returns (days, skipped) so
+    the caller can print what was not there.
+    """
+    days: dict[str, list[Event]] = {}
+    skipped: list[str] = []
+    for back in range(lookback + 1):
+        if len(days) == wanted:
+            break
+        probe = today - timedelta(days=back)
+        content = fetch(probe)
+        if content is None:
+            skipped.append(probe.isoformat())
+            continue
+        days[probe.isoformat()] = shortlist(events_from_zip(content))
+    return days, skipped
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--days", type=int, default=7)
     args = parser.parse_args(argv)
 
-    days: dict[str, list[Event]] = {}
-    probe = date.today()
-    misses = 0
-    while len(days) < args.days and misses < 3:
-        content = fetch_day(probe)
-        if content is None:
-            misses += 1
-        else:
-            selected = shortlist(events_from_zip(content))
-            days[probe.isoformat()] = selected
-            print(f"  {probe}  {len(selected):>2} events kept")
-        probe -= timedelta(days=1)
+    days, skipped = collect_window(fetch_day, date.today(), args.days)
+    for day, selected in days.items():
+        print(f"  {day}  {len(selected):>2} events kept")
+    if skipped:
+        print(f"  not yet published: {', '.join(skipped)}")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(
