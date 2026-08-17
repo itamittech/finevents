@@ -176,6 +176,7 @@ def refresh_memory(
                     prior_lessons,
                     [lesson.model_dump() for lesson in update.lessons],
                     valid_evidence_dates(records),
+                    events=read_events(),
                 )
                 note = update.day_note
                 for reason in rejected:

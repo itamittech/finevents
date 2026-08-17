@@ -20,9 +20,11 @@ from poc_wiki import (  # noqa: E402
     compute_statistics,
     evidence_digest,
     label_base_rates,
+    names_universal_label,
     parse_wiki,
     render_page,
     serialize_wiki,
+    universal_labels,
     valid_evidence_dates,
 )
 
@@ -83,6 +85,83 @@ def test_an_empty_proposal_keeps_existing_lessons_rather_than_wiping() -> None:
     kept, rejected = apply_curation(existing, [], {"2026-08-13"})
     assert kept == existing
     assert any("kept" in reason for reason in rejected)
+
+
+# --- the near-universal-condition guard (code, not prompt) -----------------------
+
+
+def window(*days_labels: list[str]) -> dict:
+    return {
+        "days": [
+            {"date": f"2026-08-{10 + i:02d}", "events": [{"label": lb} for lb in labels]}
+            for i, labels in enumerate(days_labels)
+        ]
+    }
+
+
+def test_universal_labels_are_those_on_more_than_seventy_percent_of_days() -> None:
+    events = window(
+        ["Fighting", "Coercion"], ["Fighting"], ["Fighting", "Protest"], ["Fighting"], ["Coercion"]
+    )
+    # Fighting 4/5 = 80% (universal); Coercion 2/5, Protest 1/5 (not)
+    assert universal_labels(events) == {"Fighting"}
+    assert universal_labels(None) == set()
+    assert (
+        names_universal_label("when at least two Fighting events occur", {"Fighting"}) == "Fighting"
+    )
+    assert names_universal_label("when firefighting resumes", {"Fighting"}) is None  # word-level
+    assert names_universal_label("when a Protest is recorded", {"Fighting"}) is None
+
+
+def test_lessons_naming_a_universal_label_are_dropped_with_a_named_reason() -> None:
+    events = window(["Fighting"], ["Fighting"], ["Fighting", "Protest"])
+    proposed = [
+        {
+            "text": "When two Fighting events land, expect no fall next session",
+            "cites": ["2026-08-11"],
+        },
+        {"text": "When a Protest is recorded, expect a small down move", "cites": ["2026-08-11"]},
+    ]
+    kept, rejected = apply_curation([], proposed, {"2026-08-11"}, events=events)
+    assert [lesson["text"][:14] for lesson in kept] == ["When a Protest"]
+    assert any("near-universal condition dropped ('Fighting'" in r for r in rejected)
+
+
+def test_the_guard_also_retires_existing_lessons_on_a_proposed_nothing_day() -> None:
+    """The keep-existing rule must not resurrect a lesson the guard rejects."""
+    events = window(["Fighting"], ["Fighting"], ["Fighting"])
+    existing = [
+        {"text": "When Fighting appears, expect no fall", "cites": ["2026-08-11"]},
+        {"text": "When a Protest is recorded, expect a small down move", "cites": ["2026-08-11"]},
+    ]
+    kept, rejected = apply_curation(existing, [], {"2026-08-11"}, events=events)
+    assert [lesson["text"][:14] for lesson in kept] == ["When a Protest"]
+    assert any("existing lesson retired by the guard" in r for r in rejected)
+
+
+def test_todays_real_lessons_fall_to_the_guard_against_todays_real_window() -> None:
+    """The motivating case, replayed on the committed files: the 2026-08-15
+    curated lessons versus the 2026-08-09..15 event window. If either file
+    is regenerated the assertion adapts — it checks the rule, not the wording."""
+    root = Path(__file__).resolve().parent.parent.parent / "ui" / "data"
+    wiki_path, events_path = root / "wiki.js", root / "events.js"
+    if not (wiki_path.exists() and events_path.exists()):
+        return
+    import json
+
+    wiki = parse_wiki(wiki_path.read_text(encoding="utf-8"))
+    events = json.loads(
+        events_path.read_text(encoding="utf-8")
+        .removeprefix("window.POC_EVENTS = ")
+        .removesuffix(";\n")
+    )
+    universal = universal_labels(events)
+    for instrument, page in wiki["instruments"].items():
+        for lesson in page["versions"][-1]["lessons"]:
+            label = names_universal_label(lesson["text"], universal)
+            kept, _ = apply_curation([], [lesson], {c for c in lesson["cites"]}, events=events)
+            # A lesson naming a universal label never survives; any other does.
+            assert (kept == []) == (label is not None), (instrument, lesson["text"], label)
 
 
 # --- versions: append-only ------------------------------------------------------

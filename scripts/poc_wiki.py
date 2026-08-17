@@ -22,6 +22,7 @@ derived work plus our own model's prose, no article text (REQ-1106/1107).
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,6 +31,14 @@ PREFIX = "window.POC_WIKI = "
 
 MAX_LESSONS = 15
 MAX_LESSON_CHARS = 220
+
+#: A lesson conditioned on an event label that appears on more than this share
+#: of the shortlist's days is a coincidence, not a rule — the label is always
+#: there, so it can never be the thing that predicts anything. Learned from the
+#: first live curation (2026-08-17): three "when Fighting…" lessons on a window
+#: where Fighting appeared on 7 of 7 days. The prompt now says so too; this
+#: guard is what makes it not depend on the prompt.
+UNIVERSAL_LABEL_SHARE = 0.70
 
 BUCKET_LABELS = ("large down", "small down", "flat", "small up", "large up")
 
@@ -152,17 +161,41 @@ def valid_evidence_dates(records: list[dict]) -> set[str]:
     return dates
 
 
+def universal_labels(events: dict | None, share: float = UNIVERSAL_LABEL_SHARE) -> set[str]:
+    """Event labels present on more than `share` of the shortlist's days —
+    conditions that are always true and therefore cannot carry a lesson."""
+    return {label for label, n, total in label_base_rates(events) if n / total > share}
+
+
+def names_universal_label(text: str, universal: set[str]) -> str | None:
+    """The first near-universal label a lesson's text mentions, else None.
+    Word-level, case-insensitive: 'Fighting' matches 'fighting events', not
+    'firefighting'."""
+    lowered = text.lower()
+    for label in sorted(universal):
+        if re.search(rf"\b{re.escape(label.lower())}\b", lowered):
+            return label
+    return None
+
+
 def apply_curation(
     current_lessons: list[dict],
     proposed: list[dict],
     known_dates: set[str],
+    events: dict | None = None,
 ) -> tuple[list[dict], list[str]]:
     """Enforce the lesson rules on whatever the curator proposed.
 
     Returns (kept lessons, rejection reasons). The curator's proposal REPLACES
     the lesson list — revision and retirement are its job — but only lessons
     that survive these checks make it in; everything else is named and dropped.
+
+    With `events`, one more rule: a lesson that names an event label present on
+    more than UNIVERSAL_LABEL_SHARE of the window's days is dropped as a
+    coincidence — and that check runs over the *existing* lessons too, so a
+    "curator proposed nothing" day cannot resurrect one the guard would reject.
     """
+    universal = universal_labels(events)
     kept: list[dict] = []
     rejected: list[str] = []
     for lesson in proposed:
@@ -181,14 +214,31 @@ def apply_curation(
         if any(k["text"] == text for k in kept):
             rejected.append(f"duplicate lesson dropped: {text[:40]}…")
             continue
+        label = names_universal_label(text, universal)
+        if label:
+            rejected.append(
+                f"near-universal condition dropped ('{label}' is on most days): {text[:40]}…"
+            )
+            continue
         kept.append({"text": text, "cites": sorted(cites)})
         if len(kept) == MAX_LESSONS:
             rejected.append("lesson cap reached — remainder dropped")
             break
     if not proposed and current_lessons:
-        # An empty proposal wipes memory; that is a decision, not a default.
+        # An empty proposal wipes memory; that is a decision, not a default —
+        # but the guard still applies to what is kept.
+        survivors = []
+        for lesson in current_lessons:
+            label = names_universal_label(lesson["text"], universal)
+            if label:
+                rejected.append(
+                    f"existing lesson retired by the guard ('{label}' is on most days): "
+                    f"{lesson['text'][:40]}…"
+                )
+            else:
+                survivors.append(lesson)
         rejected.append("curator proposed nothing — existing lessons kept")
-        return current_lessons, rejected
+        return survivors, rejected
     return kept, rejected
 
 
