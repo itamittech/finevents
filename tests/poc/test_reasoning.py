@@ -135,6 +135,31 @@ def test_the_brief_is_deterministic_and_carries_every_block() -> None:
         assert required in first
 
 
+def test_the_brief_names_the_event_publication_lag() -> None:
+    """GDELT publishes a day's file ~1.5 days late. When the newest event day
+    predates the as-of, the brief must say those days are unavailable — the
+    model must not read an upstream lag as a quiet weekend."""
+    lagged = assemble_brief(
+        "gold",
+        as_of="2026-08-15",
+        horizons=horizons_fixture(),
+        track_records=[],
+        ladder=None,
+        events=events_fixture(),  # newest event day 2026-08-12
+    )
+    assert "newest event day available is 2026-08-12" in lagged
+    assert "NOT YET AVAILABLE, not absent" in lagged
+    current = assemble_brief(
+        "gold",
+        as_of="2026-08-12",
+        horizons=horizons_fixture(),
+        track_records=[],
+        ladder=None,
+        events=events_fixture(),
+    )
+    assert "NOT YET AVAILABLE" not in current
+
+
 def test_past_point_calls_are_graded_inside_the_brief() -> None:
     scored_record = {
         "as_of": "2026-08-13",

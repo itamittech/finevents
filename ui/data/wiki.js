@@ -98,6 +98,127 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "statistics refreshed (code-only)"
+    },
+    {
+     "version": 2,
+     "as_of": "2026-08-15",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.125,
+        "n": 2
+       },
+       "chronos_cov": {
+        "mean_rps": 0.1977,
+        "n": 2
+       },
+       "chronos_oilfx": {
+        "mean_rps": 0.0671,
+        "n": 1
+       },
+       "chronos_rwcov": {
+        "mean_rps": 0.1066,
+        "n": 2
+       },
+       "chronos_uni": {
+        "mean_rps": 0.1072,
+        "n": 2
+       },
+       "climatology": {
+        "mean_rps": 0.0912,
+        "n": 2
+       },
+       "cond_climatology": {
+        "mean_rps": 0.1014,
+        "n": 2
+       },
+       "llm_mem": {
+        "mean_rps": 0.0553,
+        "n": 1
+       },
+       "llm_raw": {
+        "mean_rps": 0.0501,
+        "n": 1
+       },
+       "timesfm_cov": {
+        "mean_rps": 0.1359,
+        "n": 2
+       },
+       "timesfm_oilfx": {
+        "mean_rps": 0.0886,
+        "n": 1
+       },
+       "timesfm_rwcov": {
+        "mean_rps": 0.1252,
+        "n": 2
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.107,
+        "n": 2
+       }
+      },
+      "seeded": {
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.136817,
+         "5": 0.1443
+        },
+        "n": 143
+       },
+       "cond_climatology": {
+        "mean_rps_by_h": {
+         "1": 0.139024,
+         "5": 0.146733
+        },
+        "n": 143
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.139177,
+         "5": 0.145475
+        },
+        "n": 143
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.140096,
+         "5": 0.140677
+        },
+        "n": 143
+       },
+       "timesfm_cov": {
+        "mean_rps_by_h": {
+         "1": 0.145308,
+         "5": 0.16462
+        },
+        "n": 143
+       },
+       "chronos_cov": {
+        "mean_rps_by_h": {
+         "1": 0.148835,
+         "5": 0.156843
+        },
+        "n": 143
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.178321,
+         "5": 0.187062
+        },
+        "n": 143
+       }
+      }
+     },
+     "lessons": [
+      {
+       "text": "When a session records at least two Fighting events, expect gold not to fall within the next session (flat or an upward move).",
+       "cites": [
+        "2026-08-13",
+        "2026-08-14"
+       ]
+      }
+     ],
+     "curator_note": "A second consecutive repeated-Fighting session was followed by a non-negative gold move; evidence remains very limited."
     }
    ]
   },
@@ -188,6 +309,108 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "initial page \u2014 seeded statistics, no lessons yet"
+    },
+    {
+     "version": 2,
+     "as_of": "2026-08-15",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.125,
+        "n": 2
+       },
+       "chronos_cov": {
+        "mean_rps": 0.107,
+        "n": 2
+       },
+       "chronos_rwcov": {
+        "mean_rps": 0.1159,
+        "n": 2
+       },
+       "chronos_uni": {
+        "mean_rps": 0.1022,
+        "n": 2
+       },
+       "climatology": {
+        "mean_rps": 0.0929,
+        "n": 2
+       },
+       "llm_mem": {
+        "mean_rps": 0.0529,
+        "n": 1
+       },
+       "llm_raw": {
+        "mean_rps": 0.0547,
+        "n": 1
+       },
+       "timesfm_cov": {
+        "mean_rps": 0.0886,
+        "n": 2
+       },
+       "timesfm_rwcov": {
+        "mean_rps": 0.1042,
+        "n": 2
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.0957,
+        "n": 2
+       }
+      },
+      "seeded": {
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.127049,
+         "5": 0.137237
+        },
+        "n": 143
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.127341,
+         "5": 0.133905
+        },
+        "n": 143
+       },
+       "timesfm_cov": {
+        "mean_rps_by_h": {
+         "1": 0.127512,
+         "5": 0.133544
+        },
+        "n": 143
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.13587,
+         "5": 0.145004
+        },
+        "n": 143
+       },
+       "chronos_cov": {
+        "mean_rps_by_h": {
+         "1": 0.137654,
+         "5": 0.145801
+        },
+        "n": 143
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.166083,
+         "5": 0.176573
+        },
+        "n": 143
+       }
+      }
+     },
+     "lessons": [
+      {
+       "text": "When at least two Fighting events are recorded in a session, expect silver to realize a flat-or-higher class within 1 session.",
+       "cites": [
+        "2026-08-13",
+        "2026-08-14"
+       ]
+      }
+     ],
+     "curator_note": "Repeated Fighting coincided with non-declining silver outcomes on both matured days, though the sample remains small."
     }
    ]
   },
@@ -248,6 +471,78 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "initial page \u2014 seeded statistics, no lessons yet"
+    },
+    {
+     "version": 2,
+     "as_of": "2026-08-15",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.25,
+        "n": 2
+       },
+       "chronos_uni": {
+        "mean_rps": 0.0766,
+        "n": 2
+       },
+       "climatology": {
+        "mean_rps": 0.1507,
+        "n": 2
+       },
+       "llm_mem": {
+        "mean_rps": 0.0863,
+        "n": 1
+       },
+       "llm_raw": {
+        "mean_rps": 0.0827,
+        "n": 1
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.104,
+        "n": 2
+       }
+      },
+      "seeded": {
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.131935,
+         "5": 0.145535
+        },
+        "n": 143
+       },
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.132156,
+         "5": 0.146513
+        },
+        "n": 143
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.136323,
+         "5": 0.151355
+        },
+        "n": 143
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.180069,
+         "5": 0.204545
+        },
+        "n": 143
+       }
+      }
+     },
+     "lessons": [
+      {
+       "text": "When a session records at least two Fighting events, expect USD/RUB to finish in the 'small up' category in the next session.",
+       "cites": [
+        "2026-08-13",
+        "2026-08-14"
+       ]
+      }
+     ],
+     "curator_note": "A second consecutive event-heavy session was followed by a 'small up' USD/RUB move."
     }
    ]
   },

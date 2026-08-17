@@ -191,6 +191,7 @@
 <script src="./data/live.js"></script>
 <script src="./data/live_prices.js"></script>
 <script src="./data/events.js"></script>
+<script src="./data/wiki.js"></script>
 <script>
 "use strict";
 const REG = window.POC_REGISTRY || {};
@@ -309,6 +310,35 @@ let D = null, P = null; // the active instrument's data — set by render()
 // works without it — bets then stay in percent, which is the committed truth.
 const LP = window.POC_LIVE_PRICES || {};
 const lpClose = dateIso => (LP[state.instrument] || {})[dateIso];
+
+// When does a bet sealed on `asOf` get graded? The h-th trading session after
+// it, on this instrument's own calendar. Known exactly once enough sessions
+// exist (from the price sidecar or the sealed record dates); until then, "in N
+// more sessions" — never a bare "waiting", which reads as a stale page.
+function gradeWhen(asOf, h) {
+  const need = parseInt(h, 10);
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  const known = new Set(Object.keys(LP[state.instrument] || {}));
+  if (track) for (const r of track.records) known.add(r.as_of);
+  const dates = [...known].sort();
+  const i = dates.indexOf(asOf);
+  const after = i >= 0 ? dates.length - 1 - i : 0;
+  if (i >= 0 && after >= need) return { text: `grades ${dates[i + need]}` };
+  const left = need - after;
+  return { text: `${left} more session${left === 1 ? "" : "s"}` };
+}
+// The horizon that has the most graded reasoning bets — where a first-time
+// visitor should land, so the board never opens on an all-"waiting" column.
+function horizonWithGrades(horizons) {
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  if (!track) return null;
+  let best = null, bestN = 0;
+  for (const h of horizons) {
+    const n = track.records.filter(r => r.llm && (r.matured || {})[h]).length;
+    if (n > bestN) { best = h; bestN = n; }
+  }
+  return best;
+}
 function latestClose() {
   const m = LP[state.instrument];
   if (m) {
@@ -1004,8 +1034,9 @@ function agentBoard() {
       if (pp !== undefined && b0 !== undefined)
         betCell += ` → ${priceFmt(b0 * (1 + pp / 100))} ${info.short}`;
 
-      let actualCell = "waiting", rpsCell = "—";
-      let resultNode = el("span", { class: "verdict v-nd", text: "waiting" });
+      const when = gradeWhen(r.as_of, h);
+      let actualCell = `waiting · ${when.text}`, rpsCell = "—";
+      let resultNode = el("span", { class: "verdict v-nd", text: "not yet graded" });
       if (m) {
         gradedN++;
         const c1 = lpClose(m.target_date);
@@ -1058,13 +1089,80 @@ function agentBoard() {
   }
   wrap.appendChild(stats);
 
+  const otherH = D.horizons.find(x => x !== h);
+  const otherGraded = otherH
+    ? withLlm.filter(r => (r.matured || {})[otherH])
+        .reduce((n, r) => n + ["raw", "mem"].filter(v => r.llm[v] && !r.llm[v].error).length, 0)
+    : 0;
+  if (gradedN === 0 && otherGraded > 0)
+    wrap.appendChild(el("div", { class: "aim", text:
+      `Nothing at t+${h} has come due yet — a t+${h} bet needs ${h} trading sessions before ` +
+      `it can be graded. Pick t+${otherH} in the bar above to see the ${otherGraded} bet` +
+      `${otherGraded === 1 ? "" : "s"} already graded.` }));
+
   wrap.appendChild(el("div", { class: "note", text:
     "“Model bet” is the agent's own single number, sealed before the outcome existed; the " +
     "five-bucket distribution beside it is what gets RPS-scored, so the exact call can " +
-    "never be gamed into the headline. Price conversions use the local price layer" +
+    "never be gamed into the headline. Grades land on this instrument's own calendar — " +
+    "the “actual” column names the session that grades each bet. Price conversions use the local price layer" +
     (Object.keys(LP).length ? "" : " (absent here — bets shown in percent, the committed truth)") +
     "; the “with memory” row is the same model reading its own wiki page — the paired " +
     "difference is what memory is worth (P8d)." }));
+  return wrap;
+}
+
+function memoryPage() {
+  // The agent's memory as it stands (P8d): numbers computed by code, lessons
+  // written by the curator and enforced by code. Shown so a reader can judge
+  // the lessons for what they are — a coincidence dressed as a rule is exactly
+  // what the first live curation produced, and hiding it would hide the risk.
+  const W = window.POC_WIKI;
+  const page = W && W.instruments && W.instruments[state.instrument];
+  const wrap = el("section", { id: "memory" });
+  wrap.appendChild(el("h2", { text: "The agent's memory — statistics by code, lessons by the curator" }));
+  if (!page || !page.versions.length) {
+    wrap.appendChild(el("p", { class: "note", text:
+      "No memory page for this instrument yet — the daily runner creates it at the first seal." }));
+    return wrap;
+  }
+  const v = page.versions[page.versions.length - 1];
+  const stats = el("div", { class: "stats", style: "margin-top:.2rem" });
+  const block = (val, label) => {
+    const s = el("div", { class: "stat" });
+    s.appendChild(el("div", { class: "v", text: val }));
+    s.appendChild(el("div", { class: "l", text: label }));
+    return s;
+  };
+  stats.appendChild(block(`v${v.version}`, `page version · ${v.as_of}`));
+  stats.appendChild(block(String(v.lessons.length), "lessons on the page (cap 15)"));
+  stats.appendChild(block(String(Object.keys(v.statistics.observed || {}).length),
+    "methods with live (observed) scores"));
+  wrap.appendChild(stats);
+
+  if (v.lessons.length) {
+    const list = el("ul", { class: "story", style: "margin-top:.9rem" });
+    v.lessons.forEach((lesson, i) => {
+      const li = el("li", null, el("span", { class: "tag", text: `LESSON ${i + 1}` }));
+      const p = el("p", null);
+      p.appendChild(document.createTextNode(lesson.text + " "));
+      p.appendChild(el("span", { class: "m", style: "color:var(--muted);font-size:.8rem",
+        text: `[cites ${lesson.cites.join(", ")}]` }));
+      li.appendChild(p);
+      list.appendChild(li);
+    });
+    wrap.appendChild(list);
+  } else {
+    wrap.appendChild(el("p", { class: "note", style: "margin-top:.8rem", text:
+      "No lessons yet — the curator has earned no opinions. That is the honest state early on." }));
+  }
+  if (v.curator_note)
+    wrap.appendChild(el("div", { class: "aim", text: `Curator's day note: “${v.curator_note}”` }));
+
+  wrap.appendChild(el("div", { class: "note", text:
+    "Every lesson must be falsifiable, cite real evidence dates, and rest on a condition that is " +
+    "NOT true on most days (the curator sees each event label's base rate). Lessons start empty " +
+    "and accrue live only (ADR-0037); the “with memory” bet reads this page, the “no memory” bet " +
+    "does not — their paired gap is what memory is worth. Pages are versioned append-only." }));
   return wrap;
 }
 
@@ -1087,6 +1185,16 @@ function eventsFeed() {
     `with at least ${E.filter.min_mentions} media mentions, the most-mentioned event per type ` +
     `and country each day, capped at ${E.filter.cap_per_day}. Small enough to read all of it ` +
     "and judge the filter. This is the raw material the reasoning rung (P8c) will read." }));
+
+  const newestEvents = E.days[0].date;
+  const newestSeal = newestLiveRecord() ? newestLiveRecord().as_of : null;
+  const gapNote = newestSeal && newestEvents < newestSeal
+    ? ` GDELT publishes a day's file with a lag of about a day and a half — the newest ` +
+      `available day is ${newestEvents}, so events after it are not yet published, not absent; ` +
+      `the agent's brief says so explicitly.`
+    : "";
+  wrap.appendChild(el("p", { class: "note", text:
+    `Window: ${E.days[E.days.length - 1].date} → ${newestEvents}, refreshed by the daily run.` + gapNote }));
 
   for (const day of E.days) {
     wrap.appendChild(el("div", { class: "evdate", text: day.date }));
@@ -1426,7 +1534,7 @@ function jumps() {
   bar.textContent = "";
   const targets = [
     ["what", "What is this"], ["today", "Today's bets"], ["agent", "The agent"],
-    ["events", "Events"], ["live", "Live record"], ["price", "The price"],
+    ["memory", "Its memory"], ["events", "Events"], ["live", "Live record"], ["price", "The price"],
     ["daily", "Day by day"], ["board", "Scoreboard"], ["race", "The race"],
   ];
   for (const [id, label] of targets)
@@ -1436,7 +1544,8 @@ function jumps() {
 function render() {
   ({ D, P } = pack(state.instrument));
   if (!state.horizon || !D.horizons.includes(state.horizon))
-    state.horizon = D.horizons.includes("5") ? "5" : D.horizons[0];
+    // First landing: the horizon where the agent's grades already exist, else t+5.
+    state.horizon = horizonWithGrades(D.horizons) || (D.horizons.includes("5") ? "5" : D.horizons[0]);
   if (!methodList().includes(state.rung))
     state.rung = D.rungs.includes("chronos_uni") ? "chronos_uni" : D.rungs[0];
   meta();
@@ -1451,6 +1560,7 @@ function render() {
   zone("Today — sealed before the outcome exists");
   const sealed = sealedToday(); if (sealed) c.appendChild(sealed);
   c.appendChild(agentBoard());
+  c.appendChild(memoryPage());
   c.appendChild(eventsFeed());
   zone("The live experiment — one sealed record per trading day");
   c.appendChild(liveTrack());

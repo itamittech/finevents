@@ -19,6 +19,7 @@ from poc_wiki import (  # noqa: E402
     apply_curation,
     compute_statistics,
     evidence_digest,
+    label_base_rates,
     parse_wiki,
     render_page,
     serialize_wiki,
@@ -144,11 +145,36 @@ def test_wiki_round_trip_and_evidence_dates() -> None:
 
 
 def test_the_evidence_digest_reads_like_evidence() -> None:
-    digest = evidence_digest(
-        [matured_record()],
-        {"days": [{"date": "2026-08-14", "events": [{"label": "Fighting"}]}]},
-    )
+    events = {
+        "days": [
+            {"date": "2026-08-14", "events": [{"label": "Fighting"}]},
+            {"date": "2026-08-13", "events": [{"label": "Fighting"}, {"label": "Fighting"}]},
+        ]
+    }
+    digest = evidence_digest([matured_record()], events)
     assert "realised 'small up'" in digest
     assert "best chronos_uni" in digest
-    assert "events that day: Fighting" in digest
+    # The anchor day's mix (knowable when the bet was placed), never the target's.
+    assert "events known on 2026-08-13 (the day the bet was placed): Fighting ×2" in digest
     assert evidence_digest([]) == "No newly matured evidence."
+
+
+def test_the_digest_states_label_base_rates_so_coincidences_show() -> None:
+    """The first live curation's lesson: 'when Fighting appears' — on a window
+    where Fighting appeared every single day. The digest must make that visible."""
+    events = {
+        "days": [
+            {
+                "date": d,
+                "events": [{"label": "Fighting"}]
+                + ([{"label": "Protest"}] if d.endswith("4") else []),
+            }
+            for d in ("2026-08-12", "2026-08-13", "2026-08-14")
+        ]
+    }
+    assert label_base_rates(events) == [("Fighting", 3, 3), ("Protest", 1, 3)]
+    digest = evidence_digest([matured_record()], events)
+    assert "Fighting on 3 of 3 days" in digest
+    assert "Protest on 1 of 3 days" in digest
+    assert "cannot be a lesson" in digest
+    assert label_base_rates(None) == [] and label_base_rates({"days": []}) == []

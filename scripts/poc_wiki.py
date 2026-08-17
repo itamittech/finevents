@@ -34,14 +34,46 @@ MAX_LESSON_CHARS = 220
 BUCKET_LABELS = ("large down", "small down", "flat", "small up", "large up")
 
 
+def label_base_rates(events: dict | None) -> list[tuple[str, int, int]]:
+    """How often each event label appears across the shortlist window:
+    (label, days present, days in window). The curator's antidote to a
+    coincidence: a condition true on every day predicts nothing."""
+    days = (events or {}).get("days") or []
+    if not days:
+        return []
+    counts: dict[str, int] = {}
+    for day in days:
+        for label in {event["label"] for event in day["events"]}:
+            counts[label] = counts.get(label, 0) + 1
+    return [
+        (label, n, len(days)) for label, n in sorted(counts.items(), key=lambda p: (-p[1], p[0]))
+    ]
+
+
 def evidence_digest(records: list[dict], events: dict | None = None, limit: int = 5) -> str:
-    """What the curator reads: the last few matured days, plain and cited-able."""
+    """What the curator reads: the last few matured days, plain and cited-able.
+
+    Two things learned from the first live curation (2026-08-17): every day
+    in the window carried several 'Fighting' events, so a lesson conditioned
+    on "Fighting present" was a two-day coincidence in a rule's clothing. The
+    digest therefore (a) states each label's base rate across the window and
+    (b) shows the anchor day's own event mix (what was knowable when the bet
+    was placed) rather than the target day's — a next-session outcome cannot
+    be conditioned on that session's news.
+    """
     entries = []
     for record in records:
         for h, matured in sorted(record.get("matured", {}).items()):
             entries.append((matured["target_date"], record["as_of"], h, matured))
     entries.sort()
     lines: list[str] = []
+    rates = label_base_rates(events)
+    if rates:
+        lines.append(
+            "Event-label base rates over the shortlist window (a condition met on most "
+            "days cannot be a lesson): "
+            + ", ".join(f"{label} on {n} of {total} days" for label, n, total in rates)
+        )
     for target, anchor, h, matured in entries[-limit:]:
         ranked = sorted(matured["rps"].items(), key=lambda pair: pair[1])
         best = ", ".join(f"{rung} {rps:.3f}" for rung, rps in ranked[:2])
@@ -52,14 +84,16 @@ def evidence_digest(records: list[dict], events: dict | None = None, limit: int 
             f"worst {worst_rung} {worst_rps:.3f}"
         )
         if events:
-            labels = [
-                event["label"]
-                for day in events.get("days", [])
-                if day["date"] == target
-                for event in day["events"][:4]
-            ]
-            if labels:
-                lines.append(f"   events that day: {', '.join(labels)}")
+            mix: dict[str, int] = {}
+            for day in events.get("days", []):
+                if day["date"] == anchor:
+                    for event in day["events"]:
+                        mix[event["label"]] = mix.get(event["label"], 0) + 1
+            if mix:
+                described = ", ".join(f"{label} ×{n}" for label, n in sorted(mix.items()))
+                lines.append(
+                    f"   events known on {anchor} (the day the bet was placed): {described}"
+                )
     return "\n".join(lines) if lines else "No newly matured evidence."
 
 

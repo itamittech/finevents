@@ -279,6 +279,13 @@ def assemble_brief(
 
     if events and events.get("days"):
         lines.append("\n== This week's world events (deterministic shortlist, metadata only) ==")
+        newest_day = events["days"][0]["date"]
+        if newest_day < as_of:
+            lines.append(
+                f"Note: the newest event day available is {newest_day} — GDELT publishes a "
+                f"day's file with a lag, so events after it (through {as_of} and today) are "
+                "NOT YET AVAILABLE, not absent. Do not read the gap as a quiet period."
+            )
         for day in events["days"][:3]:
             lines.append(f"{day['date']}:")
             for event in day["events"]:
@@ -360,7 +367,10 @@ CURATOR_SYSTEM = (
     "You are the memory curator, a separate role from the forecaster. You maintain a "
     "small page of falsifiable, evidence-cited lessons. You revise or retire lessons "
     "the evidence has turned against; you add nothing on quiet days; you never keep "
-    "a lesson you cannot cite."
+    "a lesson you cannot cite. A lesson's condition must be RARE enough to matter: if "
+    "the digest's base rates show the condition holds on most days, the lesson is a "
+    "coincidence, not knowledge — do not write it, and retire it if it already exists. "
+    "Two agreeing days are a note, not a rule."
 )
 
 
@@ -381,10 +391,14 @@ def curate(
         f"== The page as it stands ==\n{page_text}\n\n"
         f"== New evidence since the last curation ==\n{evidence_text}\n\n"
         "Rewrite the complete lesson list (at most 15). Every lesson must be "
-        "falsifiable — 'when X, expect Y within Z sessions' — and cite the evidence "
-        "dates that support it. Drop or revise anything the new evidence contradicts. "
-        "A quiet day deserves no new lessons. Optionally add one short day_note only "
-        "if something notable happened."
+        "falsifiable — 'when X, expect Y within Z sessions' — where X is a condition "
+        "that is NOT met on most days (check the base rates in the evidence) and Y is "
+        "something the base rates alone would not predict; cite the evidence dates that "
+        "support it. Drop or revise anything the new evidence contradicts, and retire "
+        "any existing lesson whose condition the base rates show to be near-universal. "
+        "A quiet day deserves no new lessons; with fewer than five matured days, the "
+        "honest list is usually empty. Optionally add one short day_note only if "
+        "something notable happened."
     )
     update = _structured_call(CuratorUpdate, CURATOR_SYSTEM, prompt, model)
     record_run(instrument, as_of, prompt, update.model_dump(), model, variant="curator")
