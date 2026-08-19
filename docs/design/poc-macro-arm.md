@@ -1,6 +1,9 @@
 # The macro arm — scope
 
-**Status:** scope for the builder's decision, 2026-08-19. No code, no ADR yet.
+**Status:** scoped and **decided** 2026-08-19 — minimal breadth, RBI dropped, 12-month
+calendar. **Parked until Monday 2026-08-24** at the builder's call: the week runs on what
+is already in place and the queue below is picked up after it has been observed. No code,
+no ADR yet.
 **Origin:** the builder's proposal — *"observe federal rates of big institutions… USA, RBI,
 Russia, Germany, Japan, Switzerland… you are not seeing all macro indicators for gold and
 passing to the LLM. If you pass these as series it can be a better judgement."*
@@ -161,3 +164,34 @@ The arm is `llm_macro`: `llm_raw`'s brief **plus** the macro block, nothing else
    pre-registered.
 5. Only then consider L3's event-relevance filter — with the arm in place, a better event
    feed becomes measurable rather than assumed.
+
+
+---
+
+## 9. The build queue, parked 2026-08-19 → picked up Monday 2026-08-24
+
+The builder's call: observe the week first, build after. Nothing here changes the running
+configuration, and nothing starts before the Monday review.
+
+**The macro arm — three steps, in order**
+
+| # | What | Effort | Why it is first |
+|---|---|---|---|
+| 1 | `data/policy_calendar.csv` — Fed, ECB and CBR decision dates 12 months ahead, with **announcement times**, CI-asserted like REQ-210's holiday table | ~2h | The only piece with real information in it: "a decision lands tomorrow" predicts a big move even when nobody knows the direction. Small, additive, cannot break anything running |
+| 2 | The macro block in the brief, behind a flag like L1's | ~half a day | Inflation expectations (`T10YIE` — the one genuinely moving series we do not send), and the three policy rates as *"3.75%, unchanged for 47 sessions"* rather than a number pretending to move. Plus "next decision: N sessions away" |
+| 3 | `llm_macro` sealed as a fourth arm | ~2h | Its control already exists — `llm_raw`. ADR + REQ before the code; the comparison pre-registered. ~3 extra calls/day |
+
+Steps 2 and 3 land together so the arm starts clean on one day.
+
+**Then, in order**
+
+| What | Effort | Why |
+|---|---|---|
+| Event-relevance filter (review L3) | ~1 day | Today's shortlist is US crime and sport. Filter for what moves metals and currencies: oil, sanctions, central banks, the countries that matter. With the controls in place this becomes measurable rather than assumed |
+| Fix or drop USD/INR and WTI (review L5) | ~1 day | Their sources publish weekly and after the fact, so every seal is placed after the session it forecasts. Daily sources, or stop calling them live |
+| Hygiene (H2, H3, H5, H7) | ~half a day | Rationales clipped mid-word by the 600-char cap; tables mixing uneven day counts; the curator's event attribution; trend bars beside the point call |
+
+**Stated before building, so it counts as a prediction rather than a rationalisation:** the
+macro arm is expected to make **no measurable difference**. Extra inputs have hurt on this
+project before — a random walk damaged the numeric forecasts as much as a real macro series.
+That expectation is exactly why it ships as its own arm with its own scoreboard.

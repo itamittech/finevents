@@ -100,7 +100,14 @@ NEXT STEP:          OPERATE. P6 is DONE (2026-08-14): `FinEventsDailyRunner` is
                     NEXT:
                     the policy calendar table, then the macro block behind a
                     flag, then llm_macro as a fourth arm measured against
-                    llm_raw.
+                    llm_raw. BUILDER'S DECISION 2026-08-19 (evening): STOP
+                    BUILDING. The macro arm is written up and parked; the week
+                    08-19..08-22 runs untouched on what is now in place, and
+                    the build queue is picked up at the Monday 2026-08-24
+                    review, after the week has been observed. Queue and effort
+                    estimates: docs/design/poc-macro-arm.md section 9. Nothing
+                    is to change in the running configuration before then
+                    unless a defect appears - the digest is the tripwire.
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
