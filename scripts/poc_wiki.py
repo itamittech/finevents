@@ -224,21 +224,18 @@ def apply_curation(
         if len(kept) == MAX_LESSONS:
             rejected.append("lesson cap reached — remainder dropped")
             break
+    # Whatever the curator returns REPLACES the page (defect D5). An explicit
+    # empty list is a retirement, not a silence: on 2026-08-18 the curator said
+    # in its own day_note that it was retiring the Fighting lesson, and the old
+    # "proposed nothing — keep existing" rule threw that away; only the label
+    # guard happened to remove it. A failed curator call never reaches here —
+    # the runner keeps the prior lessons on its exception path — so silence and
+    # retirement are no longer confused with each other.
+    for lesson in current_lessons:
+        if not any(kept_lesson["text"] == lesson["text"] for kept_lesson in kept):
+            rejected.append(f"retired: {lesson['text'][:60]}…")
     if not proposed and current_lessons:
-        # An empty proposal wipes memory; that is a decision, not a default —
-        # but the guard still applies to what is kept.
-        survivors = []
-        for lesson in current_lessons:
-            label = names_universal_label(lesson["text"], universal)
-            if label:
-                rejected.append(
-                    f"existing lesson retired by the guard ('{label}' is on most days): "
-                    f"{lesson['text'][:40]}…"
-                )
-            else:
-                survivors.append(lesson)
-        rejected.append("curator proposed nothing — existing lessons kept")
-        return survivors, rejected
+        rejected.append("curator proposed no lessons — the page is now empty")
     return kept, rejected
 
 

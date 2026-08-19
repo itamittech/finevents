@@ -83,7 +83,10 @@ def market_fixture() -> dict:
             {"name": "wti", "kind": "pct", "date": "2026-08-13", "d1": 1.23, "d5": -3.41},
             {"name": "real_10y", "kind": "pp", "date": "2026-08-13", "d1": 0.03, "d5": -0.05},
         ],
-        "actuals": {"2026-08-14": -0.18},
+        # Keyed by the ANCHOR day per horizon (D2). The t+1 and t+5 numbers for
+        # the same anchor differ on purpose: that difference is the defect.
+        "horizon_moves": {"1": {"2026-08-13": -0.18}, "5": {"2026-08-13": 1.40}},
+        "context_through": "2026-08-14",
     }
 
 
@@ -181,7 +184,7 @@ def test_past_point_calls_are_graded_inside_the_brief() -> None:
         events=None,
         market=market_fixture(),
     )
-    assert "realised 'small up' (-0.18%)" in brief  # actual move beside the bucket
+    assert "realised 'small up' (-0.18% over 1 session(s))" in brief  # move beside the bucket
     assert "yours llm_raw 0.090" in brief  # the agent sees its own score
     assert "you called +0.30%, it moved -0.18%" in brief  # and its own point call, graded
 
@@ -354,3 +357,115 @@ def test_seal_carries_llm_metadata_only_when_given() -> None:
 
     without, _ = seal([], as_of="2026-08-13", horizons={}, rw_seed=1)
     assert "llm" not in without[0]
+
+
+# --- the as-of cut and horizon-correct grading (defects D1, D2) -----------------
+
+
+def test_a_five_session_bet_is_graded_over_five_sessions_not_one_day() -> None:
+    """Defect D2 (2026-08-18): `actuals` was a map of DAILY moves looked up by
+    the day a horizon landed on, so a t+5 bet was told it "moved" whatever that
+    single session did. The brief now reads the move over the horizon itself."""
+    record = {
+        "as_of": "2026-08-13",
+        "matured": {
+            "5": {
+                "target_date": "2026-08-20",
+                "outcome": 3,
+                "rps": {"climatology": 0.14, "llm_raw": 0.13},
+            }
+        },
+        "llm": {"model": "gpt-5.6-sol", "raw": {"point_pct": {"1": 0.2, "5": 1.1}}},
+    }
+    brief = assemble_brief(
+        "gold",
+        as_of="2026-08-20",
+        horizons=horizons_fixture(),
+        track_records=[record],
+        ladder=None,
+        events=None,
+        market=market_fixture(),
+    )
+    assert "realised 'small up' (+1.40% over 5 session(s))" in brief
+    assert "you called +1.10%, it moved +1.40%" in brief
+    # never the landing day's daily move, which is what the defect showed
+    assert "-0.18%" not in brief.split("== The live track record")[1]
+
+
+def test_events_after_the_anchor_never_reach_the_brief() -> None:
+    """Defect D1: for an instrument whose own series lags (USD/INR on H.10's
+    weekly cadence, WTI on EIA's), the shortlist ran days past the anchor - for
+    USD/INR sealed 2026-08-14 it carried news from after its own t+1 target."""
+    events = {
+        "days": [
+            {
+                "date": "2026-08-17",
+                "events": [
+                    {
+                        "label": "Future",
+                        "actors": "X",
+                        "place": "",
+                        "mentions": 9,
+                        "goldstein": -1.0,
+                    }
+                ],
+            },
+            {
+                "date": "2026-08-13",
+                "events": [
+                    {
+                        "label": "Knowable",
+                        "actors": "Y",
+                        "place": "",
+                        "mentions": 8,
+                        "goldstein": -2.0,
+                    }
+                ],
+            },
+        ]
+    }
+    brief = assemble_brief(
+        "gold",
+        as_of="2026-08-14",
+        horizons=horizons_fixture(),
+        track_records=[],
+        ladder=None,
+        events=events,
+    )
+    assert "Knowable" in brief
+    assert "Future" not in brief
+    assert "2026-08-17" not in brief
+    assert poc_reasoning.events_through(events, "2026-08-14") == "2026-08-13"
+    assert poc_reasoning.events_through(events, "2026-08-20") == "2026-08-17"
+    assert poc_reasoning.events_through(None, "2026-08-14") is None
+
+
+def test_the_market_context_cut_drops_everything_after_the_anchor() -> None:
+    from datetime import date
+
+    from gold_poc_data import _cut
+
+    from finevents.features.panel import Series
+
+    days = (date(2026, 8, 12), date(2026, 8, 13), date(2026, 8, 18))
+    series = Series("x", days, (100.0, 101.0, 105.0))
+    dates, values = _cut(series, date(2026, 8, 14))
+    assert dates == ["2026-08-12", "2026-08-13"] and values == [100.0, 101.0]
+    assert _cut(series, None)[0][-1] == "2026-08-18"  # no cut without an anchor
+
+
+# --- transcripts are never overwritten (defect D4) ------------------------------
+
+
+def test_a_second_attempt_never_destroys_the_first_transcript(tmp_path, monkeypatch) -> None:
+    """A crash after the model answered used to be repaired by a re-run that
+    overwrote the only record of the first - already made, already paid - bet."""
+    monkeypatch.setattr(poc_reasoning, "RECORDS", tmp_path)
+    first = record_run("gold", "2026-08-19", "brief one", {"rationale": "one"}, "m")
+    second = record_run("gold", "2026-08-19", "brief two", {"rationale": "two"}, "m")
+
+    assert first["transcript"] == "gold_2026-08-19_raw.json" and "attempt" not in first
+    assert second["transcript"] == "gold_2026-08-19_raw_attempt2.json" and second["attempt"] == 2
+    kept = json.loads((tmp_path / first["transcript"]).read_text(encoding="utf-8"))
+    assert kept["brief"] == "brief one"  # the first bet survives, hash and all
+    assert first["brief_sha256"] != second["brief_sha256"]

@@ -79,8 +79,13 @@ def fetch_cbr_metals(end: date) -> list[dict]:
         try:
             xml = get(url, "cp1251")
         except urllib.error.URLError as e:
-            print(f"    ! {a:%Y-%m} {e}", file=sys.stderr)
-            continue
+            # Fatal, not skipped (defect D3, 2026-08-18): a swallowed chunk used
+            # to rewrite the CSV with whatever survived, and the daily runner
+            # would then seal — and bet — "as of" whatever stale date remained.
+            raise SystemExit(
+                f"CBR metals {a:%Y-%m-%d}..{b:%Y-%m-%d} failed: {e} — "
+                "refusing to write a partial series"
+            ) from e
         for d, code, buy, sell in pat.findall(xml):
             dd, mm, yy = d.split(".")
             rows.append(
@@ -106,8 +111,10 @@ def fetch_cbr_usdrub(end: date) -> list[dict]:
         try:
             xml = get(url, "cp1251")
         except urllib.error.URLError as e:
-            print(f"    ! {a:%Y-%m} {e}", file=sys.stderr)
-            continue
+            raise SystemExit(
+                f"CBR USD/RUB {a:%Y-%m-%d}..{b:%Y-%m-%d} failed: {e} — "
+                "refusing to write a partial series"
+            ) from e
         for d, nom, val in pat.findall(xml):
             dd, mm, yy = d.split(".")
             rows.append(
@@ -162,6 +169,19 @@ def write(name: str, rows: list[dict]) -> None:
         return
     OUT.mkdir(exist_ok=True)
     p = OUT / name
+    # History only grows. A file that would end earlier, or hold fewer rows,
+    # than the one already on disk is the signature of a partial fetch — and
+    # the runner seals from `dates[-1]`, so letting it through backdates the
+    # ledger (defect D3).
+    if p.exists():
+        prior = [r["date"] for r in csv.DictReader(p.open(encoding="utf-8"))]
+        fresh = sorted(r["date"] for r in rows)
+        if prior and (fresh[-1] < max(prior) or len(rows) < len(prior)):
+            raise SystemExit(
+                f"{name}: refusing to overwrite — the fetched series ends {fresh[-1]} with "
+                f"{len(rows)} rows, the existing file ends {max(prior)} with {len(prior)}. "
+                "A partial fetch must not shrink history."
+            )
     with p.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()

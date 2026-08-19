@@ -161,7 +161,33 @@ def _context_series() -> dict[str, Series]:
     }
 
 
-def market_context(instrument: str, sessions: int = 10) -> dict:
+def _cut(series: Series, as_of: date | None) -> tuple[list[str], list[float]]:
+    """One series as (iso dates, values), truncated to knowledge dates at or
+    before `as_of`.
+
+    The truncation is the whole point (defect D1, found 2026-08-18). Without
+    it every roster series was read at *its own* latest date, so for any
+    instrument whose own data lags the wall clock — USD/INR on H.10's weekly
+    cadence, WTI on EIA's — the brief carried moves and events dated after the
+    anchor, sometimes after the very session the bet was being graded against.
+    The numeric rungs never had that information; the reasoning rung must not
+    either. Series are ascending, so the first date past the cut ends the walk.
+    """
+    dates: list[str] = []
+    values: list[float] = []
+    for day, value in zip(series.dates, series.values, strict=True):
+        if as_of is not None and day > as_of:
+            break
+        dates.append(day.isoformat())
+        values.append(float(value))
+    return dates, values
+
+
+#: How many recent anchors get a graded horizon move in `horizon_moves`.
+GRADED_ANCHORS = 40
+
+
+def market_context(instrument: str, sessions: int = 10, as_of: str | None = None) -> dict:
     """What the reasoning brief may say about the market itself (P8e).
 
     Everything leaves here as a MOVE — a percent change, or a pp delta for the
@@ -169,33 +195,49 @@ def market_context(instrument: str, sessions: int = 10) -> dict:
     locally, and moves are the derived form the publication boundary already
     blesses for committed work (REQ-1106/1107); raw levels enter no prompt.
 
-    `recent` is the target's own last daily moves; `related` is every other
-    series' 1- and 5-session move at its own latest knowledge date (FRED series
-    lag one knowledge day by construction — no live-time lookahead is possible,
-    the files simply end at what is knowable); `actuals` maps recent target
-    dates to their realised daily move, for grading past bets inside the brief.
+    `as_of` is the anchor the bet is being placed for. Every series is cut to
+    knowledge dates at or before it (D1) — pass it always; the default of None
+    exists only for ad-hoc inspection.
+
+    - `recent`: the target's own last daily moves, oldest first.
+    - `related`: every other series' 1- and 5-session move at its own latest
+      published date **at or before the anchor**.
+    - `horizon_moves`: {horizon: {anchor date: percent move over that many
+      sessions}} — keyed by the day the bet was placed, so a t+5 bet is graded
+      against the five-session move and not, as before defect D2, against the
+      single day the horizon happened to land on.
+    - `context_through`: the newest knowledge date anything here rests on. It
+      rides in the seal so a reader can see the information set a bet had.
     """
+    cut = date.fromisoformat(as_of) if as_of else None
     roster = _context_series()
     target = load_univariate(instrument) if instrument in UNIVARIATE_SERIES else roster[instrument]
-    t_dates = [d.isoformat() for d in target.dates]
-    t_values = [float(v) for v in target.values]
+    t_dates, t_values = _cut(target, cut)
+
     related = []
     for name, kind in CONTEXT_ROSTER:
         if name == instrument:
             continue
-        series = roster[name]
-        if len(series.values) < 6:
+        dates, values = _cut(roster[name], cut)
+        if len(values) < 6:
             continue
-        v = [float(x) for x in series.values]
         if kind == "pp":
-            d1, d5 = v[-1] - v[-2], v[-1] - v[-6]
+            d1, d5 = values[-1] - values[-2], values[-1] - values[-6]
         else:
-            d1, d5 = pct_move(v[-2], v[-1]), pct_move(v[-6], v[-1])
-        related.append(
-            {"name": name, "kind": kind, "date": series.dates[-1].isoformat(), "d1": d1, "d5": d5}
-        )
+            d1, d5 = pct_move(values[-2], values[-1]), pct_move(values[-6], values[-1])
+        related.append({"name": name, "kind": kind, "date": dates[-1], "d1": d1, "d5": d5})
+
+    horizon_moves: dict[str, dict[str, float]] = {}
+    for h in (1, 5):
+        moves: dict[str, float] = {}
+        for i in range(max(0, len(t_values) - GRADED_ANCHORS - h), len(t_values) - h):
+            moves[t_dates[i]] = pct_move(t_values[i], t_values[i + h])
+        horizon_moves[str(h)] = moves
+
+    known = [row["date"] for row in related] + ([t_dates[-1]] if t_dates else [])
     return {
         "recent": recent_moves(t_dates, t_values, sessions),
         "related": related,
-        "actuals": dict(recent_moves(t_dates, t_values, 40)),
+        "horizon_moves": horizon_moves,
+        "context_through": max(known) if known else None,
     }

@@ -50,7 +50,20 @@ NEXT STEP:          OPERATE. P6 is DONE (2026-08-14): `FinEventsDailyRunner` is
                     the levers queued behind 08-24 with a pre-registered rule
                     (~60 seals before any call). Customer dashboard built:
                     ui/customer.html. Commercial thesis: the audit layer, not
-                    the prediction. Awaiting the builder's go on R1 (D1–D5).
+                    the prediction.
+                    2026-08-19: R1 DONE — all five defects fixed on the
+                    builder's go. The brief is cut at its anchor and grades its
+                    own t+5 calls over five sessions; a shrinking source series
+                    halts the run instead of sealing a backdated row; the
+                    record saves after every instrument and transcripts never
+                    overwrite; an explicit "retire everything" from the curator
+                    is obeyed. Nothing resealed: the four pre-fix USD/INR and
+                    WTI bets stay in the ledger, marked and excluded from the
+                    agent's counts on both dashboards. Seals now record
+                    context_through / events_through. Next: the week runs on,
+                    review Monday 2026-08-24 under the pre-registered rule;
+                    levers L1-L7 (starting with the reasoning rung's missing
+                    control) wait behind it.
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.

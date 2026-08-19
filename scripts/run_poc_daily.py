@@ -25,6 +25,11 @@ A local price sidecar (`ui/data/live_prices.js`, gitignored by the ui/data
 allowlist) lets the dashboard convert point bets to price space; committed
 files stay derived-work-only (REQ-1106/1107).
 
+Two guarantees added after the 2026-08-18 review: the record is written after
+**every** instrument, so a later failure can never discard bets already made
+(D4); and an instrument whose series now ends *earlier* than something already
+sealed halts the run instead of sealing a backdated row (D3, `guard_forward`).
+
 Timing is handled by construction rather than by clock: the runner always
 forecasts from the last available print, so whether CBR's next-day fix is
 already published simply decides which date gets sealed. Scheduling is P6.
@@ -52,6 +57,7 @@ from gold_poc_data import (  # noqa: E402
     read_metal,
 )
 from poc_live_track import (  # noqa: E402
+    guard_forward,
     mature,
     parse,
     random_walk,
@@ -212,12 +218,24 @@ def merge_llm(
         ladder=read_results(instrument),
         events=read_events(),
         memory_page=latest_page_text(wiki, instrument),
-        market=market_context(instrument),
+        market=market_context(instrument, as_of=as_of),
     )
     if llm_addition is not None:
         for h, extra in llm_addition.items():
             sealed_h[h]["rungs"].update({k: list(v) for k, v in extra.items()})
     return llm_meta
+
+
+def save_progress(state: dict, wiki: dict, live_prices: dict) -> None:
+    """Persist the record after every instrument (defect D4).
+
+    The file used to be written once, at the very end, while the model calls
+    happened per instrument along the way — so any later failure (a malformed
+    CSV, a weights download, the scheduler's two-hour limit) discarded bets
+    that had already been made and paid for, and the re-run replaced them with
+    fresh ones from a non-deterministic model.
+    """
+    save_progress(state, wiki, live_prices)
 
 
 def closes_map(dates, closes, keep: int = 60) -> dict[str, float]:
@@ -255,6 +273,7 @@ def main(argv: list[str] | None = None) -> int:
     live_prices["gold"] = closes_map(dates, closes)
 
     records = state["instruments"].setdefault("gold", {"records": []})["records"]
+    guard_forward(records, as_of, "gold")
 
     # Mature FIRST: today's fetch may have brought the fix that closes earlier
     # seals, and the curator (P8d) must see those outcomes before today's
@@ -306,6 +325,7 @@ def main(argv: list[str] | None = None) -> int:
         state["instruments"]["gold"]["records"] = records
         rung_count = len(sealed_h["1"]["rungs"])
         summary.append(f"gold      sealed {as_of}   {rung_count} rungs, rw seed {rw_seed}")
+    save_progress(state, wiki, live_prices)
 
     # ---- silver: the mirror experiment (covariate = gold, same CBR fix) ------
     spanel = align(read_metal("silver"), [read_metal("gold")])
@@ -315,6 +335,7 @@ def main(argv: list[str] | None = None) -> int:
     live_prices["silver"] = closes_map(dates_s, closes_s)
 
     records = state["instruments"].setdefault("silver", {"records": []})["records"]
+    guard_forward(records, as_of_s, "silver")
     records, newly = mature(records, [d.isoformat() for d in dates_s], list(closes_s))
     state["instruments"]["silver"]["records"] = records
     if newly:
@@ -356,6 +377,7 @@ def main(argv: list[str] | None = None) -> int:
         summary.append(
             f"silver    sealed {as_of_s}   {rung_count} rungs (covariate: gold), rw seed {seed_s}"
         )
+    save_progress(state, wiki, live_prices)
 
     # ---- the univariate instruments (FX pairs, WTI) --------------------------
     for instrument in UNIVARIATE_SERIES:
@@ -365,6 +387,7 @@ def main(argv: list[str] | None = None) -> int:
         live_prices[instrument] = closes_map(dates_fx, closes_fx)
 
         records = state["instruments"].setdefault(instrument, {"records": []})["records"]
+        guard_forward(records, as_of_fx, instrument)
         records, newly = mature(records, [d.isoformat() for d in dates_fx], list(closes_fx))
         state["instruments"][instrument]["records"] = records
         if newly:
@@ -402,6 +425,7 @@ def main(argv: list[str] | None = None) -> int:
             state["instruments"][instrument]["records"] = records
             rung_count = len(sealed_fx["1"]["rungs"])
             summary.append(f"{instrument:<9} sealed {as_of_fx}   {rung_count} rungs")
+        save_progress(state, wiki, live_prices)
 
     save_wiki(wiki)
     LIVE.parent.mkdir(parents=True, exist_ok=True)

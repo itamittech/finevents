@@ -373,6 +373,20 @@ function methodList() {
   return [...offline, ...extras];
 }
 const liveOnly = r => D && !D.rungs.includes(r);
+
+// A bet whose brief reached past its own anchor cannot be compared honestly
+// with methods that only ever saw the past (defect D1, fixed 2026-08-19).
+// Seals from the fix onward carry `context_through`; the rows sealed before it
+// are named here, because a sealed record is never rewritten.
+const LEGACY_CONTEXT_LEAK = new Set([
+  "usd_inr|2026-08-07", "usd_inr|2026-08-14", "wti|2026-08-11",
+]);
+function contextLeak(record) {
+  const through = (record.llm || {}).context_through;
+  if (through) return through > record.as_of;
+  return LEGACY_CONTEXT_LEAK.has(state.instrument + "|" + record.as_of);
+}
+
 const BUCKET_COLOR = ["var(--b0)","var(--b1)","var(--b2)","var(--b3)","var(--b4)"];
 const BUCKET_LITE = [false, false, true, false, false];
 const RUNG_STYLE = {
@@ -1013,7 +1027,7 @@ function agentBoard() {
   // days; the exact-bucket tick against what "always flat" would have scored
   // on those days; and the RPS against the day's best method. Two ticks and a
   // 0.9% miss looked flattering until those bars stood beside them.
-  let sealedN = 0, gradedN = 0, exactN = 0, flatExactN = 0, beatFieldN = 0;
+  let sealedN = 0, gradedN = 0, exactN = 0, flatExactN = 0, beatFieldN = 0, leakedN = 0;
   const absErr = [], zeroErr = [];
 
   const table = el("table", null);
@@ -1028,13 +1042,14 @@ function agentBoard() {
     const hz = r.horizons[h];
     const m = (r.matured || {})[h];
     const b0 = lpClose(r.as_of);
+    const leaked = contextLeak(r);
     for (const variant of ["raw", "mem"]) {
       const meta = r.llm[variant];
       if (!meta || meta.error) continue;
       const rung = "llm_" + variant;
       const probs = hz && hz.rungs[rung];
       if (!probs) continue;
-      sealedN++;
+      if (leaked) leakedN++; else sealedN++;
       const pp = (meta.point_pct || {})[h];
       let betCell = pp === undefined ? "—" : `${fmt(pp, 2)}%`;
       if (pp !== undefined && b0 !== undefined)
@@ -1044,17 +1059,17 @@ function agentBoard() {
       let actualCell = `waiting · ${when.text}`, rpsCell = "—";
       let resultNode = el("span", { class: "verdict v-nd", text: "not yet graded" });
       if (m) {
-        gradedN++;
+        if (!leaked) gradedN++;
         const c1 = lpClose(m.target_date);
         actualCell = `“${D.buckets[m.outcome]}”`;
         if (b0 !== undefined && c1 !== undefined) {
           const actPct = (c1 / b0 - 1) * 100;
           actualCell = `${fmt(actPct, 2)}% → ${priceFmt(c1)} ${info.short}`;
-          if (pp !== undefined) { absErr.push(Math.abs(pp - actPct)); zeroErr.push(Math.abs(actPct)); }
+          if (pp !== undefined && !leaked) { absErr.push(Math.abs(pp - actPct)); zeroErr.push(Math.abs(actPct)); }
         }
         const off = Math.abs(modeOf(probs) - m.outcome);
-        if (m.outcome === 2) flatExactN++;  // what "always flat" scores on this day
-        if (off === 0) { exactN++; resultNode = el("span", { class: "verdict v-better", text: "✓ exact bucket" }); }
+        if (m.outcome === 2 && !leaked) flatExactN++;  // what "always flat" scores that day
+        if (off === 0) { if (!leaked) exactN++; resultNode = el("span", { class: "verdict v-better", text: "✓ exact bucket" }); }
         else if (off === 1) resultNode = el("span", { class: "verdict v-nd", text: "± one off" });
         else resultNode = el("span", { class: "verdict v-worse", text: "✗ missed" });
         const mine = m.rps[rung];
@@ -1063,7 +1078,7 @@ function agentBoard() {
           rpsCell = `${mine.toFixed(3)} (${best.toFixed(3)})`;
           // "Beat the field": strictly better than every NON-agent method that day.
           const others = Object.entries(m.rps).filter(([k]) => !k.startsWith("llm_")).map(([, v]) => v);
-          if (others.length && mine < Math.min(...others)) beatFieldN++;
+          if (others.length && mine < Math.min(...others) && !leaked) beatFieldN++;
         }
       }
 
@@ -1072,9 +1087,15 @@ function agentBoard() {
         onclick: () => setFocus(rung),
       });
       tr.appendChild(el("td", { text: r.as_of }));
-      tr.appendChild(el("td", { class: "rname", title: rung },
+      const nameCell = el("td", { class: "rname", title: rung },
         el("span", { class: "dot", style: "background:" + (RUNG_STYLE[rung] || {}).color }),
-        document.createTextNode(variant === "raw" ? "no memory" : "with memory")));
+        document.createTextNode(variant === "raw" ? "no memory" : "with memory"));
+      if (leaked) nameCell.appendChild(el("span", {
+        class: "verdict v-worse", style: "margin-left:.4rem",
+        title: "This brief carried related-market moves and events dated after the seal's own " +
+          "anchor — the numeric methods never saw them, so the row is shown but not counted.",
+        text: "⚠ pre-fix context" }));
+      tr.appendChild(nameCell);
       tr.appendChild(el("td", { class: "num", text: betCell }));
       tr.appendChild(el("td", { text: `“${D.buckets[modeOf(probs)]}”` }));
       tr.appendChild(el("td", { class: "num", text: actualCell }));
@@ -1143,6 +1164,14 @@ function agentBoard() {
       `Nothing at t+${h} has come due yet — a t+${h} bet needs ${h} trading sessions before ` +
       `it can be graded. Pick t+${otherH} in the bar above to see the ${otherGraded} bet` +
       `${otherGraded === 1 ? "" : "s"} already graded.` }));
+
+  if (leakedN)
+    wrap.appendChild(el("div", { class: "aim", text:
+      `${leakedN} bet${leakedN === 1 ? " is" : "s are"} shown but excluded from every count above: ` +
+      "sealed before 2026-08-19, their brief carried related-market moves and event days dated " +
+      "after the seal's own anchor — information the numeric methods never had (defect D1, found " +
+      "in the 2026-08-18 review and fixed the next day). The record is never rewritten, so the " +
+      "rows stay, marked. Seals from the fix onward record how far their knowledge reached." }));
 
   wrap.appendChild(el("div", { class: "note", text:
     "“Model bet” is the agent's own single number, sealed before the outcome existed; the " +

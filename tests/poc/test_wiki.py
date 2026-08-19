@@ -80,11 +80,30 @@ def test_the_lesson_cap_holds() -> None:
     assert any("cap" in reason for reason in rejected)
 
 
-def test_an_empty_proposal_keeps_existing_lessons_rather_than_wiping() -> None:
+def test_an_explicit_empty_proposal_retires_every_lesson() -> None:
+    """Defect D5 (2026-08-18): the curator returned lessons=[] with a day_note
+    saying it had retired the Fighting lesson, and the code answered "proposed
+    nothing - existing lessons kept". The retirement survived only because the
+    label guard happened to fire on the same lesson. A curator that speaks is
+    now obeyed; a curator that FAILS never reaches here (the runner keeps the
+    prior page on its exception path), so silence and retirement are no longer
+    the same event."""
     existing = [{"text": "hard-won", "cites": ["2026-08-13"]}]
     kept, rejected = apply_curation(existing, [], {"2026-08-13"})
-    assert kept == existing
-    assert any("kept" in reason for reason in rejected)
+    assert kept == []
+    assert any("retired: hard-won" in reason for reason in rejected)
+    assert any("the page is now empty" in reason for reason in rejected)
+
+
+def test_a_lesson_the_curator_drops_is_reported_as_retired() -> None:
+    existing = [
+        {"text": "keep me", "cites": ["2026-08-13"]},
+        {"text": "drop me", "cites": ["2026-08-13"]},
+    ]
+    proposed = [{"text": "keep me", "cites": ["2026-08-13"]}]
+    kept, rejected = apply_curation(existing, proposed, {"2026-08-13"})
+    assert [lesson["text"] for lesson in kept] == ["keep me"]
+    assert any("retired: drop me" in reason for reason in rejected)
 
 
 # --- the near-universal-condition guard (code, not prompt) -----------------------
@@ -127,16 +146,15 @@ def test_lessons_naming_a_universal_label_are_dropped_with_a_named_reason() -> N
     assert any("near-universal condition dropped ('Fighting'" in r for r in rejected)
 
 
-def test_the_guard_also_retires_existing_lessons_on_a_proposed_nothing_day() -> None:
-    """The keep-existing rule must not resurrect a lesson the guard rejects."""
+def test_the_guard_still_binds_when_the_curator_re_proposes_a_coincidence() -> None:
+    """A curator that keeps re-proposing the same near-universal condition has
+    it dropped every time - the guard is code, not a plea (2026-08-17)."""
     events = window(["Fighting"], ["Fighting"], ["Fighting"])
-    existing = [
-        {"text": "When Fighting appears, expect no fall", "cites": ["2026-08-11"]},
-        {"text": "When a Protest is recorded, expect a small down move", "cites": ["2026-08-11"]},
-    ]
-    kept, rejected = apply_curation(existing, [], {"2026-08-11"}, events=events)
-    assert [lesson["text"][:14] for lesson in kept] == ["When a Protest"]
-    assert any("existing lesson retired by the guard" in r for r in rejected)
+    existing = [{"text": "When Fighting appears, expect no fall", "cites": ["2026-08-11"]}]
+    kept, rejected = apply_curation(existing, existing, {"2026-08-11"}, events=events)
+    assert kept == []
+    assert any("near-universal condition dropped ('Fighting'" in r for r in rejected)
+    assert any("retired: When Fighting appears" in r for r in rejected)
 
 
 def test_todays_real_lessons_fall_to_the_guard_against_todays_real_window() -> None:

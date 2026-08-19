@@ -1188,6 +1188,19 @@ function replay() {
   return wrap;
 }
 
+// A bet whose brief reached past its own anchor cannot be compared honestly
+// with methods that only ever saw the past (defect D1, fixed 2026-08-19).
+// Seals from the fix onward carry `context_through`; the rows sealed before it
+// are named here, because a sealed record is never rewritten.
+const LEGACY_CONTEXT_LEAK = new Set([
+  "usd_inr|2026-08-07", "usd_inr|2026-08-14", "wti|2026-08-11",
+]);
+function contextLeak(record) {
+  const through = (record.llm || {}).context_through;
+  if (through) return through > record.as_of;
+  return LEGACY_CONTEXT_LEAK.has(state.instrument + "|" + record.as_of);
+}
+
 // ---- SECTION 6 — the AI's exact call, beside two dumb bars ----
 function aiCalls() {
   const h = state.horizon, inst = state.instrument, info = INSTRUMENTS[inst];
@@ -1201,14 +1214,16 @@ function aiCalls() {
     return wrap;
   }
   // stats as the technical page computes them, on the same graded days
-  let sealedN = 0, gradedN = 0, exactN = 0, flatExactN = 0, closerN = 0;
+  let sealedN = 0, gradedN = 0, exactN = 0, flatExactN = 0, closerN = 0, leakedN = 0;
   const absErr = [], zeroErr = [];
   const variants = state.aiVariant === "both" ? ["raw", "mem"] : [state.aiVariant];
   for (const r of withLlm) {
     const hz = r.horizons[h], m = (r.matured || {})[h], b0 = lpClose(r.as_of);
+    const leaked = contextLeak(r);   // defect D1: not comparable, so not counted
     for (const v of variants) {
       const md = r.llm[v]; if (!md || md.error) continue;
       const rung = "llm_" + v, probs = hz && hz.rungs[rung]; if (!probs) continue;
+      if (leaked) { leakedN++; continue; }
       sealedN++;
       const pp = (md.point_pct || {})[h];
       if (m) {
@@ -1234,6 +1249,10 @@ function aiCalls() {
   stats.appendChild(meterWrap);
   wrap.appendChild(stats);
   if (!absErr.length) wrap.appendChild(noteEl("average miss needs the local price layer — in the public build the exact call is graded by bucket only."));
+  if (leakedN) wrap.appendChild(el("div", { class: "aim", text:
+    `${leakedN} early bet${leakedN === 1 ? "" : "s"} on this instrument ${leakedN === 1 ? "is" : "are"} left out of these counts: ` +
+    "sealed before 2026-08-19, when the brief could still quote other markets and news dated after the day the bet was placed. " +
+    "Nothing sealed is ever rewritten here, so the bets remain in the ledger — they simply do not count toward the score." }));
   const newest = withLlm[withLlm.length - 1], hzN = newest.horizons[h];
   const closes = LP[inst] || {}, cd = Object.keys(closes).sort();
   const dailyAbs = cd.slice(1).map((d, i) => Math.abs(closes[d] / closes[cd[i]] - 1) * 100).sort((a, b) => a - b);
@@ -1258,6 +1277,9 @@ function aiCalls() {
       const row = el("div", { style: "margin-top:.9rem; border-top:1px solid var(--line); padding-top:.6rem" });
       const head = el("div", { class: "row", style: "justify-content:space-between" });
       head.appendChild(el("span", { style: "font-size:.85rem", title: rung }, swatch(rung), document.createTextNode(` sealed ${r.as_of} · ${v === "raw" ? "no memory" : "with memory"} · ${r.llm.model}`)));
+      if (contextLeak(r)) head.appendChild(el("span", { class: "verdict v-worse",
+        title: "Sealed before 2026-08-19: this brief could quote markets and news dated after the bet. Shown, not counted.",
+        text: "⚠ not counted" }));
       let pill;
       if (md.error) pill = el("span", { class: "verdict v-nd", text: "failed that day" });
       else if (!m) {

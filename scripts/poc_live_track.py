@@ -123,6 +123,27 @@ def seal(
     return updated, True
 
 
+def guard_forward(records: list[dict], as_of: str, instrument: str) -> None:
+    """Refuse to seal a date older than one already sealed (defect D3).
+
+    A partial or corrupt fetch can shorten a source series — the metals fetcher
+    used to swallow a failed chunk and rewrite the CSV with whatever survived.
+    The runner then takes `as_of = dates[-1]`, finds no record with that date,
+    and seals a **backdated** row into a seal-once ledger, calling the model
+    "as of" a date long past. The ledger only ever moves forward, so a series
+    that goes backwards is a fetch failure, not a day's data.
+    """
+    if not records:
+        return
+    newest = max(record["as_of"] for record in records)
+    if as_of < newest:
+        raise SystemExit(
+            f"{instrument}: the series now ends {as_of} but {newest} is already sealed — "
+            "the source data went backwards. Refusing to seal or to call the model; "
+            "check the fetch before re-running."
+        )
+
+
 def mature(
     records: list[dict],
     dates: list[str],

@@ -143,6 +143,14 @@ def _fmt_probs(probs: list[float] | tuple[float, ...]) -> str:
     return "  ".join(f"{b}={p:.3f}" for b, p in zip(BUCKETS, probs, strict=True))
 
 
+def events_through(events: dict | None, as_of: str) -> str | None:
+    """The newest event day a bet placed on `as_of` may read: published, and
+    not after the anchor. Recorded in the seal so the information set behind
+    every bet is visible afterwards (defect D1)."""
+    days = [day["date"] for day in (events or {}).get("days", []) if day["date"] <= as_of]
+    return max(days) if days else None
+
+
 def assemble_brief(
     instrument: str,
     *,
@@ -166,6 +174,10 @@ def assemble_brief(
     recent moves, every related market's 1-/5-session move, and realised moves
     for grading past bets — the covariate and history context the builder found
     missing from v1.
+
+    Nothing in the assembled brief may postdate `as_of`: the market context is
+    cut by its caller and the event shortlist is cut here (defect D1). The
+    numeric rungs never see the future, and neither may this one.
     """
     lines: list[str] = []
     lines.append(
@@ -180,7 +192,10 @@ def assemble_brief(
         "confident-and-wrong. The point estimate is published beside the realised move."
     )
 
-    actuals: dict[str, float] = (market or {}).get("actuals", {})
+    # Keyed by the ANCHOR day and the horizon, so a t+5 bet is graded against
+    # the five-session move (defect D2: it was graded against whatever the
+    # single landing day happened to do).
+    horizon_moves: dict[str, dict[str, float]] = (market or {}).get("horizon_moves") or {}
     recent = (market or {}).get("recent") or []
     if recent:
         compounded = 1.0
@@ -196,8 +211,8 @@ def assemble_brief(
     related = (market or {}).get("related") or []
     if related:
         lines.append(
-            "\n== Related markets (each at its own latest session; "
-            "US series lag one knowledge day) =="
+            "\n== Related markets (each at its own latest published date at or "
+            "before this as-of; US series publish a day or more behind) =="
         )
         for row in related:
             unit = "pp" if row["kind"] == "pp" else "%"
@@ -235,8 +250,8 @@ def assemble_brief(
             lines.append(f"  {rung:<18} {sum(values) / len(values):.4f}  ({len(values)} scored)")
         for record in scored[-5:]:
             for h, matured in sorted(record["matured"].items()):
-                actual = actuals.get(matured["target_date"])
-                act = f" ({actual:+.2f}%)" if actual is not None else ""
+                actual = horizon_moves.get(h, {}).get(record["as_of"])
+                act = f" ({actual:+.2f}% over {h} session(s))" if actual is not None else ""
                 ranked = sorted(matured["rps"].items(), key=lambda pair: pair[1])
                 line = (
                     f"  {record['as_of']} t+{h}: realised '{BUCKETS[matured['outcome']]}'{act}; "
@@ -250,8 +265,10 @@ def assemble_brief(
         past_points: list[str] = []
         for record in scored[-5:]:
             llm = record.get("llm") or {}
-            for h, matured in sorted(record["matured"].items()):
-                actual = actuals.get(matured["target_date"])
+            # The horizon is what the move is measured over; the matured block
+            # itself is no longer needed here (D2 keys by anchor + horizon).
+            for h in sorted(record["matured"]):
+                actual = horizon_moves.get(h, {}).get(record["as_of"])
                 if actual is None:
                     continue
                 for variant in ("raw", "mem"):
@@ -277,16 +294,20 @@ def assemble_brief(
             lines.append(f"t+{h}: {cells}")
         lines.append("Nothing has beaten the base rates detectably. That is the bar.")
 
-    if events and events.get("days"):
+    # Days after the anchor are not knowable when the bet is placed — the cut
+    # is defect D1's other half, and it binds for any instrument whose own
+    # series lags the wall clock.
+    knowable = [day for day in (events or {}).get("days", []) if day["date"] <= as_of]
+    if knowable:
         lines.append("\n== This week's world events (deterministic shortlist, metadata only) ==")
-        newest_day = events["days"][0]["date"]
+        newest_day = knowable[0]["date"]
         if newest_day < as_of:
             lines.append(
                 f"Note: the newest event day available is {newest_day} — GDELT publishes a "
                 f"day's file with a lag, so events after it (through {as_of} and today) are "
                 "NOT YET AVAILABLE, not absent. Do not read the gap as a quiet period."
             )
-        for day in events["days"][:3]:
+        for day in knowable[:3]:
             lines.append(f"{day['date']}:")
             for event in day["events"]:
                 place = f" — {event['place']}" if event.get("place") else ""
@@ -321,13 +342,20 @@ def record_run(
     response_text = json.dumps(response, sort_keys=True)
     brief_sha = hashlib.sha256(brief.encode("utf-8")).hexdigest()
     response_sha = hashlib.sha256(response_text.encode("utf-8")).hexdigest()
-    path = RECORDS / f"{instrument}_{as_of}_{variant}.json"
+    # Never overwrite (defect D4): a re-run after a crash must not destroy the
+    # only record of the bet a previous attempt already made and paid for.
+    stem = f"{instrument}_{as_of}_{variant}"
+    path, attempt = RECORDS / f"{stem}.json", 1
+    while path.exists():
+        attempt += 1
+        path = RECORDS / f"{stem}_attempt{attempt}.json"
     path.write_text(
         json.dumps(
             {
                 "instrument": instrument,
                 "as_of": as_of,
                 "variant": variant,
+                "attempt": attempt,
                 "model": model,
                 "recorded_utc": datetime.now(UTC).isoformat(timespec="seconds"),
                 "brief": brief,
@@ -339,7 +367,15 @@ def record_run(
         ),
         encoding="utf-8",
     )
-    return {"model": model, "brief_sha256": brief_sha, "response_sha256": response_sha}
+    meta = {
+        "model": model,
+        "brief_sha256": brief_sha,
+        "response_sha256": response_sha,
+        "transcript": path.name,
+    }
+    if attempt > 1:
+        meta["attempt"] = attempt
+    return meta
 
 
 def _structured_call(schema: type[BaseModel], system_prompt: str, prompt: str, model: str):
@@ -438,6 +474,15 @@ def reasoning_rung(
 
     additions: dict[str, dict[str, tuple[float, ...]]] = {"1": {}, "5": {}}
     meta: dict = {"model": model}
+    # The information set behind the day's bets, in the seal (defect D1): a
+    # reader can now see how far the brief's knowledge reached, and a page can
+    # flag any row whose context ran past its own anchor.
+    context_through = (market or {}).get("context_through")
+    if context_through:
+        meta["context_through"] = context_through
+    seen_events = events_through(events, as_of)
+    if seen_events:
+        meta["events_through"] = seen_events
     for variant, page in variants:
         rung = f"llm_{variant}"
         brief = assemble_brief(
@@ -530,7 +575,7 @@ def main(argv: list[str] | None = None) -> int:
         # briefs still assemble without it when the data files are absent.
         from gold_poc_data import market_context
 
-        market = market_context(instrument)
+        market = market_context(instrument, as_of=newest["as_of"])
     except Exception as error:  # noqa: BLE001 — inspection tool, degrade visibly
         print(f"(market context unavailable — {type(error).__name__}: {error})\n")
         market = None

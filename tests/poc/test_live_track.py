@@ -14,10 +14,13 @@ import random
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 
-from poc_live_track import (  # noqa: E402
+from poc_live_track import (
     bucket_from_edges,
+    guard_forward,  # noqa: E402
     mature,
     parse,
     random_walk,
@@ -164,3 +167,21 @@ def test_serialize_parse_round_trip_and_fresh_start() -> None:
     assert parse("not a live file") == {"instruments": {}}
     # Idempotence at the byte level: what the runner re-writes is what it read.
     assert serialize(parse(serialize(payload))) == serialize(payload)
+
+
+# --- the ledger only moves forward (defect D3) ---------------------------------
+
+
+def test_a_series_that_went_backwards_halts_instead_of_sealing() -> None:
+    """A partial fetch can shorten a source series; the runner takes
+    `as_of = dates[-1]`, matches no existing record, and would seal a backdated
+    row into a seal-once ledger — and call a paid model "as of" a date long
+    past. Found in the 2026-08-18 review as defect D3."""
+    records = [{"as_of": "2026-08-14"}, {"as_of": "2026-08-18"}]
+
+    guard_forward(records, "2026-08-19", "gold")  # forward: fine
+    guard_forward(records, "2026-08-18", "gold")  # same day: a no-op re-run
+    guard_forward([], "2020-01-01", "gold")  # nothing sealed yet: fine
+
+    with pytest.raises(SystemExit, match="went backwards"):
+        guard_forward(records, "2026-01-08", "gold")

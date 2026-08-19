@@ -37,7 +37,17 @@ Honesty mechanisms, all mandatory:
 - **Falsifiable lessons only** — statable as a prediction the statistics can later
   score. "Markets were volatile" is not a lesson.
 - **Retirement** — the curator must drop or revise a lesson the evidence has turned
-  against; the statistics table makes this checkable rather than optional.
+  against; the statistics table makes this checkable rather than optional. **What
+  the curator returns replaces the page, an empty list included** — an explicit
+  "retire everything" is obeyed (defect D5, 2026-08-18: it used to be read as
+  silence and the old lessons kept). A curator run that *fails* never reaches the
+  rule: the runner keeps the previous page on its exception path, so silence and
+  retirement are different events.
+- **No coincidence lessons** — a lesson whose condition names an event label
+  present on more than 70% of the shortlist's days is dropped by code, whatever
+  the prompt says (`UNIVERSAL_LABEL_SHARE`, added 2026-08-17 after three
+  "when Fighting…" lessons were written on a window where Fighting appeared on
+  7 of 7 days). The curator also sees each label's base rate in its evidence.
 - **Caps** — the 15-bullet / ~3 KB ceiling forces prioritisation, which *is* the
   learning.
 - **Versioning** — every day's page version is kept, append-only, so memory churn
