@@ -12,7 +12,7 @@ window.POC_REGISTRY["wti"] = Object.assign(window.POC_REGISTRY["wti"] || {}, {
   },
   "context": 512,
   "n_min_provisional": 20,
-  "fred_join": "knowledge day (value date +1)",
+  "fred_join": "same fix as the target (CBR gold) \u2014 no re-dating",
   "errors": "paired per day, Newey-West lag = horizon-1",
   "horizons": [
    "1",

@@ -64,6 +64,10 @@ docs/analysis/power/results.txt
 data/
 **/data/
 !data/README.md
+# The knowledge-time ledger is OUR observation of when each FRED value became
+# readable - dates only, no source values - and losing it would silently return
+# every join to a guess. Committed as derived work (REQ-1106).
+!data/fred_first_seen.csv
 !docs/analysis/**
 *.csv
 !docs/**/*.csv

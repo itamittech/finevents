@@ -143,8 +143,18 @@ The arm is `llm_macro`: `llm_raw`'s brief **plus** the macro block, nothing else
 
 ## 8. Sequence, if it goes ahead
 
-1. **L4 first** — per-series publication lags. The macro arm is unsafe without it, and it
-   also fixes an existing understatement for H.10 and EIA. (~half a day)
+1. ~~**L4 first** — per-series publication lags.~~ ✅ **done 2026-08-19.** Measured against
+   the runner logs rather than assumed: the daily series land **two business days** behind at
+   the 07:15 GMT run (2 calendar days mid-week, 4 across a weekend) and H.10 publishes the
+   whole week at once, so a Monday value waits until the following Tuesday — up to 8 days.
+   The single `+1` became a per-series bound plus a **first-seen ledger**
+   (`data/fred_first_seen.csv`, committed) that replaces the bound with an observation for
+   everything fetched from now on. The measurement also settled a design question: a weekly
+   release publishes five value dates at once, so re-dating would collapse the series and
+   turn "five sessions" into five weeks — the panel takes knowledge-dated series (correct for
+   an as-of join) and the brief takes value-dated series *filtered* by knowledge (correct for
+   quoting moves). The old join differed on **91–100% of report-window sessions**, so the
+   offline ladder was re-run under the corrected rule.
 2. `data/policy_calendar.csv` + its CI coverage assertion, in the REQ-210 mould.
 3. The macro block in the brief, behind a flag like L1's, so `llm_raw` stays byte-identical.
 4. `llm_macro` sealed as a fourth model arm; ADR + REQ written before the code, comparison

@@ -11,12 +11,20 @@ checked against the live API. A FRED value dated D is that day's US close,
 the next day's price. Joined by value date, every cut-off therefore saw a US
 close that postdates the t+1 outcome it was asked to predict.
 
-The correction is one day: a FRED observation's **knowledge day** is the
-calendar day after its value date, and the panel's as-of join runs on knowledge
-days. That is REQ-407 applied across sources — the same rule ADR-0016 builds
-into the store, and the one this loader was silently breaking. CBR-sourced
-covariates (the sister metals and USD/RUB) share the target's own fix and are
-not shifted.
+The correction was first made as one day: a FRED observation's **knowledge
+day** is the calendar day after its value date, and the panel's as-of join runs
+on knowledge days. That is REQ-407 applied across sources — the same rule
+ADR-0016 builds into the store, and the one this loader was silently breaking.
+CBR-sourced covariates (the sister metals and USD/RUB) share the target's own
+fix and are not shifted.
+
+**One day was still too few (2026-08-19, review finding L4).** Measured against
+the runner logs, the daily series land two *business* days behind at the 07:15
+GMT run and the H.10 pair is published weekly, so a Monday value can wait eight
+calendar days. The single constant is replaced by a measured per-series bound,
+and by a first-seen ledger that turns the bound into an observation for every
+value fetched from now on. The lesson is the same one twice: a modelled lag is
+a guess, and a guess that is too small is a leak.
 """
 
 from __future__ import annotations
@@ -34,7 +42,67 @@ from finevents.features.panel import Panel, Series, align  # noqa: E402
 DATA = Path(__file__).resolve().parent.parent / "data"
 
 #: A FRED value becomes knowable the day after its value date (US close, MSK).
+#: **Superseded 2026-08-19 by the per-series table below (review finding L4).**
+#: Kept only so the size of the old, too-small assumption can still be measured.
 FRED_KNOWLEDGE_LAG_DAYS = 1
+
+#: How many calendar days after its value date a FRED observation is actually
+#: readable at the 07:15 GMT run — **measured**, from the tip of each series
+#: across the runs recorded in `data/runner_logs/` (2026-08-14 .. 2026-08-19),
+#: not assumed:
+#:
+#:   DGS10 / DFII10 / VIXCLS   value D appears 2 *business* days later. Wed's
+#:                             value first shows on Friday, Thursday's on Monday
+#:                             — so 2 calendar days mid-week, 4 across a weekend.
+#:   DTWEXBGS / DEXINUS        H.10 is released on Mondays and carries the whole
+#:                             week at once, so a Monday value waits until the
+#:                             FOLLOWING Tuesday — up to 8 calendar days.
+#:   DCOILWTICO                EIA's weekly cadence; the tip sat at 2026-08-11
+#:                             through four consecutive runs.
+#:
+#: These are deliberately **upper bounds**. A lag that is too large only costs
+#: freshness; one that is too small is a leak, which is the defect being fixed.
+#: The ledger below replaces the guess with an observation wherever it can.
+FRED_PUBLICATION_LAG_DAYS: dict[str, int] = {
+    "dgs10": 4,
+    "dfii10": 4,
+    "vixcls": 4,
+    "dtwexbgs": 8,
+    "dexinus": 8,
+    "dcoilwtico": 9,
+}
+#: Any FRED series without a measured entry is treated as weekly until measured.
+DEFAULT_FRED_LAG_DAYS = 8
+
+#: Observed publication: `series,value_date,first_seen`, appended by the fetcher
+#: the first time a value date appears in a download. Committed on purpose — it
+#: is our own observation, carries no source values, and is the only exact record
+#: of when something became knowable (REQ-1106 derived work; ADR-0016's
+#: knowledge-time principle, in the POC's small way).
+FIRST_SEEN = DATA / "fred_first_seen.csv"
+
+
+def load_first_seen() -> dict[tuple[str, date], date]:
+    """(series, value date) -> the day we first saw it. Empty before the ledger
+    exists, which is why the table above still has to be right for history."""
+    if not FIRST_SEEN.exists():
+        return {}
+    out: dict[tuple[str, date], date] = {}
+    for row in csv.DictReader(FIRST_SEEN.open(encoding="utf-8")):
+        key = (row["series"].lower(), date.fromisoformat(row["value_date"]))
+        out[key] = date.fromisoformat(row["first_seen"])
+    return out
+
+
+def fred_knowledge_date(column: str, value_date: date, ledger: dict | None = None) -> date:
+    """The day a FRED observation could first have been read: observed if the
+    ledger has it, otherwise the conservative per-series bound."""
+    seen = (ledger if ledger is not None else load_first_seen()).get((column, value_date))
+    if seen is not None:
+        return seen
+    lag = FRED_PUBLICATION_LAG_DAYS.get(column, DEFAULT_FRED_LAG_DAYS)
+    return value_date + timedelta(days=lag)
+
 
 #: The univariate forecast targets beyond gold: (file, column, series start).
 #: One registry, because evaluate and the daily runner both load these and a
@@ -50,7 +118,15 @@ UNIVARIATE_SERIES: dict[str, tuple[str, str, date | None]] = {
 
 
 def load_univariate(instrument: str) -> Series:
-    """One univariate target series, start-trimmed where the registry says so."""
+    """One univariate target series, start-trimmed where the registry says so.
+
+    Deliberately on **value** dates, even for the FRED-sourced targets: a
+    target's own dates are the instrument's trading calendar, and shifting them
+    would move the day a forecast is made rather than the day it is knowable.
+    That USD/INR and WTI are published days after the sessions they describe is
+    a real problem — review finding L5 — but it is a sourcing problem, not one
+    the knowledge-day rule can fix by re-dating the target.
+    """
     filename, column, start = UNIVARIATE_SERIES[instrument]
     series = read_simple(filename, column, instrument)
     if start is None:
@@ -84,11 +160,43 @@ def read_simple(filename: str, column: str, name: str, *, knowledge_lag_days: in
     return Series.of(name, rows)
 
 
-def load_series(
-    fred_knowledge_lag_days: int = FRED_KNOWLEDGE_LAG_DAYS,
-) -> tuple[Series, list[Series]]:
-    """Gold plus the ten covariates, FRED re-dated to knowledge days."""
-    lag = fred_knowledge_lag_days
+def read_fred(column: str, name: str) -> Series:
+    """A FRED column re-dated to its **knowledge** day, for the as-of join.
+
+    A weekly release publishes several value dates at once, so more than one can
+    land on the same knowledge day; the freshest wins, which is exactly what an
+    as-of query should return for that day. The series therefore gets shorter,
+    not wrong — the panel asks "what did we know on this session", and this
+    answers it.
+    """
+    ledger = load_first_seen()
+    rows = {
+        fred_knowledge_date(column, date.fromisoformat(r["date"]), ledger): float(r[column])
+        for r in csv.DictReader((DATA / f"fred_{column}.csv").open(encoding="utf-8"))
+    }
+    return Series.of(name, rows)
+
+
+def read_fred_known_by(column: str, name: str, known_by: date | None) -> Series:
+    """A FRED column on its own **value** dates, carrying only what was published
+    by `known_by`.
+
+    The reasoning brief quotes 1- and 5-session moves, so the series' shape has
+    to survive: re-dating a weekly release would turn "five sessions" into five
+    weeks. Filtering instead of shifting keeps the calendar and still lets
+    nothing unpublished through.
+    """
+    ledger = load_first_seen()
+    rows = {}
+    for r in csv.DictReader((DATA / f"fred_{column}.csv").open(encoding="utf-8")):
+        value_date = date.fromisoformat(r["date"])
+        if known_by is None or fred_knowledge_date(column, value_date, ledger) <= known_by:
+            rows[value_date] = float(r[column])
+    return Series.of(name, rows)
+
+
+def load_series() -> tuple[Series, list[Series]]:
+    """Gold plus the ten covariates, FRED re-dated to knowledge days (L4)."""
     gold = read_metal("gold")
     covariates = [
         # Sister metals and the FX leg share gold's calendar and fix exactly —
@@ -101,18 +209,18 @@ def load_series(
         read_simple("fx_usdrub_cbr.csv", "usd_rub", "usd_rub"),
         # US series: different holidays (hence the as-of join) and a different
         # clock (hence knowledge days rather than value days).
-        read_simple("fred_dgs10.csv", "dgs10", "nominal_10y", knowledge_lag_days=lag),
-        read_simple("fred_dfii10.csv", "dfii10", "real_10y", knowledge_lag_days=lag),
-        read_simple("fred_dtwexbgs.csv", "dtwexbgs", "dollar_index", knowledge_lag_days=lag),
-        read_simple("fred_dcoilwtico.csv", "dcoilwtico", "wti", knowledge_lag_days=lag),
-        read_simple("fred_vixcls.csv", "vixcls", "vix", knowledge_lag_days=lag),
-        read_simple("fred_dexinus.csv", "dexinus", "usd_inr", knowledge_lag_days=lag),
+        read_fred("dgs10", "nominal_10y"),
+        read_fred("dfii10", "real_10y"),
+        read_fred("dtwexbgs", "dollar_index"),
+        read_fred("dcoilwtico", "wti"),
+        read_fred("vixcls", "vix"),
+        read_fred("dexinus", "usd_inr"),
     ]
     return gold, covariates
 
 
-def load_panel(fred_knowledge_lag_days: int = FRED_KNOWLEDGE_LAG_DAYS) -> Panel:
-    gold, covariates = load_series(fred_knowledge_lag_days)
+def load_panel() -> Panel:
+    gold, covariates = load_series()
     return align(gold, covariates)
 
 
@@ -145,19 +253,19 @@ def recent_moves(dates: list[str], values: list[float], sessions: int) -> list[t
     return out
 
 
-def _context_series() -> dict[str, Series]:
-    lag = FRED_KNOWLEDGE_LAG_DAYS
+def _context_series(known_by: date | None = None) -> dict[str, Series]:
+    """The roster the brief quotes, with every FRED series cut to what had been
+    published by `known_by` (L4). CBR series share the target's own fix and are
+    knowable on their value date, so they pass through untouched."""
     return {
         "gold": read_metal("gold"),
         "silver": read_metal("silver"),
         "usd_rub": read_simple("fx_usdrub_cbr.csv", "usd_rub", "usd_rub"),
-        "usd_inr": read_simple("fred_dexinus.csv", "dexinus", "usd_inr", knowledge_lag_days=lag),
-        "wti": read_simple("fred_dcoilwtico.csv", "dcoilwtico", "wti", knowledge_lag_days=lag),
-        "dollar_index": read_simple(
-            "fred_dtwexbgs.csv", "dtwexbgs", "dollar_index", knowledge_lag_days=lag
-        ),
-        "vix": read_simple("fred_vixcls.csv", "vixcls", "vix", knowledge_lag_days=lag),
-        "real_10y": read_simple("fred_dfii10.csv", "dfii10", "real_10y", knowledge_lag_days=lag),
+        "usd_inr": read_fred_known_by("dexinus", "usd_inr", known_by),
+        "wti": read_fred_known_by("dcoilwtico", "wti", known_by),
+        "dollar_index": read_fred_known_by("dtwexbgs", "dollar_index", known_by),
+        "vix": read_fred_known_by("vixcls", "vix", known_by),
+        "real_10y": read_fred_known_by("dfii10", "real_10y", known_by),
     }
 
 
@@ -210,7 +318,7 @@ def market_context(instrument: str, sessions: int = 10, as_of: str | None = None
       rides in the seal so a reader can see the information set a bet had.
     """
     cut = date.fromisoformat(as_of) if as_of else None
-    roster = _context_series()
+    roster = _context_series(known_by=cut)
     target = load_univariate(instrument) if instrument in UNIVARIATE_SERIES else roster[instrument]
     t_dates, t_values = _cut(target, cut)
 

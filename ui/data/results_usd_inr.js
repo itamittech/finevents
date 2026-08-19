@@ -1,18 +1,18 @@
 window.POC_REGISTRY = window.POC_REGISTRY || {};
 window.POC_REGISTRY["usd_inr"] = Object.assign(window.POC_REGISTRY["usd_inr"] || {}, {
  "results": {
-  "generated": "2026-08-07",
+  "generated": "2026-08-14",
   "instrument": "usd_inr",
   "target": "USD/INR, FRED DEXINUS (Federal Reserve H.10 reference rate)",
   "window": {
    "from": "2026-01-02",
-   "to": "2026-07-31",
-   "days": 146,
+   "to": "2026-08-07",
+   "days": 151,
    "clean_from": "2026-01-01"
   },
   "context": 512,
   "n_min_provisional": 20,
-  "fred_join": "knowledge day (value date +1)",
+  "fred_join": "same fix as the target (CBR gold) \u2014 no re-dating",
   "errors": "paired per day, Newey-West lag = horizon-1",
   "horizons": [
    "1",
@@ -35,75 +35,75 @@ window.POC_REGISTRY["usd_inr"] = Object.assign(window.POC_REGISTRY["usd_inr"] ||
    "1": [
     {
      "rung": "climatology",
-     "mean": 0.134375,
+     "mean": 0.131261,
      "baseline": true
     },
     {
-     "rung": "chronos_uni",
-     "mean": 0.146002,
-     "diff": 0.011627,
-     "lo": 0.003212,
-     "hi": 0.020042,
+     "rung": "timesfm_uni",
+     "mean": 0.143002,
+     "diff": 0.011741,
+     "lo": 0.004538,
+     "hi": 0.018944,
      "verdict": "worse",
-     "wins": 49,
-     "n": 146
+     "wins": 36,
+     "n": 151
     },
     {
-     "rung": "timesfm_uni",
-     "mean": 0.146204,
-     "diff": 0.011829,
-     "lo": 0.004422,
-     "hi": 0.019235,
+     "rung": "chronos_uni",
+     "mean": 0.143755,
+     "diff": 0.012494,
+     "lo": 0.004315,
+     "hi": 0.020673,
      "verdict": "worse",
-     "wins": 35,
-     "n": 146
+     "wins": 48,
+     "n": 151
     },
     {
      "rung": "all_flat",
-     "mean": 0.16952,
-     "diff": 0.035145,
-     "lo": 0.023053,
-     "hi": 0.047237,
+     "mean": 0.163907,
+     "diff": 0.032646,
+     "lo": 0.020779,
+     "hi": 0.044513,
      "verdict": "worse",
-     "wins": 73,
-     "n": 146
+     "wins": 78,
+     "n": 151
     }
    ],
    "5": [
     {
      "rung": "climatology",
-     "mean": 0.145648,
+     "mean": 0.143206,
      "baseline": true
     },
     {
      "rung": "chronos_uni",
-     "mean": 0.154418,
-     "diff": 0.008771,
-     "lo": -0.001036,
-     "hi": 0.018577,
+     "mean": 0.152004,
+     "diff": 0.008799,
+     "lo": -0.000819,
+     "hi": 0.018417,
      "verdict": "no detectable difference",
-     "wins": 53,
-     "n": 146
+     "wins": 54,
+     "n": 151
     },
     {
      "rung": "timesfm_uni",
-     "mean": 0.163809,
-     "diff": 0.018161,
-     "lo": -0.003686,
-     "hi": 0.040008,
+     "mean": 0.160915,
+     "diff": 0.01771,
+     "lo": -0.003518,
+     "hi": 0.038937,
      "verdict": "no detectable difference",
-     "wins": 48,
-     "n": 146
+     "wins": 49,
+     "n": 151
     },
     {
      "rung": "all_flat",
-     "mean": 0.202054,
-     "diff": 0.056406,
-     "lo": 0.03649,
-     "hi": 0.076322,
+     "mean": 0.197019,
+     "diff": 0.053814,
+     "lo": 0.033604,
+     "hi": 0.074023,
      "verdict": "worse",
-     "wins": 53,
-     "n": 146
+     "wins": 57,
+     "n": 151
     }
    ]
   },
@@ -11815,7 +11815,7 @@ window.POC_REGISTRY["usd_inr"] = Object.assign(window.POC_REGISTRY["usd_inr"] ||
     "date": "2026-07-27",
     "outcome": {
      "1": 2,
-     "5": 2
+     "5": 1
     },
     "rps": {
      "1": {
@@ -11825,10 +11825,10 @@ window.POC_REGISTRY["usd_inr"] = Object.assign(window.POC_REGISTRY["usd_inr"] ||
       "all_flat": 0.0
      },
      "5": {
-      "climatology": 0.046375,
-      "chronos_uni": 0.052236,
-      "timesfm_uni": 0.067059,
-      "all_flat": 0.0
+      "climatology": 0.173571,
+      "chronos_uni": 0.145507,
+      "timesfm_uni": 0.139083,
+      "all_flat": 0.249999
      }
     },
     "probs": {
@@ -12146,15 +12146,15 @@ window.POC_REGISTRY["usd_inr"] = Object.assign(window.POC_REGISTRY["usd_inr"] ||
    {
     "date": "2026-07-31",
     "outcome": {
-     "1": 3,
+     "1": 2,
      "5": 2
     },
     "rps": {
      "1": {
-      "climatology": 0.148498,
-      "chronos_uni": 0.145098,
-      "timesfm_uni": 0.194358,
-      "all_flat": 0.249999
+      "climatology": 0.038127,
+      "chronos_uni": 0.053846,
+      "timesfm_uni": 0.069578,
+      "all_flat": 0.0
      },
      "5": {
       "climatology": 0.046428,
@@ -12225,29 +12225,444 @@ window.POC_REGISTRY["usd_inr"] = Object.assign(window.POC_REGISTRY["usd_inr"] ||
       ]
      }
     }
+   },
+   {
+    "date": "2026-08-03",
+    "outcome": {
+     "1": 2,
+     "5": 2
+    },
+    "rps": {
+     "1": {
+      "climatology": 0.0381,
+      "chronos_uni": 0.072778,
+      "timesfm_uni": 0.064652,
+      "all_flat": 0.0
+     },
+     "5": {
+      "climatology": 0.046439,
+      "chronos_uni": 0.058228,
+      "timesfm_uni": 0.059267,
+      "all_flat": 0.0
+     }
+    },
+    "probs": {
+     "1": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.0511,
+       0.2056,
+       0.4641,
+       0.2021,
+       0.0771
+      ],
+      "chronos_uni": [
+       0.0377,
+       0.1533,
+       0.3214,
+       0.3632,
+       0.1244
+      ],
+      "timesfm_uni": [
+       0.1359,
+       0.2694,
+       0.3279,
+       0.1986,
+       0.0681
+      ]
+     },
+     "5": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.061,
+       0.1859,
+       0.4206,
+       0.2301,
+       0.1024
+      ],
+      "chronos_uni": [
+       0.0366,
+       0.168,
+       0.3767,
+       0.299,
+       0.1198
+      ],
+      "timesfm_uni": [
+       0.1221,
+       0.2471,
+       0.3474,
+       0.2091,
+       0.0744
+      ]
+     }
+    }
+   },
+   {
+    "date": "2026-08-04",
+    "outcome": {
+     "1": 1,
+     "5": 2
+    },
+    "rps": {
+     "1": {
+      "climatology": 0.159747,
+      "chronos_uni": 0.224894,
+      "timesfm_uni": 0.113572,
+      "all_flat": 0.249999
+     },
+     "5": {
+      "climatology": 0.04645,
+      "chronos_uni": 0.06147,
+      "timesfm_uni": 0.060553,
+      "all_flat": 0.0
+     }
+    },
+    "probs": {
+     "1": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.0511,
+       0.2055,
+       0.4643,
+       0.202,
+       0.077
+      ],
+      "chronos_uni": [
+       0.0408,
+       0.1564,
+       0.3173,
+       0.3527,
+       0.1328
+      ],
+      "timesfm_uni": [
+       0.1683,
+       0.246,
+       0.3114,
+       0.1869,
+       0.0875
+      ]
+     },
+     "5": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.061,
+       0.1862,
+       0.4204,
+       0.23,
+       0.1024
+      ],
+      "chronos_uni": [
+       0.0394,
+       0.1677,
+       0.3647,
+       0.2937,
+       0.1345
+      ],
+      "timesfm_uni": [
+       0.135,
+       0.2432,
+       0.3465,
+       0.2032,
+       0.0721
+      ]
+     }
+    }
+   },
+   {
+    "date": "2026-08-05",
+    "outcome": {
+     "1": 2,
+     "5": 2
+    },
+    "rps": {
+     "1": {
+      "climatology": 0.038092,
+      "chronos_uni": 0.082866,
+      "timesfm_uni": 0.07378,
+      "all_flat": 0.0
+     },
+     "5": {
+      "climatology": 0.04646,
+      "chronos_uni": 0.072705,
+      "timesfm_uni": 0.067258,
+      "all_flat": 0.0
+     }
+    },
+    "probs": {
+     "1": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.0511,
+       0.2058,
+       0.4641,
+       0.202,
+       0.077
+      ],
+      "chronos_uni": [
+       0.0496,
+       0.1533,
+       0.2852,
+       0.3513,
+       0.1606
+      ],
+      "timesfm_uni": [
+       0.1817,
+       0.2468,
+       0.3035,
+       0.1863,
+       0.0816
+      ]
+     },
+     "5": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.061,
+       0.1865,
+       0.4203,
+       0.2299,
+       0.1023
+      ],
+      "chronos_uni": [
+       0.0667,
+       0.1713,
+       0.3189,
+       0.2604,
+       0.1827
+      ],
+      "timesfm_uni": [
+       0.1679,
+       0.2366,
+       0.3279,
+       0.1929,
+       0.0747
+      ]
+     }
+    }
+   },
+   {
+    "date": "2026-08-06",
+    "outcome": {
+     "1": 2,
+     "5": 2
+    },
+    "rps": {
+     "1": {
+      "climatology": 0.038065,
+      "chronos_uni": 0.048498,
+      "timesfm_uni": 0.064016,
+      "all_flat": 0.0
+     },
+     "5": {
+      "climatology": 0.046471,
+      "chronos_uni": 0.060854,
+      "timesfm_uni": 0.061443,
+      "all_flat": 0.0
+     }
+    },
+    "probs": {
+     "1": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.0511,
+       0.2057,
+       0.4643,
+       0.2019,
+       0.077
+      ],
+      "chronos_uni": [
+       0.0541,
+       0.1729,
+       0.4124,
+       0.2629,
+       0.0976
+      ],
+      "timesfm_uni": [
+       0.1359,
+       0.2519,
+       0.3271,
+       0.2083,
+       0.0768
+      ]
+     },
+     "5": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.061,
+       0.1868,
+       0.4201,
+       0.2299,
+       0.1023
+      ],
+      "chronos_uni": [
+       0.0674,
+       0.1854,
+       0.3532,
+       0.2536,
+       0.1404
+      ],
+      "timesfm_uni": [
+       0.122,
+       0.2379,
+       0.335,
+       0.2139,
+       0.0911
+      ]
+     }
+    }
+   },
+   {
+    "date": "2026-08-07",
+    "outcome": {
+     "1": 2,
+     "5": 2
+    },
+    "rps": {
+     "1": {
+      "climatology": 0.038038,
+      "chronos_uni": 0.052859,
+      "timesfm_uni": 0.056365,
+      "all_flat": 0.0
+     },
+     "5": {
+      "climatology": 0.046439,
+      "chronos_uni": 0.061054,
+      "timesfm_uni": 0.061559,
+      "all_flat": 0.0
+     }
+    },
+    "probs": {
+     "1": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.0511,
+       0.2057,
+       0.4645,
+       0.2018,
+       0.0769
+      ],
+      "chronos_uni": [
+       0.0489,
+       0.1671,
+       0.3954,
+       0.2818,
+       0.1067
+      ],
+      "timesfm_uni": [
+       0.0948,
+       0.264,
+       0.3567,
+       0.2018,
+       0.0827
+      ]
+     },
+     "5": {
+      "all_flat": [
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      "climatology": [
+       0.0609,
+       0.1867,
+       0.4203,
+       0.2298,
+       0.1023
+      ],
+      "chronos_uni": [
+       0.0719,
+       0.1847,
+       0.3514,
+       0.2524,
+       0.1397
+      ],
+      "timesfm_uni": [
+       0.0895,
+       0.2319,
+       0.3296,
+       0.2346,
+       0.1144
+      ]
+     }
+    }
    }
   ],
   "by_outcome": {
    "1": {
     "climatology": {
      "0": 0.384439,
-     "1": 0.159489,
-     "2": 0.038169,
-     "3": 0.148676,
+     "1": 0.159503,
+     "2": 0.038163,
+     "3": 0.148682,
      "4": 0.360541
     },
     "chronos_uni": {
      "0": 0.337541,
-     "1": 0.146718,
-     "2": 0.077224,
-     "3": 0.135767,
+     "1": 0.151061,
+     "2": 0.076259,
+     "3": 0.135445,
      "4": 0.361514
     },
     "timesfm_uni": {
      "0": 0.295846,
-     "1": 0.11893,
-     "2": 0.065069,
-     "3": 0.190068,
+     "1": 0.118632,
+     "2": 0.065108,
+     "3": 0.18992,
      "4": 0.380123
     },
     "all_flat": {
@@ -12262,21 +12677,21 @@ window.POC_REGISTRY["usd_inr"] = Object.assign(window.POC_REGISTRY["usd_inr"] ||
     "climatology": {
      "0": 0.392885,
      "1": 0.173577,
-     "2": 0.046223,
+     "2": 0.04624,
      "3": 0.130718,
      "4": 0.32973
     },
     "chronos_uni": {
      "0": 0.396165,
-     "1": 0.178544,
-     "2": 0.058655,
+     "1": 0.17732,
+     "2": 0.059137,
      "3": 0.132903,
      "4": 0.352924
     },
     "timesfm_uni": {
      "0": 0.250833,
-     "1": 0.124522,
-     "2": 0.062101,
+     "1": 0.125062,
+     "2": 0.062007,
      "3": 0.188542,
      "4": 0.450681
     },

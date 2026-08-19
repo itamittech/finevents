@@ -117,8 +117,42 @@ def write(series: str, rows: list[dict[str, str]]) -> Path:
     return path
 
 
+FIRST_SEEN = OUT / "fred_first_seen.csv"
+
+
+def record_first_seen(series: str, rows: list[dict], today: date) -> int:
+    """Append the value dates we are seeing for the first time, stamped today.
+
+    This is the POC's small version of ADR-0016's knowledge time: a modelled lag
+    is a guess that can be too small — and was (review finding L4) — while an
+    observation cannot. It only ever grows forward, so history still needs the
+    measured bounds in `gold_poc_data.FRED_PUBLICATION_LAG_DAYS`.
+    """
+    key = series.lower()
+    known: set[str] = set()
+    if FIRST_SEEN.exists():
+        known = {
+            r["value_date"]
+            for r in csv.DictReader(FIRST_SEEN.open(encoding="utf-8"))
+            if r["series"] == key
+        }
+    fresh = [r["date"] for r in rows if r["date"] not in known]
+    if not fresh:
+        return 0
+    OUT.mkdir(exist_ok=True)
+    new_file = not FIRST_SEEN.exists()
+    with FIRST_SEEN.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if new_file:
+            writer.writerow(["series", "value_date", "first_seen"])
+        for value_date in sorted(fresh):
+            writer.writerow([key, value_date, today.isoformat()])
+    return len(fresh)
+
+
 def main(argv: list[str]) -> int:
     wanted = argv or list(RESTRICTIONS)
+    today = date.today()
     print(f"FRED daily series from {START.isoformat()}\n")
 
     for series in wanted:
@@ -130,9 +164,11 @@ def main(argv: list[str]) -> int:
             continue
 
         write(series, rows)
+        first = record_first_seen(series, rows, today)
         flag = "RESTRICTED" if restricted else "unrestricted"
         span = f"{rows[0]['date']} -> {rows[-1]['date']}" if rows else "empty"
-        print(f"  {series:<12} {len(rows):>5} rows  {span}  [{flag}]  {source}")
+        seen = f"  +{first} first seen" if first else ""
+        print(f"  {series:<12} {len(rows):>5} rows  {span}  [{flag}]  {source}{seen}")
         if restricted:
             print(f"               cite: {CITATIONS[series]}")
 

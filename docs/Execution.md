@@ -79,6 +79,28 @@ NEXT STEP:          OPERATE. P6 is DONE (2026-08-14): `FinEventsDailyRunner` is
                     ~6. Levers L2-L7 wait; the macro/event enrichment the
                     builder proposed (policy rates, releases) is scoped as its
                     own arm, deliberately after the controls exist.
+                    2026-08-19 (evening): builder's decisions on the macro arm
+                    — MINIMAL breadth (T10YIE + Fed + ECB + CBR + calendar),
+                    RBI dropped, calendar maintained 12 months CI-asserted;
+                    scope in docs/design/poc-macro-arm.md. L4 DONE as its
+                    prerequisite: FRED publication lags are now per-series and
+                    MEASURED from the runner logs (dailies 2 business days,
+                    H.10 up to 8 calendar days, EIA 9) instead of a single +1,
+                    with a committed first-seen ledger making them exact going
+                    forward. The old join differed on 91-100% of report-window
+                    sessions, so all five offline ladders were re-run. Measured on
+                    identical days, the join moves ONLY what it should: gold's
+                    covariate rungs and cond_climatology differ on 143/143 days
+                    while every univariate rung is byte-identical (0/143), and
+                    silver/usd_rub/wti do not move at all (silver's covariate is
+                    gold, a CBR series with no FRED lag). Gold t+1 chronos_cov
+                    +0.0028 on common days and its verdict on the fuller
+                    147-day window flips to WORSE; timesfm_cov t+5 improves
+                    0.0060. The old leak was flattering the covariate rungs.
+                    NEXT:
+                    the policy calendar table, then the macro block behind a
+                    flag, then llm_macro as a fourth arm measured against
+                    llm_raw.
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.
