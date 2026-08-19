@@ -332,6 +332,119 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "Retired the Fighting lesson: Fighting appeared on all 7 shortlist days, so it is not a rare condition; only 3 outcomes have matured."
+    },
+    {
+     "version": 4,
+     "as_of": "2026-08-19",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.125,
+        "n": 4
+       },
+       "chronos_cov": {
+        "mean_rps": 0.1868,
+        "n": 4
+       },
+       "chronos_oilfx": {
+        "mean_rps": 0.1101,
+        "n": 3
+       },
+       "chronos_rwcov": {
+        "mean_rps": 0.0981,
+        "n": 4
+       },
+       "chronos_uni": {
+        "mean_rps": 0.0944,
+        "n": 4
+       },
+       "climatology": {
+        "mean_rps": 0.0912,
+        "n": 4
+       },
+       "cond_climatology": {
+        "mean_rps": 0.0951,
+        "n": 4
+       },
+       "llm_mem": {
+        "mean_rps": 0.0784,
+        "n": 3
+       },
+       "llm_raw": {
+        "mean_rps": 0.0788,
+        "n": 3
+       },
+       "timesfm_cov": {
+        "mean_rps": 0.1351,
+        "n": 4
+       },
+       "timesfm_oilfx": {
+        "mean_rps": 0.1101,
+        "n": 3
+       },
+       "timesfm_rwcov": {
+        "mean_rps": 0.1195,
+        "n": 4
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.1064,
+        "n": 4
+       }
+      },
+      "seeded": {
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.136817,
+         "5": 0.1443
+        },
+        "n": 143
+       },
+       "cond_climatology": {
+        "mean_rps_by_h": {
+         "1": 0.139024,
+         "5": 0.146733
+        },
+        "n": 143
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.139177,
+         "5": 0.145475
+        },
+        "n": 143
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.140096,
+         "5": 0.140677
+        },
+        "n": 143
+       },
+       "timesfm_cov": {
+        "mean_rps_by_h": {
+         "1": 0.145308,
+         "5": 0.16462
+        },
+        "n": 143
+       },
+       "chronos_cov": {
+        "mean_rps_by_h": {
+         "1": 0.148835,
+         "5": 0.156843
+        },
+        "n": 143
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.178321,
+         "5": 0.187062
+        },
+        "n": 143
+       }
+      }
+     },
+     "lessons": [],
+     "curator_note": "Only four matured days are available; the two apparent Protest\u2192flat cases are still a note, not a rule."
     }
    ]
   },
@@ -618,6 +731,100 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "Retired the Fighting lesson because Fighting occurred on all 7 shortlist days, making its condition non-discriminating; only 3 days have matured."
+    },
+    {
+     "version": 4,
+     "as_of": "2026-08-19",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.125,
+        "n": 4
+       },
+       "chronos_cov": {
+        "mean_rps": 0.0923,
+        "n": 4
+       },
+       "chronos_rwcov": {
+        "mean_rps": 0.1071,
+        "n": 4
+       },
+       "chronos_uni": {
+        "mean_rps": 0.091,
+        "n": 4
+       },
+       "climatology": {
+        "mean_rps": 0.0929,
+        "n": 4
+       },
+       "llm_mem": {
+        "mean_rps": 0.0734,
+        "n": 3
+       },
+       "llm_raw": {
+        "mean_rps": 0.077,
+        "n": 3
+       },
+       "timesfm_cov": {
+        "mean_rps": 0.0867,
+        "n": 4
+       },
+       "timesfm_rwcov": {
+        "mean_rps": 0.1053,
+        "n": 4
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.0985,
+        "n": 4
+       }
+      },
+      "seeded": {
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.127049,
+         "5": 0.137237
+        },
+        "n": 143
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.127341,
+         "5": 0.133905
+        },
+        "n": 143
+       },
+       "timesfm_cov": {
+        "mean_rps_by_h": {
+         "1": 0.127512,
+         "5": 0.133544
+        },
+        "n": 143
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.13587,
+         "5": 0.145004
+        },
+        "n": 143
+       },
+       "chronos_cov": {
+        "mean_rps_by_h": {
+         "1": 0.137654,
+         "5": 0.145801
+        },
+        "n": 143
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.166083,
+         "5": 0.176573
+        },
+        "n": 143
+       }
+      }
+     },
+     "lessons": [],
+     "curator_note": "Only four matured days are available; no rare condition has enough repeated support to justify a lesson."
     }
    ]
   },
@@ -814,6 +1021,70 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "Retired the Fighting-based lesson: Fighting occurred on all 7 shortlist days, so it is not a rare condition; only 3 days have matured."
+    },
+    {
+     "version": 4,
+     "as_of": "2026-08-19",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.1875,
+        "n": 4
+       },
+       "chronos_uni": {
+        "mean_rps": 0.0726,
+        "n": 4
+       },
+       "climatology": {
+        "mean_rps": 0.1223,
+        "n": 4
+       },
+       "llm_mem": {
+        "mean_rps": 0.078,
+        "n": 3
+       },
+       "llm_raw": {
+        "mean_rps": 0.0766,
+        "n": 3
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.1015,
+        "n": 4
+       }
+      },
+      "seeded": {
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.131935,
+         "5": 0.145535
+        },
+        "n": 143
+       },
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.132156,
+         "5": 0.146513
+        },
+        "n": 143
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.136323,
+         "5": 0.151355
+        },
+        "n": 143
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.180069,
+         "5": 0.204545
+        },
+        "n": 143
+       }
+      }
+     },
+     "lessons": [],
+     "curator_note": "Only four matured days are available; no rare condition has enough repeated support to justify a lesson."
     }
    ]
   },
