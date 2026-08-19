@@ -298,7 +298,7 @@ T0.10's third assertion — every REQ reachable from a task — currently fails.
 
 | REQ | Owning task | Note |
 |---|---|---|
-| REQ-1301, REQ-1302, REQ-1303 | Execution.md P8c/P8d | The POC reasoning layer (ADR-0057) is sequenced on the POC ladder in Execution.md, not in these phases; the production successor is Phase 8's T8.x |
+| REQ-1301, REQ-1302, REQ-1303, REQ-1304 | Execution.md P8c/P8d/P9 | The POC reasoning layer (ADR-0057) and its controls (ADR-0058) are sequenced on the POC ladder in Execution.md, not in these phases; the production successor is Phase 8's T8.x |
 | REQ-001, 002, 004 | T0.6, T0.6b | Process, enforced by the CI-on-PR checks |
 | REQ-003 | T0.10 | Revisit-trigger presence — a `CI` gate with no builder until now |
 | REQ-201, 202, 203 | Gate G3 | "All 11 instruments" already gates the phase; cite the REQs |

@@ -82,6 +82,7 @@ Each ADR lists the requirements it serves. Each requirement should be reachable 
 | [0055](0055-timesfm-covariate-persistence.md) | **TimesFM's future covariates held at their last observed value**, and the policy recorded on every forecast | Accepted | 2026-08-13 | TimesFM gains a past-only covariate mode, or the persistence assumption proves to be doing visible work |
 | [0056](0056-random-walk-covariate-control.md) | **A random-walk covariate control** — a meaningless covariate damages the forecast as much as a real one, so covariate rungs need a control scored on the same live days | Accepted | 2026-08-13 | A covariate set beats its random-walk control over 250+ scored days |
 | [0057](0057-strands-for-the-reasoning-layer.md) | **Strands for the reasoning layer** — a scoped supersession of 0041: the POC's LLM rungs are a Strands agent (provider from env, everything recorded, bounded turns); the deterministic pipeline stands everywhere else | Accepted | 2026-08-13 | Increment 12 arrives, or Strands cannot satisfy full recording |
+| [0058](0058-controls-for-the-reasoning-rung.md) | **Controls for the reasoning rung** — `llm_noevents` isolates the events thesis, `llm_blind` measures anchoring (builds 0029), `momentum_climo` is the free trend bar; the primary comparison is pre-registered | Accepted | 2026-08-19 | The controls run dry for ~60 days, or the event feed is replaced |
 
 ## The forward-only turn
 

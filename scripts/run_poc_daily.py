@@ -94,7 +94,9 @@ from finevents.features.panel import Series, align  # noqa: E402
 from finevents.features.volatility import (  # noqa: E402
     buckets_for,
     climatology_from_buckets,
+    drifted_climatology,
     historical_buckets,
+    recent_drift_sigma,
 )
 from finevents.numeric import Chronos2Forecaster, TimesFMForecaster  # noqa: E402
 from finevents.numeric.buckets import flat_distribution, to_bucket_probabilities  # noqa: E402
@@ -326,6 +328,8 @@ def main(argv: list[str] | None = None) -> int:
                 "all_flat": flat_distribution(),
                 "climatology": climatology_from_buckets([b for _, b in history_buckets[h]]),
                 "cond_climatology": rung2.probabilities,
+                # ADR-0058's free bar for the momentum story the agent keeps telling.
+                "momentum_climo": drifted_climatology(closes, h, recent_drift_sigma(closes, h)),
             }
             for rung, out in outputs.items():
                 built[rung] = to_bucket_probabilities(out, h, closes[-1], edges)
@@ -376,6 +380,7 @@ def main(argv: list[str] | None = None) -> int:
             built = {
                 "all_flat": flat_distribution(),
                 "climatology": climatology_from_buckets([b for _, b in _hist[h]]),
+                "momentum_climo": drifted_climatology(_closes, h, recent_drift_sigma(_closes, h)),
             }
             for rung, out in _outs.items():
                 built[rung] = to_bucket_probabilities(out, h, _closes[-1], edges)
@@ -424,6 +429,9 @@ def main(argv: list[str] | None = None) -> int:
                 built = {
                     "all_flat": flat_distribution(),
                     "climatology": climatology_from_buckets([b for _, b in _hist[h]]),
+                    "momentum_climo": drifted_climatology(
+                        _closes, h, recent_drift_sigma(_closes, h)
+                    ),
                 }
                 for rung, out in _outs.items():
                     built[rung] = to_bucket_probabilities(out, h, _closes[-1], edges)

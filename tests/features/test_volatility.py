@@ -228,3 +228,62 @@ def test_sigma_is_non_negative_and_finite_for_any_positive_series(values: list[f
     value, _ = sigma(tuple(values), 1)
     assert math.isfinite(value)
     assert value >= 0.0
+
+
+# --- the momentum bar (ADR-0058) ------------------------------------------------
+
+
+def _trending(n: int = 200, step: float = 1.004) -> tuple[float, ...]:
+    """A series that rises steadily with a deterministic wobble.
+
+    The wobble matters: a perfectly geometric series has zero return variance,
+    so sigma is zero, every drift is undefined and the bar degenerates. Real
+    prices always have some; the fixture must too or it tests nothing.
+    """
+    price, out = 100.0, []
+    for i in range(n):
+        out.append(price * (1.0 + 0.006 * ((i % 7) - 3) / 3.0))
+        price *= step
+    return tuple(out)
+
+
+def test_zero_drift_reproduces_climatology_exactly() -> None:
+    """The momentum bar is a strict generalisation of the bar it sits beside:
+    with no drift it IS climatology, so any difference between them on a live
+    day is the drift and nothing else."""
+    from finevents.features.volatility import climatology, drifted_climatology
+
+    closes = _trending()
+    for horizon in (1, 5):
+        assert drifted_climatology(closes, horizon, 0.0) == climatology(closes, horizon)
+
+
+def test_a_positive_drift_moves_belief_upward_and_a_negative_one_down() -> None:
+    from finevents.features.volatility import drifted_climatology
+
+    closes = _trending()
+    base = drifted_climatology(closes, 1, 0.0)
+    up = drifted_climatology(closes, 1, 0.75)
+    down = drifted_climatology(closes, 1, -0.75)
+
+    # The expected bucket is the honest invariant: on a strongly trending series
+    # the up-mass can already be saturated, and the drift then moves belief from
+    # "small up" to "large up" without changing the total above flat.
+    def expected(row: tuple[float, ...]) -> float:
+        return sum(i * p for i, p in enumerate(row))
+
+    assert expected(up) > expected(base) > expected(down)
+    for row in (base, up, down):
+        assert abs(sum(row) - 1.0) < 1e-9
+
+
+def test_recent_drift_is_measured_in_sigmas_and_is_price_only() -> None:
+    from finevents.features.volatility import recent_drift_sigma
+
+    rising = _trending()
+    falling = tuple(reversed(rising))
+    assert recent_drift_sigma(rising, 1) > 0
+    assert recent_drift_sigma(falling, 1) < 0
+    # a horizon of five sessions extrapolates five sessions of drift
+    assert recent_drift_sigma(rising, 5) != recent_drift_sigma(rising, 1)
+    assert recent_drift_sigma(rising[:5], 1) == 0.0  # too short to say anything

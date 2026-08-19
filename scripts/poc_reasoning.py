@@ -161,6 +161,8 @@ def assemble_brief(
     events: dict | None,
     memory: str | None = None,
     market: dict | None = None,
+    include_events: bool = True,
+    include_field: bool = True,
 ) -> str:
     """The one prompt, assembled by code from the same data the dashboard reads.
 
@@ -178,6 +180,14 @@ def assemble_brief(
     Nothing in the assembled brief may postdate `as_of`: the market context is
     cut by its caller and the event shortlist is cut here (defect D1). The
     numeric rungs never see the future, and neither may this one.
+
+    The two switches build ADR-0058's controls, and each removes exactly one
+    thing: `include_events=False` is `llm_noevents` (the events→prices thesis
+    isolated), `include_field=False` is `llm_blind` (no other method's bet, no
+    live record, no offline ladder — the anchoring control ADR-0029 asked for).
+    With both left true the string is byte-for-byte what `llm_raw` and `llm_mem`
+    have been reading, which is why adding the controls disturbs nothing that is
+    already running.
     """
     lines: list[str] = []
     lines.append(
@@ -227,16 +237,19 @@ def assemble_brief(
         edges = " / ".join(f"{p:+.2f}%" for p in sealed["edges_pct"])
         lines.append(f"t+{h}: sigma {sealed['sigma_pct']}%, edges {edges}")
 
-    lines.append("\n== Today's bets from the other methods ==")
+    # The field: what every other method bet today, how they have scored,
+    # and the offline ladder. Withheld for llm_blind (ADR-0058).
+    field: list[str] = []
+    field.append("\n== Today's bets from the other methods ==")
     for h in ("1", "5"):
-        lines.append(f"t+{h}:")
+        field.append(f"t+{h}:")
         for rung, probs in sorted(horizons[h]["rungs"].items()):
-            lines.append(f"  {rung:<18} {_fmt_probs(probs)}")
+            field.append(f"  {rung:<18} {_fmt_probs(probs)}")
 
-    lines.append("\n== The live track record so far ==")
+    field.append("\n== The live track record so far ==")
     scored = [r for r in track_records if r.get("matured")]
     if not scored:
-        lines.append(
+        field.append(
             f"{len(track_records)} day(s) sealed, none matured yet — no live scores exist."
         )
     else:
@@ -245,9 +258,9 @@ def assemble_brief(
             for matured in record["matured"].values():
                 for rung, rps in matured["rps"].items():
                     sums.setdefault(rung, []).append(rps)
-        lines.append(f"{len(track_records)} day(s) sealed; mean live RPS over matured horizons:")
+        field.append(f"{len(track_records)} day(s) sealed; mean live RPS over matured horizons:")
         for rung, values in sorted(sums.items()):
-            lines.append(f"  {rung:<18} {sum(values) / len(values):.4f}  ({len(values)} scored)")
+            field.append(f"  {rung:<18} {sum(values) / len(values):.4f}  ({len(values)} scored)")
         for record in scored[-5:]:
             for h, matured in sorted(record["matured"].items()):
                 actual = horizon_moves.get(h, {}).get(record["as_of"])
@@ -261,7 +274,7 @@ def assemble_brief(
                 yours = {r: rps[r] for r in ("llm_raw", "llm_mem") if r in rps}
                 if yours:
                     line += "; yours " + ", ".join(f"{r} {v:.3f}" for r, v in sorted(yours.items()))
-                lines.append(line)
+                field.append(line)
         past_points: list[str] = []
         for record in scored[-5:]:
             llm = record.get("llm") or {}
@@ -279,11 +292,11 @@ def assemble_brief(
                             f"you called {point:+.2f}%, it moved {actual:+.2f}%"
                         )
         if past_points:
-            lines.append("Your own past point calls, graded:")
-            lines.extend(past_points)
+            field.append("Your own past point calls, graded:")
+            field.extend(past_points)
 
     if ladder:
-        lines.append("\n== The offline ladder (2026 report window, before you existed) ==")
+        field.append("\n== The offline ladder (2026 report window, before you existed) ==")
         for h in ("1", "5"):
             rows = ladder.get("ladder", {}).get(h, [])
             cells = ", ".join(
@@ -291,13 +304,20 @@ def assemble_brief(
                 + ("" if row.get("baseline") else f" ({row.get('verdict', '')})")
                 for row in rows
             )
-            lines.append(f"t+{h}: {cells}")
-        lines.append("Nothing has beaten the base rates detectably. That is the bar.")
+            field.append(f"t+{h}: {cells}")
+        field.append("Nothing has beaten the base rates detectably. That is the bar.")
+
+    if include_field:
+        lines.extend(field)
 
     # Days after the anchor are not knowable when the bet is placed — the cut
     # is defect D1's other half, and it binds for any instrument whose own
     # series lags the wall clock.
-    knowable = [day for day in (events or {}).get("days", []) if day["date"] <= as_of]
+    knowable = (
+        [day for day in (events or {}).get("days", []) if day["date"] <= as_of]
+        if include_events
+        else []
+    )
     if knowable:
         lines.append("\n== This week's world events (deterministic shortlist, metadata only) ==")
         newest_day = knowable[0]["date"]
@@ -320,17 +340,52 @@ def assemble_brief(
         lines.append("\n== Your memory page (P8d — statistics by code, lessons by you) ==")
         lines.append(memory)
 
-    lines.append(
-        "\n== Task ==\n"
-        "Make your own forecast. The numeric methods above are evidence, not a menu — "
-        "they read only price series, so anything you can infer from the events, the "
-        "related markets or your memory is signal they cannot have; disagreement between "
-        "them is itself information. When the evidence is thin, calibrated means staying "
+    closing = (
+        "When the evidence is thin, calibrated means staying "
         "near the base rates — say so in the rationale, and say what would have changed "
         "your mind. When you do see something, let the probabilities move and name the "
         "evidence. Give point_pct for each horizon: one number, the percent move you "
         "consider most likely. Fill the output schema exactly."
     )
+    if include_field and include_events:
+        # Byte-identical to the brief llm_raw and llm_mem have read since P8e.
+        # Do not edit without starting their clock again (ADR-0058).
+        lines.append(
+            "\n== Task ==\n"
+            "Make your own forecast. The numeric methods above are evidence, not a menu — "
+            "they read only price series, so anything you can infer from the events, the "
+            "related markets or your memory is signal they cannot have; disagreement between "
+            "them is itself information. " + closing
+        )
+    else:
+        # A control's task must not point at what was removed from it.
+        sources = ["the related markets"]
+        if include_events:
+            sources.insert(0, "the events")
+        if memory is not None:
+            sources.append("your memory")
+        named = sources[0] if len(sources) == 1 else ", ".join(sources[:-1]) + " and " + sources[-1]
+        if include_field:
+            opening = (
+                "Make your own forecast. The numeric methods above are evidence, not a menu — "
+                "they read only price series, so anything you can infer from "
+                + named
+                + " is signal they cannot have; disagreement between them is itself "
+                "information. "
+            )
+        else:
+            opening = (
+                "Make your own forecast. You are not being shown what any other method "
+                "predicted today, nor how any of them have scored — form your view from what "
+                "you have been given: the bucket geometry, the price action, " + named + ". "
+            )
+            # It was never shown the base rates, so it cannot be told to sit near
+            # them: a dangling reference is a different prompt, not a clean removal.
+            closing = closing.replace(
+                "staying near the base rates",
+                "staying near what this instrument's own volatility implies",
+            )
+        lines.append("\n== Task ==\n" + opening + closing)
     return "\n".join(lines)
 
 
@@ -468,9 +523,13 @@ def reasoning_rung(
         return None, None
 
     model = model_id()
-    variants: list[tuple[str, str | None]] = [("raw", None)]
+    # ADR-0058: raw and mem are the arms; noevents and blind are their controls,
+    # each removing exactly one input so a result can be attributed to something.
+    variants: list[tuple[str, dict]] = [("raw", {})]
     if memory_page is not None:
-        variants.append(("mem", memory_page))
+        variants.append(("mem", {"memory": memory_page}))
+    variants.append(("noevents", {"include_events": False}))
+    variants.append(("blind", {"include_field": False}))
 
     additions: dict[str, dict[str, tuple[float, ...]]] = {"1": {}, "5": {}}
     meta: dict = {"model": model}
@@ -483,7 +542,7 @@ def reasoning_rung(
     seen_events = events_through(events, as_of)
     if seen_events:
         meta["events_through"] = seen_events
-    for variant, page in variants:
+    for variant, options in variants:
         rung = f"llm_{variant}"
         brief = assemble_brief(
             instrument,
@@ -492,8 +551,8 @@ def reasoning_rung(
             track_records=track_records,
             ladder=ladder,
             events=events,
-            memory=page,
             market=market,
+            **options,
         )
         try:
             prediction = predict(brief, model)

@@ -469,3 +469,108 @@ def test_a_second_attempt_never_destroys_the_first_transcript(tmp_path, monkeypa
     kept = json.loads((tmp_path / first["transcript"]).read_text(encoding="utf-8"))
     assert kept["brief"] == "brief one"  # the first bet survives, hash and all
     assert first["brief_sha256"] != second["brief_sha256"]
+
+
+# --- ADR-0058's controls: each removes exactly one thing -------------------------
+
+
+def _arms() -> dict[str, str]:
+    common = dict(
+        as_of="2026-08-13",
+        horizons=horizons_fixture(),
+        track_records=[
+            {
+                "as_of": "2026-08-13",
+                "matured": {
+                    "1": {
+                        "target_date": "2026-08-14",
+                        "outcome": 3,
+                        "rps": {"climatology": 0.12, "llm_raw": 0.09},
+                    }
+                },
+            }
+        ],
+        ladder={
+            "ladder": {
+                "1": [{"rung": "climatology", "mean": 0.1368, "baseline": True}],
+                "5": [{"rung": "climatology", "mean": 0.1443, "baseline": True}],
+            }
+        },
+        events=events_fixture(),
+        market=market_fixture(),
+    )
+    return {
+        "raw": assemble_brief("gold", **common),
+        "noevents": assemble_brief("gold", **common, include_events=False),
+        "blind": assemble_brief("gold", **common, include_field=False),
+    }
+
+
+def test_the_noevents_control_removes_the_events_and_nothing_else() -> None:
+    arms = _arms()
+    raw_head = arms["raw"].split(chr(10) + "== Task ==")[0]
+    control_head = arms["noevents"].split(chr(10) + "== Task ==")[0]
+    events_at = raw_head.index(chr(10) + "== This week's world events")
+    assert control_head == raw_head[:events_at]  # exactly the events block, gone
+    assert "Fighting" not in arms["noevents"]
+    for kept in (
+        "Related markets",
+        "Today's bets from the other methods",
+        "The live track record",
+        "offline ladder",
+        "bucket geometry",
+    ):
+        assert kept in arms["noevents"], kept
+
+
+def test_the_blind_control_removes_the_field_and_nothing_else() -> None:
+    arms = _arms()
+    raw_head = arms["raw"].split(chr(10) + "== Task ==")[0]
+    control_head = arms["blind"].split(chr(10) + "== Task ==")[0]
+    field_at = raw_head.index(chr(10) + "== Today's bets from the other methods")
+    events_at = raw_head.index(chr(10) + "== This week's world events")
+    assert control_head == raw_head[:field_at] + raw_head[events_at:]
+    for gone in (
+        "Today's bets from the other methods",
+        "The live track record",
+        "offline ladder",
+        "chronos_uni",
+        "0.1368",
+    ):
+        assert gone not in arms["blind"], gone
+    for kept in ("Fighting", "Related markets", "bucket geometry", "Recent price action"):
+        assert kept in arms["blind"], kept
+
+
+def test_a_control_never_points_at_what_was_taken_from_it() -> None:
+    """A dangling reference is not a neutral removal: it is a different prompt."""
+    arms = _arms()
+    raw_task = arms["raw"].split("== Task ==")[1]
+    assert "the events" in raw_task and "numeric methods above" in raw_task
+
+    noevents_task = arms["noevents"].split("== Task ==")[1]
+    assert "the events" not in noevents_task
+    assert "numeric methods above" in noevents_task
+
+    blind_task = arms["blind"].split("== Task ==")[1]
+    assert "numeric methods above" not in blind_task
+    assert "base rates" not in blind_task  # it was never shown them
+    assert "not being shown what any other method" in blind_task
+
+
+def test_the_raw_arm_is_untouched_by_the_controls_existing() -> None:
+    """Adding controls must not change the arm they control, or the record
+    already accruing since P8e would silently become two different things."""
+    common = dict(
+        as_of="2026-08-13",
+        horizons=horizons_fixture(),
+        track_records=[],
+        ladder=None,
+        events=events_fixture(),
+        market=market_fixture(),
+    )
+    assert assemble_brief("gold", **common) == assemble_brief(
+        "gold", **common, include_events=True, include_field=True
+    )
+    task = assemble_brief("gold", **common).split("== Task ==")[1]
+    assert "evidence, not a menu" in task and "staying near the base rates" in task

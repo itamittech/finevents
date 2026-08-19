@@ -182,6 +182,49 @@ def climatology_from_buckets(buckets: Sequence[Bucket]) -> tuple[float, ...]:
     return tuple(count / len(buckets) for count in counts)
 
 
+#: Sessions of history behind the drift the momentum bar extrapolates.
+DRIFT_WINDOW = 20
+
+
+def recent_drift_sigma(
+    closes: tuple[float, ...], horizon: int, window: int = DRIFT_WINDOW
+) -> float:
+    """The recent per-session drift, scaled to `horizon` and measured in today's σ.
+
+    Deterministic and price-only: no covariates, no model, no wall clock.
+    """
+    if len(closes) < window + 1:
+        return 0.0
+    rets = [math.log(closes[i] / closes[i - 1]) for i in range(len(closes) - window, len(closes))]
+    scale, _ = sigma(closes, horizon)
+    if scale <= 0:
+        return 0.0
+    return (sum(rets) / len(rets)) * horizon / scale
+
+
+def drifted_climatology(
+    closes: tuple[float, ...], horizon: int, drift_sigma: float
+) -> tuple[float, ...]:
+    """Climatology with `drift_sigma` σ added to every historical return.
+
+    The free momentum bar ADR-0058 puts beside the reasoning rung: *if the recent
+    drift simply continued, where would history's returns have landed?* Each
+    return is still bucketed by its own contemporaneous σ (REQ-401), so the shift
+    is applied in σ units rather than in price. Zero drift reproduces
+    `climatology` exactly, which makes this a strict generalisation of the bar it
+    sits beside rather than a different animal.
+    """
+    shifted: list[Bucket] = []
+    for end in range(MIN_SESSIONS, len(closes)):
+        window = closes[: end + 1 - horizon]
+        if len(window) < MIN_SESSIONS:
+            continue
+        edges = buckets_for(window, horizon)
+        realised = math.log(closes[end] / closes[end - horizon])
+        shifted.append(edges.assign(realised + drift_sigma * edges.sigma))
+    return climatology_from_buckets(shifted)
+
+
 def climatology(closes: tuple[float, ...], horizon: int) -> tuple[float, ...]:
     """Unconditional bucket frequency over all available history (REQ-404).
 
