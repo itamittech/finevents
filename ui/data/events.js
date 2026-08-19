@@ -15,6 +15,143 @@ window.POC_EVENTS = {
  },
  "days": [
   {
+   "date": "2026-08-18",
+   "events": [
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "ITALIAN",
+     "place": "Sicily, Sicilia, Italy",
+     "country": "IT",
+     "goldstein": -10.0,
+     "mentions": 3198,
+     "tone": -7.1,
+     "url": "https://1015theriver.iheart.com/content/2026-08-18-american-tourist-killed-while-hiking-sicilys-mount-etna/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "POLICE",
+     "place": "",
+     "country": "",
+     "goldstein": -5.0,
+     "mentions": 1800,
+     "tone": -8.0,
+     "url": "https://wcbm.com/local-story/police-arrest-22-year-old-man-in-connection-to-essex-double-homicide/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "RUSSIA",
+     "place": "Kyiv, Kyyiv, Misto, Ukraine",
+     "country": "UP",
+     "goldstein": -9.5,
+     "mentions": 1326,
+     "tone": -9.6,
+     "url": "https://www.winnipegfreepress.com/world/2026/08/18/ukraine-aims-a-drone-blitz-at-moscow-while-russian-missiles-kill-10-in-a-ukrainian-village"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "GOVERNMENT",
+     "place": "Melbourne, Victoria, Australia",
+     "country": "AS",
+     "goldstein": -10.0,
+     "mentions": 1260,
+     "tone": -7.0,
+     "url": "https://www.blayneychronicle.com.au/story/9332341/one-nation-vows-to-bring-back-cheaper-legal-cigarettes/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "VILLAGE / RUSSIAN",
+     "place": "Moscow, Moskva, Russia",
+     "country": "RS",
+     "goldstein": -10.0,
+     "mentions": 1140,
+     "tone": -10.0,
+     "url": "https://www.bucksfreepress.co.uk/news/national/26475910.ukraine-aims-drone-blitz-moscow-russian-missiles-kill-10-village/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "POLICE / SCOTTISH",
+     "place": "Finland",
+     "country": "FI",
+     "goldstein": -5.0,
+     "mentions": 1130,
+     "tone": -4.5,
+     "url": "https://www.times-series.co.uk/news/national/26475840.sturgeon-says-never-even-considered-prosecution-snp-cash/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "GOVERNMENT",
+     "place": "Australia",
+     "country": "AS",
+     "goldstein": -5.0,
+     "mentions": 1120,
+     "tone": -0.7,
+     "url": "https://www.portnews.com.au/story/9333035/crackdown-unveiled-on-harmful-superannuation-practices/"
+    },
+    {
+     "label": "Protest",
+     "code": "14",
+     "actors": "KINGSTON",
+     "place": "",
+     "country": "",
+     "goldstein": -7.5,
+     "mentions": 930,
+     "tone": -3.9,
+     "url": "https://www.brightonandhovenews.org/2026/08/18/huge-response-after-four-get-in-trouble-in-sea-by-shoreham/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "PALESTINIAN / WEST BANK",
+     "place": "Qusra, West Bank (general), West Bank",
+     "country": "WE",
+     "goldstein": -10.0,
+     "mentions": 870,
+     "tone": -3.5,
+     "url": "https://www.ksfr.org/npr-news/2026-08-17/palestinian-american-returns-to-his-west-bank-home-under-siege-by-israeli-settlers"
+    },
+    {
+     "label": "Threat",
+     "code": "13",
+     "actors": "REPORTERS WITHOUT BORDERS / MEDIA",
+     "place": "Los Angeles, California, United States",
+     "country": "US",
+     "goldstein": -4.4,
+     "mentions": 840,
+     "tone": -2.2,
+     "url": "https://wbhpam.iheart.com/content/2026-08-18-disney-abc-sues-fcc-over-broadcast-license-review/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "SOUTH CAROLINA",
+     "place": "Colorado River, Texas, United States",
+     "country": "US",
+     "goldstein": -9.5,
+     "mentions": 820,
+     "tone": -4.6,
+     "url": "https://kogo.iheart.com/content/2026-08-18-millions-across-southeast-feeling-the-heat/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "POLICE",
+     "place": "",
+     "country": "",
+     "goldstein": -10.0,
+     "mentions": 790,
+     "tone": -7.6,
+     "url": "https://wcbm.com/local-story/man-shot-injured-on-monday-afternoon-in-baltimore/"
+    }
+   ]
+  },
+  {
    "date": "2026-08-17",
    "events": [
     {
@@ -833,143 +970,6 @@ window.POC_EVENTS = {
      "mentions": 875,
      "tone": -1.0,
      "url": "https://www.thewrap.com/media-platforms/journalism/whca-trump-white-house-meeting-air-force-one-decoy/"
-    }
-   ]
-  },
-  {
-   "date": "2026-08-11",
-   "events": [
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "DAMASCUS / SYRIAN",
-     "place": "Damascus, Dimashq, Syria",
-     "country": "SY",
-     "goldstein": -5.0,
-     "mentions": 2193,
-     "tone": -10.6,
-     "url": "https://www.winnipegfreepress.com/world/2026/08/11/former-syrian-president-assad-sentenced-to-death-in-absentia"
-    },
-    {
-     "label": "Assault",
-     "code": "18",
-     "actors": "GOVERNMENT / SCHOOL",
-     "place": "Damascus, Dimashq, Syria",
-     "country": "SY",
-     "goldstein": -9.0,
-     "mentions": 1724,
-     "tone": -10.6,
-     "url": "https://www.wgauradio.com/news/world/former-syrian/NEBOV2ENYUY7DMVYGXINXD6IWE/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "POLICE",
-     "place": "Aberfeldy, Perth and Kinross, United Kingdom",
-     "country": "UK",
-     "goldstein": -10.0,
-     "mentions": 1528,
-     "tone": -6.8,
-     "url": "https://www.chesterstandard.co.uk/news/national/26454094.family-brian-low-tell-anger-police-mistaking-murder-medical-event/"
-    },
-    {
-     "label": "Assault",
-     "code": "18",
-     "actors": "IRANIAN",
-     "place": "Iran",
-     "country": "IR",
-     "goldstein": -10.0,
-     "mentions": 1459,
-     "tone": -0.9,
-     "url": "https://bnonews.com/index.php/2026/08/trump-secretly-switched-planes-over-iranian-assassination-threat-wapo/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "AUSTRALIA",
-     "place": "Australia",
-     "country": "AS",
-     "goldstein": -10.0,
-     "mentions": 1367,
-     "tone": -5.9,
-     "url": "https://www.bandt.com.au/youtubes-new-shorts-threshold-could-make-monetisation-a-serious-ask-for-aussie-creators/"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "PRISON",
-     "place": "",
-     "country": "",
-     "goldstein": -5.0,
-     "mentions": 1365,
-     "tone": -8.5,
-     "url": "https://www.wdam.com/2026/08/10/gulfport-man-sentenced-serve-35-years-prison-2022-murder/"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "PRESIDENT / CRIMINAL",
-     "place": "La Espriella, Nari\u00f1O, Colombia",
-     "country": "CO",
-     "goldstein": -7.0,
-     "mentions": 1280,
-     "tone": -6.6,
-     "url": "https://www.thenorthernecho.co.uk/news/national/26452627.colombia-searches-missing-powerful-earthquake-kills-least-111/"
-    },
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "IRAN / UKRAINE",
-     "place": "Iran",
-     "country": "IR",
-     "goldstein": -4.4,
-     "mentions": 1224,
-     "tone": -0.7,
-     "url": "https://www.winnipegfreepress.com/world/2026/08/10/trump-used-elaborate-ruse-to-fly-out-of-turkey-following-summit-because-of-iran-threat-report-says"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "NEW YORK STATE",
-     "place": "Pennsylvania, United States",
-     "country": "US",
-     "goldstein": -10.0,
-     "mentions": 1153,
-     "tone": -10.1,
-     "url": "https://newsradio1290wtks.iheart.com/content/2026-08-11-luigi-mangione-due-in-ny-state-court-tuesday/"
-    },
-    {
-     "label": "Protest",
-     "code": "14",
-     "actors": "SECURITY FORCE",
-     "place": "Damascus, Dimashq, Syria",
-     "country": "SY",
-     "goldstein": -6.5,
-     "mentions": 1086,
-     "tone": -10.6,
-     "url": "https://www.wgauradio.com/news/world/former-syrian/NEBOV2ENYUY7DMVYGXINXD6IWE/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "COLOMBIA / PRESIDENT",
-     "place": "Risaralda, Departamento de Caldas, Colombia",
-     "country": "CO",
-     "goldstein": -10.0,
-     "mentions": 1055,
-     "tone": -4.6,
-     "url": "https://www.milfordmercury.co.uk/news/national/26451997.death-toll-passes-100-powerful-earthquake-hits-western-colombia/"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "UNITED STATES",
-     "place": "Colorado, United States",
-     "country": "US",
-     "goldstein": -5.0,
-     "mentions": 935,
-     "tone": -8.2,
-     "url": "https://weartv.com/news/nation-world/rep-lauren-boeberts-son-arrested-on-sexual-exploitation-charges"
     }
    ]
   }

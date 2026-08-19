@@ -234,8 +234,20 @@ def save_progress(state: dict, wiki: dict, live_prices: dict) -> None:
     CSV, a weights download, the scheduler's two-hour limit) discarded bets
     that had already been made and paid for, and the re-run replaced them with
     fresh ones from a non-deterministic model.
+
+    This function shipped on 2026-08-19 as a call to itself - the patch that
+    was meant to replace main()'s trailing write block matched the body that
+    had just been inserted instead. It crashed every run with a RecursionError
+    before anything could be sealed, which is precisely the loss D4 exists to
+    prevent. `test_runner_persistence.py` now calls it for real.
     """
-    save_progress(state, wiki, live_prices)
+    save_wiki(wiki)
+    LIVE.parent.mkdir(parents=True, exist_ok=True)
+    LIVE.write_text(serialize(state), encoding="utf-8")
+    LIVE_PRICES.write_text(
+        "window.POC_LIVE_PRICES = " + json.dumps(live_prices, indent=1) + ";" + chr(10),
+        encoding="utf-8",
+    )
 
 
 def closes_map(dates, closes, keep: int = 60) -> dict[str, float]:
@@ -427,12 +439,7 @@ def main(argv: list[str] | None = None) -> int:
             summary.append(f"{instrument:<9} sealed {as_of_fx}   {rung_count} rungs")
         save_progress(state, wiki, live_prices)
 
-    save_wiki(wiki)
-    LIVE.parent.mkdir(parents=True, exist_ok=True)
-    LIVE.write_text(serialize(state), encoding="utf-8")
-    LIVE_PRICES.write_text(
-        "window.POC_LIVE_PRICES = " + json.dumps(live_prices, indent=1) + ";\n", encoding="utf-8"
-    )
+    save_progress(state, wiki, live_prices)
 
     print()
     for line in summary:
