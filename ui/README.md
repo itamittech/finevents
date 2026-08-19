@@ -1,8 +1,19 @@
-# The POC dashboard
+# The POC dashboards
 
-One self-contained page: `index.html`. No build step, no dependencies, no server
-required — double-click it, or serve the folder. It ships unchanged to
+Two self-contained pages, one data set. No build step, no dependencies, no server
+required — double-click either, or serve the folder. They ship unchanged to
 S3 + CloudFront when the time comes (ADR-0020).
+
+| Page | For whom | What it is |
+|---|---|---|
+| `index.html` | the builder, reviewers — **the technical view** | every rung, every score, the ladder, the race, the fan chart, day-by-day, the agent board with its bars, the memory page, the events feed |
+| `customer.html` | a general reader — **the customer view** ("the range ledger — sealed before, graded after") | one instrument and one horizon at a time: the sealed range as a σ-ruler with how often ranges like it held; the five instruments at a glance; *better than just history yet?* with a sample-size meter to the pre-registered ~60 graded days; promise vs delivered; a replay scrubber over the record; the AI's exact call beside two dumb bars; what it currently believes and what it un-learned; how to read the page and what it is not |
+
+Both read the same `./data/*.js` globals, share the palette and instrument
+identities, and link to each other. The customer page degrades to percent-space
+when the local price layers are absent (`?public=1` simulates the public build)
+and never shows a price level it was not given. Honesty is structural on both:
+base rates beside every scored number, the disclaimer verbatim.
 
 Five instruments, switchable at the top: **gold (₽/gram, the full seven
 rungs)**, **silver (the mirror experiment — forecast with gold as its sole

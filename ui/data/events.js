@@ -15,6 +15,143 @@ window.POC_EVENTS = {
  },
  "days": [
   {
+   "date": "2026-08-17",
+   "events": [
+    {
+     "label": "Assault",
+     "code": "18",
+     "actors": "POLICE",
+     "place": "Greenville, South Carolina, United States",
+     "country": "US",
+     "goldstein": -9.0,
+     "mentions": 3214,
+     "tone": -10.7,
+     "url": "https://koacolorado.iheart.com/content/2026-08-17-customers-detain-machete-wielding-suspect-during-attempted-jewelry-heist/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "PRISON",
+     "place": "Greenville County, South Carolina, United States",
+     "country": "US",
+     "goldstein": -5.0,
+     "mentions": 1728,
+     "tone": -10.7,
+     "url": "https://radaronline.com/p/hayden-panettiere-911-dispatch-audio-suffered-overdose-advanced-cardiac-life-support/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "BOSS",
+     "place": "Melbourne, Victoria, Australia",
+     "country": "AS",
+     "goldstein": -10.0,
+     "mentions": 1344,
+     "tone": -9.5,
+     "url": "https://www.hardenexpress.com.au/story/9331314/alleged-underworld-boss-fights-for-life-after-shooting/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "PRISON",
+     "place": "",
+     "country": "",
+     "goldstein": -5.0,
+     "mentions": 1290,
+     "tone": -8.3,
+     "url": "https://www.gazettelive.co.uk/news/teesside-news/francis-conlin-hmp-doncaster-suicide-34460507"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "AUSTRALIA",
+     "place": "Melbourne, Victoria, Australia",
+     "country": "AS",
+     "goldstein": -5.0,
+     "mentions": 1029,
+     "tone": -9.4,
+     "url": "https://www.hardenexpress.com.au/story/9331314/alleged-underworld-boss-fights-for-life-after-shooting/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "NORTH KOREA",
+     "place": "North Korea",
+     "country": "KN",
+     "goldstein": -10.0,
+     "mentions": 1019,
+     "tone": -2.0,
+     "url": "https://isp.netscape.com:443/news/world/story/0001/20260816/ae21e0af5ea16f0a74e9a176b3cc2136"
+    },
+    {
+     "label": "Military posture",
+     "code": "15",
+     "actors": "NORTH KOREA / SOUTH KOREAN",
+     "place": "South Korea",
+     "country": "KS",
+     "goldstein": -7.2,
+     "mentions": 929,
+     "tone": -2.8,
+     "url": "https://krcrtv.com/news/nation-world/trump-orders-pentagon-to-scale-back-on-planned-joint-military-exercises-with-south-korea-north-korean-kim-jong-un-demilitarizing-truth-social-republic-of-korea-military-drills-war-nuclear-program"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "UNITED STATES",
+     "place": "New York, United States",
+     "country": "US",
+     "goldstein": -10.0,
+     "mentions": 870,
+     "tone": -12.8,
+     "url": "https://www.cbsnews.com/news/veterans-with-ptsd-went-to-mexico-for-a-psychedelic-retreat-60-minutes-transcript-2026-08-16/"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "BELGIUM",
+     "place": "Waimes, Waals Gewest, Belgium",
+     "country": "BE",
+     "goldstein": -10.0,
+     "mentions": 820,
+     "tone": -4.5,
+     "url": "https://www.naroomanewsonline.com.au/story/9331294/hot-dry-conditions-fuel-major-wildfires-across-europe/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "UNITED KINGDOM / FOREIGN NATIONAL",
+     "place": "London, London, City of, United Kingdom",
+     "country": "UK",
+     "goldstein": -5.0,
+     "mentions": 800,
+     "tone": 0.7,
+     "url": "https://www.aol.co.uk/articles/long-term-benefits-claimants-face-114719000.html"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "POLICE",
+     "place": "",
+     "country": "",
+     "goldstein": -10.0,
+     "mentions": 670,
+     "tone": -7.1,
+     "url": "https://www.12onyourside.com/2026/08/16/henrico-police-arrest-suspect-after-man-killed-shooting/"
+    },
+    {
+     "label": "Threat",
+     "code": "13",
+     "actors": "CHIEF JUSTICE",
+     "place": "National Trust For Historic Preservation, District of Columbia, United States",
+     "country": "US",
+     "goldstein": -7.0,
+     "mentions": 648,
+     "tone": -2.5,
+     "url": "https://whyn.iheart.com/content/2026-08-17-trump-ossoff-trade-barbs-amid-white-house-ballroom-court-fight/"
+    }
+   ]
+  },
+  {
    "date": "2026-08-16",
    "events": [
     {
@@ -833,143 +970,6 @@ window.POC_EVENTS = {
      "mentions": 935,
      "tone": -8.2,
      "url": "https://weartv.com/news/nation-world/rep-lauren-boeberts-son-arrested-on-sexual-exploitation-charges"
-    }
-   ]
-  },
-  {
-   "date": "2026-08-10",
-   "events": [
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "FIRE SERVICE",
-     "place": "New Forest, Hampshire, United Kingdom",
-     "country": "UK",
-     "goldstein": -4.4,
-     "mentions": 1950,
-     "tone": -1.1,
-     "url": "https://www.aol.co.uk/articles/more-120-firefighters-still-tackling-140319000.html"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "UKRAINIAN / RUSSIAN",
-     "place": "Tatarstan, Tatarstan, Russia",
-     "country": "RS",
-     "goldstein": -10.0,
-     "mentions": 1336,
-     "tone": -5.7,
-     "url": "http://www.sitkasentinel.com/stories/ukrainian-drone-attack-on-the-russian-city-of-nizhnekamsk-kills-12-authorities-say,162534"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "INDONESIA",
-     "place": "East Java, Jawa Timur, Indonesia",
-     "country": "ID",
-     "goldstein": -10.0,
-     "mentions": 1238,
-     "tone": -4.3,
-     "url": "https://www.whtimes.co.uk/news/national/26449281.indonesia-battles-growing-wildfires-mount-bromo-blaze-spreads/"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "DEPUTIES",
-     "place": "",
-     "country": "",
-     "goldstein": -5.0,
-     "mentions": 1070,
-     "tone": -8.2,
-     "url": "https://www.kkco11news.com/2026/08/09/man-arrested-twice-two-days-after-allegedly-trespassing-same-grand-junction-property/"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "PRISON",
-     "place": "United States",
-     "country": "US",
-     "goldstein": -5.0,
-     "mentions": 1004,
-     "tone": -11.2,
-     "url": "https://mix931online.iheart.com/content/2026-08-09-tupac-murder-trial-set-to-start-monday/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "UNITED STATES",
-     "place": "California, United States",
-     "country": "US",
-     "goldstein": -10.0,
-     "mentions": 969,
-     "tone": -5.9,
-     "url": "https://www.winnipegfreepress.com/arts-and-life/entertainment/2026/08/09/a-man-accused-of-orchestrating-tupac-shakurs-1996-killing-is-on-trial-heres-what-to-know"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "COLOMBIA / PRESIDENT",
-     "place": "Risaralda, Departamento de Caldas, Colombia",
-     "country": "CO",
-     "goldstein": -10.0,
-     "mentions": 962,
-     "tone": -4.7,
-     "url": "https://www.wlky.com/article/colombia-earthquake-latest/73392892"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "POLICE",
-     "place": "",
-     "country": "",
-     "goldstein": -10.0,
-     "mentions": 860,
-     "tone": -7.8,
-     "url": "https://www.northqueenslandregister.com.au/story/9326930/kynuna-police-public-urged-to-help-after-shots-fired-on-highway/"
-    },
-    {
-     "label": "Assault",
-     "code": "18",
-     "actors": "REFUGEE",
-     "place": "United Kingdom",
-     "country": "UK",
-     "goldstein": -9.0,
-     "mentions": 812,
-     "tone": -8.6,
-     "url": "https://www.chardandilminsternews.co.uk/news/national/26449998.refugee-sexually-assaulted-two-women-jailed-four-years/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "ISRAELI / THE SECURITY COUNCIL",
-     "place": "Israel",
-     "country": "IS",
-     "goldstein": -10.0,
-     "mentions": 728,
-     "tone": -4.5,
-     "url": "https://www.eastlothiancourier.com/news/national/26450462.irans-president-says-supreme-leader-urges-unity-amid-us-sanctions/"
-    },
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "ADVOCATE",
-     "place": "Canberra, Australian Capital Territory, Australia",
-     "country": "AS",
-     "goldstein": -4.4,
-     "mentions": 720,
-     "tone": -4.6,
-     "url": "https://www.redlandcitybulletin.com.au/story/9327742/back-to-work-labor-to-lock-in-gambling-ndis-changes/"
-    },
-    {
-     "label": "Assault",
-     "code": "18",
-     "actors": "UKRAINE / CIVILIAN",
-     "place": "Kyiv, Kyyiv, Misto, Ukraine",
-     "country": "UP",
-     "goldstein": -9.5,
-     "mentions": 715,
-     "tone": -5.7,
-     "url": "https://www.durangoherald.com/articles/associated-press/ukrainian-drone-attack-on-the-russian-city-of-nizhnekamsk-kills-12-authorities-say/"
     }
    ]
   }

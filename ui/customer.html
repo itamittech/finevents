@@ -1,0 +1,1539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinEvents — the range ledger</title>
+<!--
+  Customer view of the POC record. Same data globals as index.html; helpers
+  copied from ui/index.html (INSTRUMENTS 200–260, NAME 263–277, pack/AVAILABLE
+  295–305, LP/lpClose 311–312, gradeWhen 318–329, horizonWithGrades 332–341,
+  newestLiveRecord/methodList 360–373, BUCKET_COLOR/BUCKET_LITE/RUNG_STYLE
+  375–391, priceFmt 407–409, el 411–422, fmt 423, modeOf 744–748) — keep in
+  sync. Every committed number is derived work (REQ-1106/1107); prices*.js and
+  live_prices.js are local-only and the page degrades without them.
+-->
+<style>
+  :root {
+    --paper: #f7f5f1; --card: #fffefb; --ink: #21201c; --muted: #6f6a5e;
+    --line: #e3ded2; --accent: #a0721c; --accent-soft: #f2e5c9;
+    --bad: #a63d2f; --bad-soft: #f4e3df; --good: #40702f; --good-soft: #e5eddd;
+    --b0: #a63d2f; --b1: #cf8b6d; --b2: #d6d0c0; --b3: #85a86a; --b4: #4a7f45;
+    font-size: 17px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.45; padding: 2.2rem 1.2rem 4rem;
+  }
+  main { max-width: 1020px; margin: 0 auto; }
+  h1 { font-size: 1.55rem; font-weight: 650; letter-spacing: .2px; }
+  h1 .fin { color: var(--accent); }
+  .sub { color: var(--muted); margin-top: .35rem; font-size: .95rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .9rem; }
+  .chip {
+    font-size: .74rem; color: var(--muted); background: var(--card);
+    border: 1px solid var(--line); border-radius: 99px; padding: .18rem .6rem;
+    white-space: nowrap;
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+  section {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1.25rem 1.4rem 1.35rem; margin-top: 1.15rem;
+  }
+  /* Selection must be unmissable in every chip scope — the control bar, the
+     section filters, and chart legends all share one visual language. */
+  #controls button.on, .filters button.on, .legend button.on {
+    background: var(--ink); color: var(--paper); border-color: var(--ink);
+  }
+  #controls button:hover:not(.on), .filters button:hover:not(.on), .legend button:hover:not(.on) {
+    border-color: var(--ink);
+  }
+  .scroll { overflow-x: auto; }
+  .verdict { font-size: .74rem; padding: .13rem .5rem; border-radius: 99px; white-space: nowrap; }
+  .v-worse { background: var(--bad-soft); color: var(--bad); }
+  .v-nd { background: #efece3; color: var(--muted); }
+  .v-better { background: var(--good-soft); color: var(--good); }
+  .strip { display: flex; height: 1.35rem; border-radius: 4px; overflow: hidden; min-width: 260px; }
+  .strip div { display: flex; align-items: center; justify-content: center; font-size: .68rem; color: rgba(255,255,255,.92); overflow: hidden; white-space: nowrap; }
+  .strip div.lite { color: #56513f; }
+  #controls {
+    position: sticky; top: 0; z-index: 10; background: var(--paper);
+    padding: .75rem 0 .65rem; border-bottom: 1px solid var(--line); margin-top: 1.1rem;
+    display: flex; flex-wrap: wrap; gap: .5rem 1.6rem; align-items: center;
+  }
+  #controls .group { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  .legend, .filters { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+  #controls button,
+  .legend button, .filters button {
+    font: inherit; font-size: .76rem; cursor: pointer; border-radius: 99px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: .16rem .6rem .16rem .5rem; display: inline-flex; align-items: center; gap: .4rem;
+  }
+  .legend button .sw { width: .95rem; height: 3px; border-radius: 2px; }
+  .legend button.off { opacity: .38; }
+  .filters button .sw, #controls button .sw { width: .6rem; height: .6rem; border-radius: 50%; }
+  .filters button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .filters .label, #controls .label { font-size: .74rem; color: var(--muted); margin-right: .15rem; }
+  .filters .sep { flex-basis: 100%; height: 0; }
+  .stats { display: flex; gap: 2rem; flex-wrap: wrap; margin-top: .9rem; }
+  .stat .v { font-size: 1.45rem; font-weight: 700; }
+  .stat .v small { font-size: .85rem; color: var(--muted); font-weight: 500; }
+  .stat .l { font-size: .76rem; color: var(--muted); max-width: 20ch; }
+  .stat .ref { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
+  .aim { border-left: 3px solid var(--accent); padding: .1rem 0 .1rem 1rem; margin-top: 1rem; color: #4c493f; font-size: .9rem; max-width: 72ch; }
+  section { scroll-margin-top: 92px; }
+  svg text { font-family: inherit; }
+  .note { color: var(--muted); font-size: .8rem; margin-top: .7rem; }
+  .story { list-style: none; }
+  .story li { display: flex; gap: .85rem; padding: .5rem 0; border-bottom: 1px solid #eeeae0; font-size: .9rem; }
+  .story li:last-child { border-bottom: 0; }
+  .story .tag { flex: 0 0 auto; font-size: .7rem; font-weight: 700; color: var(--accent); letter-spacing: .06em; padding-top: .15rem; min-width: 5.4rem; }
+  .evdate { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 1rem 0 .1rem; }
+  .ev { display: flex; gap: .55rem; align-items: baseline; padding: .32rem 0; border-bottom: 1px solid #eeeae0; font-size: .88rem; flex-wrap: wrap; }
+  .ev:last-child { border-bottom: 0; }
+  .ev b { white-space: nowrap; }
+  .ev .who { color: #4c493f; }
+  .ev .m { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+  .ev a { color: var(--accent); text-decoration: none; font-size: .8rem; white-space: nowrap; }
+  .ev a:hover { text-decoration: underline; }
+  .story p { color: #4c493f; }
+  .story b { color: var(--ink); }
+  #tooltip {
+    position: fixed; pointer-events: none; background: var(--ink); color: var(--paper);
+    font-size: .74rem; padding: .45rem .6rem; border-radius: 6px; display: none;
+    font-variant-numeric: tabular-nums; z-index: 30; max-width: 240px;
+  }
+  #tooltip .d { color: #cfc9b8; margin-bottom: .2rem; }
+  .empty { border: 1px dashed var(--line); border-radius: 10px; padding: 2rem; margin-top: 1.5rem; color: var(--muted); }
+  .empty code { display: block; background: var(--ink); color: var(--paper); border-radius: 6px; padding: .55rem .8rem; margin-top: .6rem; font-size: .82rem; }
+  footer { color: var(--muted); font-size: .78rem; margin-top: 1.6rem; line-height: 1.7; }
+  footer a, #controls a { color: var(--accent); }
+  @media (max-width: 640px) {
+    body { padding: 1.2rem .7rem 3rem; }
+    section { padding: 1rem; }
+    /* A wrapped bar can eat half a phone screen — anchored beats sticky there. */
+    #controls { position: static; }
+  }
+  /* ---- customer rules (this page only) ---- */
+  h2.title { font-size: 1.25rem; font-weight: 650; text-transform: none; letter-spacing: 0; color: var(--ink); margin: 0; }
+  .lede { color: var(--muted); font-size: .95rem; margin: .25rem 0 .9rem; max-width: 70ch; }
+  .display { font-size: 1.25rem; font-weight: 650; line-height: 1.35; }
+  .big { font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .two { display: grid; grid-template-columns: 3fr 2fr; gap: 1.4rem; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+  .stamps { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; }
+  .pill { font-size: .74rem; border-radius: 99px; padding: .18rem .6rem; border: 1px solid var(--line); background: var(--card); }
+  .pill.fresh { background: var(--good-soft); color: var(--good); border-color: transparent; }
+  .pill.stale { background: #f7ecd2; color: #7d5410; border-color: transparent; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .8rem; }
+  .cardbtn { text-align: left; font: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .8rem; cursor: pointer; }
+  .cardbtn.on { border: 2px solid var(--ink); background: var(--accent-soft); }
+  .tile-pending { fill: none; stroke: var(--muted); stroke-dasharray: 3 3; }
+  .hatch { fill: url(#hatch); }
+  .lesson { border: 1px solid var(--line); border-radius: 8px; padding: .6rem .8rem; margin-top: .5rem; }
+  .lesson.retired { text-decoration: line-through; color: var(--muted); }
+  .disclaimer { border: 1px solid var(--ink); border-radius: 10px; padding: 1rem 1.2rem; font-size: 1rem; line-height: 1.55; margin-top: 1rem; }
+  .glossary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 720px) { .glossary { grid-template-columns: 1fr; } }
+  details > summary { cursor: pointer; color: var(--accent); font-size: .85rem; }
+  .headchip { display: inline-block; margin-top: .5rem; font-size: .74rem; border: 1px solid var(--accent); color: #7d5410; border-radius: 99px; padding: .18rem .6rem; }
+  .row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .boxes { width: 100%; max-width: 800px; display: block; }
+  .clickable { cursor: pointer; }
+  #errbar { display: none; background: var(--bad-soft); color: var(--bad); border: 1px solid var(--bad); border-radius: 8px; padding: .8rem 1rem; margin-top: 1rem; font-size: .9rem; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <h1><span class="fin">FinEvents</span> · the range ledger — sealed before, graded after</h1>
+    <div class="sub">Every session, before the fix is struck, this machine seals a range and the odds for it, then grades itself in public against plain history. Nothing here is advice; the point is that you can check the receipts.</div>
+    <span class="headchip">Research artefact — measurement, not advice</span>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div id="errbar"></div>
+  <div id="controls"></div>
+  <div id="content"></div>
+  <div id="tooltip"></div>
+  <footer id="foot"></footer>
+</main>
+
+<script src="./data/results.js"></script>
+<script src="./data/prices.js"></script>
+<script src="./data/results_usd_rub.js"></script>
+<script src="./data/prices_usd_rub.js"></script>
+<script src="./data/results_usd_inr.js"></script>
+<script src="./data/prices_usd_inr.js"></script>
+<script src="./data/results_wti.js"></script>
+<script src="./data/prices_wti.js"></script>
+<script src="./data/results_silver.js"></script>
+<script src="./data/prices_silver.js"></script>
+<script src="./data/live.js"></script>
+<script src="./data/live_prices.js"></script>
+<script src="./data/events.js"></script>
+<script src="./data/wiki.js"></script>
+<script>
+"use strict";
+// Every runtime error lands in a visible banner, never a blank page.
+function showError(err) {
+  const bar = document.getElementById("errbar");
+  if (!bar) return;
+  bar.style.display = "block";
+  bar.textContent = "This page hit an error while rendering: " + (err && err.message ? err.message : String(err)) +
+    "\nThe technical page (./index.html) reads the same data files.";
+}
+window.addEventListener("error", ev => showError(ev.error || ev.message));
+try {
+const REG = window.POC_REGISTRY || {};
+// PUBLIC PREVIEW: preview the public build without touching ui/data —
+// ?public=1 drops the two local-only price layers before anything reads them.
+if (new URLSearchParams(location.search).get("public") === "1") {
+  delete window.POC_LIVE_PRICES;
+  delete window.POC_PRICES;
+  for (const k of Object.keys(REG)) delete REG[k].prices;
+}
+
+// What each series IS — the question every visitor asks first.
+const INSTRUMENTS = {
+  gold: {
+    label: "Gold · ₽/g",
+    title: "gold, in roubles per gram",
+    unit: "₽ per gram",
+    short: "₽/g",
+    decimals: 0,
+    ounce: 31.1035,
+    blurb: "The Bank of Russia's official daily gold fix — an XAU/RUB series, priced per gram. " +
+      "It is NOT the dollar gold price you see quoted elsewhere: the target lives in roubles, " +
+      "so a rouble move is part of every move on this chart. Chosen as the one free, " +
+      "licence-clean source with eleven years of daily history (DATA_SOURCES.md).",
+  },
+  silver: {
+    label: "Silver · ₽/g",
+    title: "silver, in roubles per gram",
+    unit: "₽ per gram",
+    short: "₽/g",
+    decimals: 2,
+    ounce: 31.1035,
+    names: { chronos_cov: "Chronos-2 + gold", timesfm_cov: "TimesFM + gold" },
+    blurb: "Gold's sister metal, from the same Bank of Russia daily fix — and the mirror " +
+      "experiment. For gold, silver was the one covariate that did no harm (their daily " +
+      "returns co-move at 0.68 — the only genuinely co-integrated pair in the set). Here the " +
+      "roles reverse: silver is forecast with GOLD as the sole covariate, testing whether that " +
+      "harmlessness is symmetric — and whether return co-movement can ever add skill rather " +
+      "than merely not subtract it.",
+  },
+  usd_rub: {
+    label: "USD / RUB",
+    title: "the US dollar, in roubles",
+    unit: "₽ per $1",
+    short: "₽/$",
+    decimals: 2,
+    blurb: "How many roubles one dollar buys — the Bank of Russia's official daily rate, the very " +
+      "fix that converts the gold series. An officially managed rate: its long quiet stretches " +
+      "are real, not missing data. Until now it only fed gold's forecast as a covariate; here " +
+      "it is forecast in its own right (univariate rungs only).",
+  },
+  usd_inr: {
+    label: "USD / INR",
+    title: "the US dollar, in rupees",
+    unit: "₹ per $1",
+    short: "₹/$",
+    decimals: 2,
+    blurb: "How many Indian rupees one dollar buys — the US Federal Reserve's H.10 reference " +
+      "rate. Until now it only fed gold's forecast as a covariate; here it is forecast in its " +
+      "own right (univariate rungs only).",
+  },
+  wti: {
+    label: "Oil (WTI)",
+    title: "WTI crude oil, in dollars per barrel",
+    unit: "$ per barrel",
+    short: "$/bbl",
+    decimals: 2,
+    blurb: "West Texas Intermediate crude — the US oil benchmark (EIA, via FRED). The series " +
+      "starts July 2020 on principle: WTI printed −$37 in April 2020, and a negative price " +
+      "has no log-return for the σ machinery to work with. Until now it fed gold's forecast " +
+      "as a covariate; here it is forecast in its own right (univariate rungs only).",
+  },
+};
+
+// Friendly names for the internal rung keys, used everywhere a human reads them.
+const NAME = {
+  climatology: "Base rates (climatology)",
+  cond_climatology: "Base rates, by regime",
+  chronos_uni: "Chronos-2",
+  timesfm_uni: "TimesFM 2.5",
+  chronos_cov: "Chronos-2 + signals",
+  timesfm_cov: "TimesFM + signals",
+  chronos_oilfx: "Chronos-2 + oil & FX",
+  timesfm_oilfx: "TimesFM + oil & FX",
+  chronos_rwcov: "Chronos-2 + random walk (control)",
+  timesfm_rwcov: "TimesFM + random walk (control)",
+  llm_raw: "GPT-5.6 reasoning (raw)",
+  llm_mem: "GPT-5.6 reasoning (with memory)",
+  all_flat: "Always-flat dummy",
+};
+const rname = r =>
+  ((INSTRUMENTS[state.instrument] || {}).names || {})[r] || NAME[r] || r;
+
+// Data files merge into POC_REGISTRY; gold's original bare globals still load
+// as a fallback so previously generated files keep working.
+function pack(inst) {
+  const slice = REG[inst] || {};
+  if (inst === "gold") {
+    return {
+      D: slice.results || window.POC_DATA,
+      P: slice.prices || window.POC_PRICES,
+    };
+  }
+  return { D: slice.results, P: slice.prices };
+}
+const AVAILABLE = Object.keys(INSTRUMENTS).filter(k => pack(k).D);
+let D = null, P = null; // the active instrument's data — set by render()
+
+// The LOCAL price sidecar (written by run_poc_daily, never committed): recent
+// closes per instrument, so point bets can be shown in price space. The page
+// works without it — bets then stay in percent, which is the committed truth.
+const LP = window.POC_LIVE_PRICES || {};
+const lpClose = dateIso => (LP[state.instrument] || {})[dateIso];
+
+// When does a bet sealed on `asOf` get graded? The h-th trading session after
+// it, on this instrument's own calendar. Known exactly once enough sessions
+// exist (from the price sidecar or the sealed record dates); until then, "in N
+// more sessions" — never a bare "waiting", which reads as a stale page.
+function gradeWhen(asOf, h) {
+  const need = parseInt(h, 10);
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  const known = new Set(Object.keys(LP[state.instrument] || {}));
+  if (track) for (const r of track.records) known.add(r.as_of);
+  const dates = [...known].sort();
+  const i = dates.indexOf(asOf);
+  const after = i >= 0 ? dates.length - 1 - i : 0;
+  if (i >= 0 && after >= need) return { text: `grades ${dates[i + need]}` };
+  const left = need - after;
+  return { text: `${left} more session${left === 1 ? "" : "s"}` };
+}
+// The same, for any instrument (section 2 draws all five without touching state).
+function gradeWhenFor(inst, asOf, h) {
+  const need = parseInt(h, 10);
+  const track = ((window.POC_LIVE || {}).instruments || {})[inst];
+  const known = new Set(Object.keys(LP[inst] || {}));
+  if (track) for (const r of track.records) known.add(r.as_of);
+  const dates = [...known].sort();
+  const i = dates.indexOf(asOf);
+  const after = i >= 0 ? dates.length - 1 - i : 0;
+  if (i >= 0 && after >= need) return { text: `grades ${dates[i + need]}` };
+  const left = need - after;
+  return { text: `${left} more session${left === 1 ? "" : "s"}` };
+}
+// The horizon that has the most graded reasoning bets — where a first-time
+// visitor should land, so the board never opens on an all-"waiting" column.
+function horizonWithGrades(horizons) {
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  if (!track) return null;
+  let best = null, bestN = 0;
+  for (const h of horizons) {
+    const n = track.records.filter(r => r.llm && (r.matured || {})[h]).length;
+    if (n > bestN) { best = h; bestN = n; }
+  }
+  return best;
+}
+function newestLiveRecord() {
+  const track = ((window.POC_LIVE || {}).instruments || {})[state.instrument];
+  return track && track.records.length ? track.records[track.records.length - 1] : null;
+}
+function methodList() {
+  const offline = D ? D.rungs : [];
+  const live = newestLiveRecord();
+  const extras = live
+    ? Object.keys(live.horizons[Object.keys(live.horizons)[0]].rungs)
+        .filter(r => !offline.includes(r))
+        .sort()
+    : [];
+  return [...offline, ...extras];
+}
+const BUCKET_COLOR = ["var(--b0)","var(--b1)","var(--b2)","var(--b3)","var(--b4)"];
+const BUCKET_LITE = [false, false, true, false, false];
+const RUNG_STYLE = {
+  climatology:      { color: "#57534a", dash: "" },
+  cond_climatology: { color: "#8a7f66", dash: "5 4" },
+  chronos_uni:      { color: "#a0721c", dash: "" },
+  chronos_cov:      { color: "#cf9c3d", dash: "6 4" },
+  chronos_oilfx:    { color: "#7d5410", dash: "3 3" },
+  chronos_rwcov:    { color: "#c9b48a", dash: "1 3" },
+  timesfm_uni:      { color: "#2b6cb0", dash: "" },
+  timesfm_cov:      { color: "#7aa6cf", dash: "6 4" },
+  timesfm_oilfx:    { color: "#1d4a7a", dash: "3 3" },
+  timesfm_rwcov:    { color: "#a8c2d8", dash: "1 3" },
+  llm_raw:          { color: "#6b4b8a", dash: "" },
+  llm_mem:          { color: "#9c7bbf", dash: "6 4" },
+  all_flat:         { color: "#b0aa9b", dash: "2 4" },
+};
+const priceFmt = x => x.toLocaleString("en-US", {
+  maximumFractionDigits: INSTRUMENTS[state.instrument].decimals,
+});
+
+function el(tag, attrs, ...children) {
+  const node = tag.startsWith("svg:")
+    ? document.createElementNS("http://www.w3.org/2000/svg", tag.slice(4))
+    : document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "text") node.textContent = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) if (c) node.appendChild(c);
+  return node;
+}
+const fmt = (x, dp = 4) => (x >= 0 ? "+" : "") + x.toFixed(dp);
+function modeOf(probs) {
+  let best = 0;
+  for (let i = 1; i < probs.length; i++) if (probs[i] > probs[best]) best = i;
+  return best;
+}
+
+// Customer vocabulary — the technical key stays in title attributes.
+const CUSTOMER_NAME = {
+  climatology: "history's odds",
+  chronos_uni: "Chronos-2 (Amazon)",
+  timesfm_uni: "TimesFM 2.5 (Google)",
+  llm_raw: "the AI, no memory",
+  llm_mem: "the AI, with memory",
+  all_flat: "always flat",
+};
+const cname = r => CUSTOMER_NAME[r] || rname(r);
+const HLABEL = { "1": "next fix (t+1)", "5": "five sessions (t+5)" };
+const hWords = h => h === "1" ? "the next fix" : h === "5" ? "five sessions" : "t+" + h;
+
+// ---- CONSTANTS (each with its source; none of these live in a data global) ----
+const CHALLENGERS = ["chronos_uni", "timesfm_uni", "llm_raw", "llm_mem"]; // the picker's universe
+const DEFAULT_CHALLENGER = "chronos_uni"; // fixed — never chosen from the data
+const CALM = 0.10, WATCH = 0.20; // page bins on the big-move probability (< calm, calm–watch, ≥ watch)
+const MIN_BIN = 10;               // boxes with fewer days hatch and give counts only
+const VERDICT_N = 60;             // pre-registered: docs/analysis/poc-review-2026-08-18.md §2d — nothing is called before ~60 seals unless the interval excludes zero by a margin
+const CONTROL_N = 250;            // ADR-0056: a covariate is judged against its random-walk control on ≥ 250 scored days
+const MDD = { 5: [0.026, 0.054], 25: [0.012, 0.024], 60: [0.007, 0.016], 120: [0.005, 0.012] }; // same review §2d — minimum detectable paired RPS difference by graded days
+const UNIVERSAL_LABEL_SHARE = 0.70; // mirror of scripts/poc_wiki.py UNIVERSAL_LABEL_SHARE — drift risk named here
+const TILE_MS = 120;              // replay speed per tile
+const RPS_TOL = 5e-4;             // probabilities are stored to 4 dp; recomputation matches to < 1.2e-4
+const ONE_IN_MIN = 0.02;          // below this, "1 in N" reads as "under 1 in 50"
+
+// ---- STATE — one object, one render() ----
+const state = {
+  instrument: "gold", horizon: null, rung: DEFAULT_CHALLENGER, span: "90",
+  replayIdx: null, replayFilter: null, includeLive: true, aiVariant: "both",
+  wikiVersion: null, poolH: false, eventsDay: null,
+};
+let replayTimer = null; // the one animation on the page; cleared by render()
+
+// ---- SHARED MATHS (pure, one place) ----
+const rpsOf = (probs, outcome) => {
+  let F = 0, s = 0;
+  for (let k = 0; k < 4; k++) { F += probs[k]; const O = outcome <= k ? 1 : 0; s += (F - O) * (F - O); }
+  return s / 4;
+};
+const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const liveTrack = inst => (((window.POC_LIVE || {}).instruments || {})[inst] || { records: [] });
+const liveRecords = () => liveTrack(state.instrument).records;
+const offlineRows = h => D.daily.map(d => ({ date: d.date, outcome: d.outcome[h], probs: d.probs[h], rps: d.rps[h] }));
+const liveRows = h => liveRecords().filter(r => r.matured && r.matured[h]).map(r => ({
+  date: r.as_of, target: r.matured[h].target_date, outcome: r.matured[h].outcome,
+  probs: r.horizons[h].rungs, rps: r.matured[h].rps, edges: r.horizons[h].edges_pct, sigma: r.horizons[h].sigma_pct,
+}));
+const isWide = o => o >= 1 && o <= 3;
+const isBig = o => o === 0 || o === 4;
+const bigP = p => p[0] + p[4];
+const heldWide = rows => rows.filter(r => isWide(r.outcome)).length;
+const saidWide = (rows, rung) => {
+  const v = rows.filter(r => r.probs[rung]).map(r => r.probs[rung][1] + r.probs[rung][2] + r.probs[rung][3]);
+  return v.length ? mean(v) : null;
+};
+const binOf = p => p < CALM ? "calm" : p < WATCH ? "normal" : "watch";
+function bins(rows, rung) {
+  const out = {};
+  for (const k of ["calm", "normal", "watch"]) out[k] = { n: 0, hits: 0, promisedSum: 0, dates: [] };
+  for (const r of rows) {
+    const p = r.probs[rung]; if (!p) continue;
+    const b = out[binOf(bigP(p))];
+    b.n++; b.promisedSum += bigP(p); if (isBig(r.outcome)) b.hits++; b.dates.push(r.date);
+  }
+  return out;
+}
+const oneIn = p => p >= ONE_IN_MIN ? "1 in " + Math.round(1 / p) : "under 1 in 50";
+const pct1 = x => (100 * x).toFixed(1) + "%";
+function newestKnown(inst) {
+  let m = "";
+  for (const r of liveTrack(inst).records) {
+    if (r.as_of > m) m = r.as_of;
+    for (const v of Object.values(r.matured || {})) if (v.target_date > m) m = v.target_date;
+  }
+  for (const d of Object.keys(LP[inst] || {})) if (d > m) m = d;
+  return m || null;
+}
+function pageNewest() {
+  let m = "";
+  for (const k of AVAILABLE) { const n = newestKnown(k); if (n && n > m) m = n; }
+  const E = window.POC_EVENTS;
+  if (E && E.days && E.days[0] && E.days[0].date > m) m = E.days[0].date;
+  return m || "—";
+}
+// Fresh = this seal IS the newest date on the page. A series whose newest seal
+// sits behind the page's newest date is shown as lagging, never hidden.
+function freshness(inst) {
+  const recs = liveTrack(inst).records, newest = recs[recs.length - 1];
+  if (!newest) return null;
+  const fresh = newest.as_of === pageNewest();
+  return { fresh, text: fresh
+    ? `current — the newest data on this page is ${newest.as_of}`
+    : `sealed ${newest.as_of} · newest data on this page ${pageNewest()} — this series arrives with a lag` };
+}
+function verifyRps(record, h, rung) {
+  const m = record.matured && record.matured[h];
+  const probs = record.horizons[h] && record.horizons[h].rungs[rung];
+  if (!m || !probs || m.rps[rung] === undefined) return null;
+  const recomputed = rpsOf(probs, m.outcome), recorded = m.rps[rung];
+  return { recomputed, recorded, ok: Math.abs(recomputed - recorded) <= RPS_TOL };
+}
+function mddAt(n) {
+  let best = null;
+  for (const k of Object.keys(MDD).map(Number).sort((a, b) => a - b)) if (k <= n) best = MDD[k];
+  return best;
+}
+function labelShares() {
+  const E = window.POC_EVENTS;
+  if (!E || !E.days || !E.days.length || !E.filter) return [];
+  const total = E.days.length;
+  return Object.values(E.filter.roots).map(label => {
+    const days = E.days.filter(d => d.events.some(e => e.label === label)).length;
+    return { label, days, total, share: days / total };
+  });
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const newestHz = () => { const r = newestLiveRecord(); return r ? r.horizons[state.horizon] : null; };
+const challengers = () => CHALLENGERS.filter(r => newestHz() && newestHz().rungs[r]);
+const isAI = r => r.startsWith("llm_");
+function latestLocalClose() {
+  const m = LP[state.instrument];
+  if (m) { const dates = Object.keys(m).sort(); const d = dates[dates.length - 1]; return { date: d, v: m[d] }; }
+  if (P) { const i = P.series.close.length - 1; return { date: P.series.dates[i], v: P.series.close[i] }; }
+  return null;
+}
+
+// ---- TOOLTIP — one element, one show/hide pair for every hover ----
+const tipEl = () => document.getElementById("tooltip");
+function showTip(html, ev) {
+  const t = tipEl(); t.innerHTML = html; t.style.display = "block";
+  t.style.left = Math.min(ev.clientX + 14, window.innerWidth - 250) + "px";
+  t.style.top = (ev.clientY + 14) + "px";
+}
+function hideTip() { tipEl().style.display = "none"; }
+const stripHtml = probs => (probs || []).map((p, b) =>
+  `<span style="display:inline-block;height:.55rem;width:${Math.max(1, p * 90)}px;background:${BUCKET_COLOR[b]}"></span>`).join("");
+// Any SVG child carrying data-tip gets its own tooltip; `fallback(ev)` handles the rest.
+function attachTips(svg, fallback) {
+  svg.addEventListener("mousemove", ev => {
+    const own = ev.target && ev.target.getAttribute && ev.target.getAttribute("data-tip");
+    if (own) showTip(own, ev);
+    else if (fallback) { const html = fallback(ev); if (html) showTip(html, ev); else hideTip(); }
+    else hideTip();
+  });
+  svg.addEventListener("mouseleave", hideTip);
+}
+const hatchPattern = () => {
+  const p = el("svg:pattern", { id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse" });
+  p.appendChild(el("svg:path", { d: "M0 6 L6 0", stroke: "#b0aa9b", "stroke-width": 1 }));
+  return p;
+};
+const svgText = (x, y, text, attrs) => el("svg:text", Object.assign({ x, y, "font-size": 11, fill: "#6f6a5e", text }, attrs || {}));
+// Small DOM helpers shared by every section.
+function stat(v, label, ref, title) {
+  const s = el("div", { class: "stat" });
+  s.appendChild(el("div", { class: "v", text: v, title: title || "" }));
+  s.appendChild(el("div", { class: "l", text: label }));
+  if (ref) s.appendChild(el("div", { class: "ref", text: ref }));
+  return s;
+}
+const chip = text => el("span", { class: "chip", text });
+const noteEl = (text, style) => el("div", { class: "note", style: style || "", text });
+// The five-segment odds strip, exactly as the technical page draws it.
+function strip(probs) {
+  const s = el("div", { class: "strip" });
+  probs.forEach((p, i) => {
+    const seg = el("div", {
+      style: `width:${(p * 100).toFixed(2)}%; background:${BUCKET_COLOR[i]}`,
+      class: BUCKET_LITE[i] ? "lite" : "",
+      title: `${D.buckets[i]}: ${(p * 100).toFixed(1)}%`,
+    });
+    if (p >= 0.11) seg.textContent = Math.round(p * 100) + "%";
+    s.appendChild(seg);
+  });
+  return s;
+}
+const swatch = rung => el("span", { style: `display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:${(RUNG_STYLE[rung] || {}).color || "#888"}` });
+
+// ---- THE σ-RULER — the page's one signature object ----
+// Five zones on a −2.5σ..+2.5σ axis; hollow bars = history's odds, filled bars
+// = the chosen challenger; ink outline = the zone that happened; diamond = the
+// AI's single number (section 6 only); ink dot = the realised move (local only).
+let gradSeq = 0;
+function ruler(o) {
+  const H = o.height, compact = H <= 60;
+  const top = compact ? 4 : 18, floor = compact ? H - 14 : H - 40, zoneH = floor - top;
+  const clampS = s => Math.max(-2.5, Math.min(2.5, s));
+  const x = s => 60 + (clampS(s) + 2.5) / 5 * 820;
+  const svg = el("svg:svg", { viewBox: `0 0 940 ${H}`, width: "100%", style: "display:block" + (o.minWidth ? `; min-width:${o.minWidth}px` : "") });
+  const defs = el("svg:defs", null, hatchPattern());
+  const gid = "rg" + (gradSeq++);
+  const grad = (id, color, leftFade) => {
+    const g = el("svg:linearGradient", { id, x1: 0, x2: 1, y1: 0, y2: 0 });
+    const stops = leftFade ? [[0, 0], [0.2, 0.22], [1, 0.22]] : [[0, 0.22], [0.8, 0.22], [1, 0]];
+    for (const [off, op] of stops) g.appendChild(el("svg:stop", { offset: off, "stop-color": color, "stop-opacity": op }));
+    return g;
+  };
+  defs.appendChild(grad(gid + "L", BUCKET_COLOR[0], true));
+  defs.appendChild(grad(gid + "R", BUCKET_COLOR[4], false));
+  svg.appendChild(defs);
+  const buckets = o.buckets || (D ? D.buckets : ["large down", "small down", "flat", "small up", "large up"]);
+  const e = o.edges_pct;
+  const rangeText = i => !e ? "" : i === 0 ? `below ${fmt(e[0], 2)}% — and beyond`
+    : i === 4 ? `above ${fmt(e[3], 2)}% — and beyond` : `${fmt(e[i - 1], 2)}% to ${fmt(e[i], 2)}%`;
+  // zones
+  for (let i = 0; i < 5; i++) {
+    const attrs = { x: x(-2.5 + i), y: top, width: 164, height: zoneH, rx: 3 };
+    if (i === 0) attrs.fill = `url(#${gid}L)`;
+    else if (i === 4) attrs.fill = `url(#${gid}R)`;
+    else { attrs.fill = BUCKET_COLOR[i]; attrs.opacity = i === 2 ? 0.30 : 0.22; }
+    svg.appendChild(el("svg:rect", attrs));
+    if (o.showZoneNames) svg.appendChild(svgText(x(-2 + i), top + 14, buckets[i], { "text-anchor": "middle" }));
+  }
+  const mid = top + zoneH / 2;
+  svg.appendChild(el("svg:polygon", { points: `60,${mid} 66,${mid - 4} 66,${mid + 4}`, fill: "#8d887b" }));
+  svg.appendChild(el("svg:polygon", { points: `880,${mid} 874,${mid - 4} 874,${mid + 4}`, fill: "#8d887b" }));
+  svg.appendChild(el("svg:line", { x1: x(0), y1: top, x2: x(0), y2: floor, stroke: "#8d887b", "stroke-width": 1, "stroke-dasharray": "2 3", opacity: 0.8 }));
+  if (!compact) svg.appendChild(svgText(x(0), 12, o.zeroLabel || "0 = no change", { "text-anchor": "middle", "font-size": 10, fill: "#8d887b" }));
+  // bars: hollow (history) left of centre, filled (challenger) right of centre
+  for (let i = 0; i < 5; i++) {
+    const xc = x(-2 + i);
+    if (o.hollow) {
+      const hgt = Math.min(zoneH, o.hollow[i] * 90);
+      svg.appendChild(el("svg:rect", { x: xc - 11 - 8, y: floor - hgt, width: 16, height: Math.max(0, hgt), fill: "none", stroke: "#57534a", "stroke-width": 1.5, "data-tip": `history's odds: ${pct1(o.hollow[i])}` }));
+    }
+    if (o.filled) {
+      const hgt = Math.min(zoneH, o.filled[i] * 90);
+      svg.appendChild(el("svg:rect", { x: xc + 11 - 8, y: floor - hgt, width: 16, height: Math.max(0, hgt), fill: o.filledColor || "var(--accent)", opacity: 0.85, "data-tip": `${esc(o.filledName || "challenger")}: ${pct1(o.filled[i])}` }));
+      if (o.labelPct !== false && o.filled[i] >= 0.08)
+        svg.appendChild(svgText(xc + 11, floor - hgt - 4, Math.round(100 * o.filled[i]) + "%", { "text-anchor": "middle", fill: "#21201c", style: "font-variant-numeric:tabular-nums" }));
+    }
+  }
+  // outcome outline
+  if (o.outcome !== null && o.outcome !== undefined)
+    svg.appendChild(el("svg:rect", { class: "outcome", x: x(-2.5 + o.outcome) + 1.25, y: top + 1.25, width: 164 - 2.5, height: zoneH - 2.5, rx: 3, fill: "none", stroke: "var(--ink)", "stroke-width": 2.5 }));
+  // ticks
+  if (o.showTicks && e) {
+    [-1.5, -0.5, 0.5, 1.5].forEach((s, k) => {
+      svg.appendChild(el("svg:line", { x1: x(s), y1: floor, x2: x(s), y2: floor + 4, stroke: "#8d887b", "stroke-width": 1 }));
+      svg.appendChild(svgText(x(s), floor + 15, fmt(e[k], 2) + "%", { "text-anchor": "middle", "font-size": 10.5, style: "font-variant-numeric:tabular-nums" }));
+      if (o.priceBase) svg.appendChild(svgText(x(s), floor + 28, priceFmt(o.priceBase * (1 + e[k] / 100)) + " " + INSTRUMENTS[state.instrument].short, { "text-anchor": "middle", "font-size": 10, fill: "#8d887b" }));
+    });
+  } else if (o.priceTicks) {
+    // offline day with the local report layer: the flat zone's price edges only
+    svg.appendChild(svgText(x(-0.5), floor + 15, priceFmt(o.priceTicks.lo) + " " + INSTRUMENTS[state.instrument].short, { "text-anchor": "middle", "font-size": 10, fill: "#8d887b" }));
+    svg.appendChild(svgText(x(0.5), floor + 15, priceFmt(o.priceTicks.hi) + " " + INSTRUMENTS[state.instrument].short, { "text-anchor": "middle", "font-size": 10, fill: "#8d887b" }));
+  }
+  const clipMark = (s, y) => {
+    if (s > 2.5) svg.appendChild(svgText(884, y, "▸", { "font-size": 10, fill: "#21201c" }));
+    else if (s < -2.5) svg.appendChild(svgText(50, y, "◂", { "font-size": 10, fill: "#21201c" }));
+  };
+  if (Number.isFinite(o.dotSigma)) {
+    svg.appendChild(el("svg:circle", { cx: x(o.dotSigma), cy: floor - 12, r: 4, fill: "var(--ink)", "data-tip": o.dotTip || `the realised move: ${fmt(o.dotSigma, 2)}σ (local view)` }));
+    clipMark(o.dotSigma, floor - 8);
+  }
+  if (Number.isFinite(o.pointSigma)) {
+    const cx = x(o.pointSigma);
+    svg.appendChild(el("svg:polygon", { points: `${cx},${floor - 7} ${cx + 7},${floor} ${cx},${floor + 7} ${cx - 7},${floor}`, fill: o.pointColor || "var(--accent)", stroke: "#fffefb", "stroke-width": 1, "data-tip": o.pointTip || "" }));
+    clipMark(o.pointSigma, floor + 4);
+  }
+  // hover: zone under the pointer
+  const defaultTip = i => {
+    const bits = [`<div class="d">${esc(buckets[i])}${e ? " · " + esc(rangeText(i)) : ""}</div>`];
+    if (o.filled) bits.push(`${esc(o.filledName || "challenger")} ${pct1(o.filled[i])}`);
+    if (o.hollow) bits.push(`history's odds ${pct1(o.hollow[i])}`);
+    if (o.priceBase && e && i > 0 && i < 4) bits.push(`${priceFmt(o.priceBase * (1 + e[i - 1] / 100))} – ${priceFmt(o.priceBase * (1 + e[i] / 100))} ${INSTRUMENTS[state.instrument].short} (local view)`);
+    return bits.join("<br>");
+  };
+  attachTips(svg, ev => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((ev.clientX - rect.left) / rect.width) * 940;
+    if (px < 60 || px > 880) return null;
+    const i = Math.max(0, Math.min(4, Math.floor((px - 60) / 164)));
+    return (o.tipFn || defaultTip)(i);
+  });
+  return svg;
+}
+
+// ---- CONTROLS + META ----
+function controls() {
+  const bar = document.getElementById("controls");
+  bar.textContent = "";
+  const group = (label, buttons) => {
+    const g = el("div", { class: "group" });
+    g.appendChild(el("span", { class: "label", text: label }));
+    for (const b of buttons) g.appendChild(b);
+    bar.appendChild(g);
+  };
+  if (AVAILABLE.length > 1)
+    group("instrument", AVAILABLE.map(k => el("button", {
+      text: INSTRUMENTS[k].label, class: k === state.instrument ? "on" : "",
+      onclick: () => { state.instrument = k; render(); },
+    })));
+  group("horizon", D.horizons.map(h => el("button", {
+    text: HLABEL[h] || "t+" + h, class: h === state.horizon ? "on" : "",
+    onclick: () => { state.horizon = h; render(); },
+  })));
+  const ch = challengers();
+  if (ch.length)
+    group("compare", ch.map(r => el("button", {
+      class: r === state.rung ? "on" : "", title: r,
+      onclick: () => { state.rung = r; render(); },
+    }, el("span", { class: "sw", style: "background:" + ((RUNG_STYLE[r] || {}).color || "#888") }),
+       document.createTextNode(cname(r)))));
+  bar.appendChild(el("a", { href: "./index.html", style: "font-size:.8rem", text: "the technical page →" }));
+}
+function meta() {
+  const m = document.getElementById("meta");
+  m.textContent = "";
+  const first = liveRecords()[0];
+  const chips = [
+    ["newest data on this page", pageNewest()],
+    ["unseen offline days", `${D.window.days} (${D.window.from} → ${D.window.to})`],
+    ["live seals since", first ? first.as_of : "—"],
+  ];
+  for (const [k, v] of chips) {
+    const c = el("span", { class: "chip" }); c.innerHTML = `${k} <b></b>`;
+    c.querySelector("b").textContent = v; m.appendChild(c);
+  }
+}
+function emptyState() {
+  document.getElementById("content").appendChild(el("div", { class: "empty" },
+    el("div", { text: "No data yet. Generate it, then reload this page:" }),
+    el("code", { text:
+      "uv run python scripts/evaluate_gold_poc.py --json ui/data/results.js --prices ui/data/prices.js" })));
+}
+
+// ---- SECTION 1 — the sealed range (hero) ----
+function identity(wrap) {
+  const info = INSTRUMENTS[state.instrument];
+  const first = info.blurb.split(". ")[0] + ".";
+  wrap.appendChild(noteEl(`${info.title} — ${first}`, "margin-top:1rem"));
+  const det = el("details", null, el("summary", { text: "what is this price? ▸" }));
+  det.appendChild(el("p", { class: "note", text: info.blurb }));
+  const last = latestLocalClose();
+  if (last && info.ounce)
+    det.appendChild(el("p", { class: "note", text:
+      `Latest close on this machine (${last.date}): ${priceFmt(last.v)} ${info.unit} — about ₽` +
+      `${Math.round(last.v * info.ounce).toLocaleString("en-US")} per troy ounce (31.1035 g). Local view.` }));
+  wrap.appendChild(det);
+}
+function hero() {
+  const h = state.horizon, info = INSTRUMENTS[state.instrument], rung = state.rung;
+  const wrap = el("section", { id: "range" });
+  wrap.appendChild(el("h2", { class: "title", text: `The sealed range — ${info.title}, ${hWords(h)}` }));
+  wrap.appendChild(el("p", { class: "lede", text:
+    "What the machine wrote down before the fix was struck, beside plain history's odds — and how often ranges like it have held." }));
+  const rowsOff = offlineRows(h), rowsLive = liveRows(h);
+  const newest = newestLiveRecord(), hz = newest && newest.horizons[h];
+  const heldOff = `Ranges like it — the wide band, no big move — held ${heldWide(rowsOff)} of ${D.window.days} unseen days (${D.window.from} → ${D.window.to}).`;
+  if (!hz) {
+    wrap.appendChild(el("div", { class: "empty", style: "padding:1rem; margin-top:.4rem" },
+      el("div", { text: `Nothing sealed for ${info.label} yet — the daily run seals one on its next source day.` }),
+      noteEl(heldOff)));
+    identity(wrap);
+    return wrap;
+  }
+  const pB = hz.rungs.climatology, pC = hz.rungs[rung] || null, e = hz.edges_pct;
+  const base = lpClose(newest.as_of), hasBase = base !== undefined;
+  const e3 = Math.abs(e[3]).toFixed(2), e2 = Math.abs(e[2]).toFixed(2);
+  const grid = el("div", { class: "two" });
+  // LEFT — the ruler
+  const left = el("div", null);
+  left.appendChild(el("div", { class: "scroll" }, ruler({ height: 190, minWidth: 560, edges_pct: e, sigma_pct: hz.sigma_pct, buckets: D.buckets,
+    hollow: pB, filled: pC, filledColor: RUNG_STYLE[rung].color, filledName: cname(rung),
+    showZoneNames: true, showTicks: true, priceBase: hasBase ? base : null,
+    zeroLabel: hasBase ? `0 = the ${newest.as_of} fix` : "0 = no change" })));
+  left.appendChild(noteEl(`hollow = history's odds · filled = ${cname(rung)} · zones = that day's typical move ` +
+    `(σ = ${hz.sigma_pct}%, computed by code before the day and sealed with the bet)` +
+    (hasBase ? " · prices: local view" : " · public build — ranges in percent, the committed truth"), "margin-top:.3rem"));
+  grid.appendChild(left);
+  // RIGHT — the calibration sentence, two tiles, stamps, verify
+  const right = el("div", null);
+  const saidM = saidWide(rowsOff, rung), saidB = saidWide(rowsOff, "climatology");
+  const first = liveRecords()[0];
+  const sentence = saidM !== null
+    ? `A range like this one — no big move, within ±${e3}% — was promised to hold about ${pct1(saidM)} of the time by ` +
+      `${cname(rung)} (history's odds: ${pct1(saidB)}). So far it held ${heldWide(rowsOff)} of ${D.window.days} unseen days ` +
+      `(${D.window.from} → ${D.window.to}) and ${heldWide(rowsLive)} of ${rowsLive.length} live days sealed since ${first.as_of}.`
+    : `The AI has no past to test (forward-only). History's odds promised ${pct1(saidB)}; ranges like this held ` +
+      `${heldWide(rowsOff)} of ${D.window.days} unseen days and ${heldWide(rowsLive)} of ${rowsLive.length} live days.`;
+  const disp = el("div", { class: "display", text: sentence, style: "cursor:pointer", title: "see promise vs delivered",
+    onclick: () => document.getElementById("promise").scrollIntoView({ behavior: "smooth" }) });
+  right.appendChild(disp);
+  if (pC) {
+    const stats = el("div", { class: "stats" });
+    stats.appendChild(stat(oneIn(bigP(pC)), `a big move, beyond ±${e3}%`, `history's odds: ${oneIn(bigP(pB))}`, `${cname(rung)} ${pct1(bigP(pC))} · history ${pct1(bigP(pB))}`));
+    stats.appendChild(stat(Math.round(100 * pC[2]) + "%", `the flat zone, within ±${e2}%`, `history's odds: ${Math.round(100 * pB[2])}%`, `${pct1(pC[2])} vs ${pct1(pB[2])}`));
+    right.appendChild(stats);
+  } else {
+    right.appendChild(noteEl(`${cname(rung)} sealed no odds on ${newest.as_of} — history's odds are drawn alone.`));
+  }
+  const stamps = el("div", { class: "stamps" });
+  stamps.appendChild(chip(`sealed ${newest.as_of}`));
+  stamps.appendChild(chip(`t+${h} · ${gradeWhen(newest.as_of, h).text}`));
+  const fr = freshness(state.instrument);
+  stamps.appendChild(el("span", { class: "pill " + (fr.fresh ? "fresh" : "stale"), text: fr.text }));
+  const m = newest.matured && newest.matured[h];
+  if (m) stamps.appendChild(chip(`graded ${m.target_date}: it was “${D.buckets[m.outcome]}”`));
+  right.appendChild(stamps);
+  // verify ▸
+  const det = el("details", { style: "margin-top:.7rem" }, el("summary", { text: "verify ▸" }));
+  const box = el("div", { style: "margin-top:.4rem" });
+  box.appendChild(noteEl(`sealed edges: ${e.map(v => fmt(v, 2) + "%").join(" · ")} (σ = ${hz.sigma_pct}%)`, "margin-top:0"));
+  const stripRow = (label, probs) => {
+    const row = el("div", { class: "row", style: "margin-top:.4rem" });
+    row.appendChild(el("span", { class: "note", style: "margin:0; min-width:10rem", text: label }));
+    row.appendChild(strip(probs)); return row;
+  };
+  if (pC) box.appendChild(stripRow(cname(rung), pC));
+  box.appendChild(stripRow("history's odds", pB));
+  if (m) {
+    for (const [r, lab] of [[rung, cname(rung)], ["climatology", "history's odds"]]) {
+      const v = verifyRps(newest, h, r);
+      if (v) box.appendChild(noteEl(`${lab} — score recomputed on this page from the sealed odds: ${v.recomputed.toFixed(4)} = recorded ${v.recorded.toFixed(4)} ${v.ok ? "✓" : "≠ — see the technical page"}`, "margin-top:.4rem"));
+    }
+  } else {
+    // the newest seal is still waiting — recompute the most recent graded seal at this horizon instead
+    const lastGraded = liveRecords().slice().reverse().find(r => r.matured && r.matured[h]);
+    box.appendChild(noteEl(`this seal is not graded yet at t+${h} (${gradeWhen(newest.as_of, h).text})` +
+      (lastGraded ? ` — the most recent graded seal, ${lastGraded.as_of} → ${lastGraded.matured[h].target_date} (“${D.buckets[lastGraded.matured[h].outcome]}”):` : "."), "margin-top:.4rem"));
+    if (lastGraded) for (const [r, lab] of [[rung, cname(rung)], ["climatology", "history's odds"]]) {
+      const v = verifyRps(lastGraded, h, r);
+      if (v) box.appendChild(noteEl(`${lab} — score recomputed on this page from the sealed odds: ${v.recomputed.toFixed(4)} = recorded ${v.recorded.toFixed(4)} ${v.ok ? "✓" : "≠ — see the technical page"}`, "margin-top:.2rem"));
+    }
+  }
+  if (newest.llm) for (const v of ["raw", "mem"]) {
+    const md = newest.llm[v]; if (!md) continue;
+    const who = v === "raw" ? "no memory" : "with memory";
+    box.appendChild(noteEl(md.error
+      ? `reasoning bet ${newest.llm.model} · ${who}: failed that day`
+      : `reasoning bet ${newest.llm.model} · ${who} · brief ${md.brief_sha256.slice(0, 10)}… · response ${md.response_sha256.slice(0, 10)}… — transcripts kept locally, hash-sealed here`, "margin-top:.3rem"));
+  }
+  box.appendChild(noteEl("tamper-evident and recomputable — anyone with this file can redo the arithmetic; the closes it used are not republished", "margin-top:.4rem"));
+  det.appendChild(box);
+  right.appendChild(det);
+  grid.appendChild(right);
+  wrap.appendChild(grid);
+  identity(wrap);
+  return wrap;
+}
+
+// ---- SECTION 2 — the five instruments at a glance (doubles as the picker) ----
+function sealGlyphs(recs, inst) {
+  const shown = recs.slice(-12), extra = recs.length - shown.length;
+  const svg = el("svg:svg", { viewBox: `0 0 ${shown.length * 18 + 30} 16`, width: shown.length * 18 + 30, height: 16, style: "display:block; margin-top:.4rem" });
+  shown.forEach((r, j) => {
+    const cx = 8 + j * 18, keys = Object.keys(r.matured || {});
+    const tip = `sealed ${r.as_of} · ` + Object.keys(r.horizons).map(h => `t+${h} ${r.matured && r.matured[h] ? "graded " + r.matured[h].target_date : gradeWhenFor(inst, r.as_of, h).text}`).join(" · ");
+    svg.appendChild(el("svg:circle", { cx, cy: 8, r: 6, fill: "none", stroke: "var(--ink)", "stroke-width": 1.2, "data-tip": tip }));
+    if (keys.length >= 2) svg.appendChild(el("svg:circle", { cx, cy: 8, r: 3.5, fill: "var(--ink)", "data-tip": tip }));
+    else if (keys.length === 1) svg.appendChild(el("svg:path", { d: `M${cx},4.5 A3.5 3.5 0 0 0 ${cx},11.5 Z`, fill: "var(--ink)", "data-tip": tip }));
+  });
+  if (extra > 0) svg.appendChild(svgText(shown.length * 18 + 4, 12, `+${extra}`, { "font-size": 10 }));
+  attachTips(svg);
+  return svg;
+}
+function picture() {
+  const wrap = el("section", { id: "picture" });
+  wrap.appendChild(el("h2", { class: "title", text: "The picture as it stands — the five instruments at a glance" }));
+  wrap.appendChild(el("p", { class: "lede", text: "Each on its own calendar; the newest seal, when it grades, and how much of the record has been graded so far." }));
+  const cards = el("div", { class: "cards" });
+  for (const k of AVAILABLE) {
+    const info = INSTRUMENTS[k], recs = liveTrack(k).records, newest = recs[recs.length - 1];
+    const btn = el("button", { class: "cardbtn" + (k === state.instrument ? " on" : ""), onclick: () => {
+      state.instrument = k; render(); document.getElementById("range").scrollIntoView({ behavior: "smooth" }); } });
+    const head = el("div", { class: "row", style: "justify-content:space-between" });
+    head.appendChild(el("span", { style: "font-weight:650", text: info.label }));
+    head.appendChild(chip(info.unit));
+    btn.appendChild(head);
+    if (!newest) { btn.appendChild(noteEl("not yet sealed")); cards.appendChild(btn); continue; }
+    let h = state.horizon, hz = newest.horizons[h], hnote = "";
+    if (!hz) { h = Object.keys(newest.horizons)[0]; hz = newest.horizons[h]; hnote = ` (t+${h} shown)`; }
+    const bucketsK = (pack(k).D || D).buckets;
+    btn.appendChild(ruler({ height: 46, edges_pct: hz.edges_pct, sigma_pct: hz.sigma_pct, buckets: bucketsK,
+      hollow: hz.rungs.climatology, filled: hz.rungs[state.rung] || null, filledColor: RUNG_STYLE[state.rung].color,
+      filledName: cname(state.rung), showZoneNames: false, showTicks: false, labelPct: false }));
+    btn.appendChild(noteEl(`σ ${hz.sigma_pct}% · ±${Math.abs(hz.edges_pct[3]).toFixed(2)}% wide${hnote}`, "margin-top:.2rem"));
+    btn.appendChild(sealGlyphs(recs, k));
+    const graded = recs.reduce((n, r) => n + Object.keys(r.matured || {}).length, 0);
+    btn.appendChild(noteEl(`${recs.length} sealed · ${graded} horizon${graded === 1 ? "" : "s"} graded`, "margin-top:.2rem"));
+    btn.appendChild(noteEl(`sealed ${newest.as_of} · t+${h} ${gradeWhenFor(k, newest.as_of, h).text}`, "margin-top:.3rem"));
+    const fr = freshness(k);
+    btn.appendChild(el("div", { style: "margin-top:.4rem" }, el("span", { class: "pill " + (fr.fresh ? "fresh" : "stale"), style: "display:inline-block; white-space:normal",
+      text: fr.text + (fr.fresh ? "" : " · awaiting the source's next release") })));
+    cards.appendChild(btn);
+  }
+  wrap.appendChild(cards);
+  wrap.appendChild(noteEl("seal glyphs: hollow = waiting · half = one horizon graded · filled = both. Cards are the instrument picker."));
+  return wrap;
+}
+
+// ---- SECTION 3 — better than just history yet? and how far from a verdict ----
+function verdictMeter() {
+  const h = state.horizon, wrap = el("section", { id: "verdict" });
+  wrap.appendChild(el("h2", { class: "title", text: "Better than just history yet? — and how far from a verdict" }));
+  const contenders = D.ladder[h].filter(r => !r.baseline && r.rung !== "all_flat");
+  const beat = contenders.filter(r => r.verdict === "BETTER").length, mN = contenders.length;
+  wrap.appendChild(el("div", { class: "aim", text: beat === 0
+    ? `So far, none of our ${mN} methods beats history's odds detectably at ${hWords(h)} — tested on ${D.window.days} unseen days ` +
+      `(${D.window.from} → ${D.window.to}). “No better than the base rates yet” is a legitimate readout, and it is the current one.`
+    : `${beat} of ${mN} do on ${D.window.days} unseen days — read the intervals on the technical page before believing it.` }));
+  const nAI = liveRecords().filter(r => r.llm && r.matured && r.matured[h] && r.horizons[h].rungs.llm_raw).length;
+  const stats = el("div", { class: "stats" });
+  stats.appendChild(stat(`${D.window.days} unseen · ${liveRows(h).length} live`, "days graded", "unseen = the frozen offline report; live = sealed before the fact"));
+  stats.appendChild(stat(String(nAI), "AI bets graded", "too early to call"));
+  wrap.appendChild(stats);
+  // the sample-size meter
+  const svg = el("svg:svg", { viewBox: "0 0 940 60", width: "100%", style: "display:block; margin-top:.8rem" });
+  const xv = n => 60 + 820 * Math.min(n, CONTROL_N) / CONTROL_N;
+  svg.appendChild(el("svg:rect", { x: 60, y: 22, width: 820, height: 12, rx: 6, fill: "#efece3" }));
+  svg.appendChild(el("svg:rect", { x: 60, y: 22, width: Math.max(3, 820 * Math.min(nAI, CONTROL_N) / CONTROL_N), height: 12, rx: 6, fill: "var(--accent)" }));
+  svg.appendChild(el("svg:line", { x1: xv(VERDICT_N), y1: 16, x2: xv(VERDICT_N), y2: 40, stroke: "var(--ink)", "stroke-width": 1.5 }));
+  svg.appendChild(svgText(xv(VERDICT_N), 12, `~${VERDICT_N} — the pre-registered point where the AI can first be called`, { "text-anchor": "middle", "font-size": 10.5 }));
+  svg.appendChild(el("svg:line", { x1: 880, y1: 16, x2: 880, y2: 40, stroke: "var(--ink)", "stroke-width": 1.5 }));
+  svg.appendChild(svgText(880, 52, `~${CONTROL_N} — a covariate against its random-walk control (ADR-0056)`, { "text-anchor": "end", "font-size": 10.5 }));
+  const mddWords = Object.keys(MDD).map(Number).sort((a, b) => a - b).map(k => `at ${k} graded days a gap of ${MDD[k][0]}–${MDD[k][1]}`).join("<br>");
+  attachTips(svg, () => `<div class="d">smallest paired gap that stands out (95%)</div>${mddWords}<br>source: poc-review-2026-08-18 §2d`);
+  wrap.appendChild(svg);
+  wrap.appendChild(noteEl(`${nAI} of ~${VERDICT_N} graded days before this can be called`, "margin-top:.2rem"));
+  const md = mddAt(nAI), diffs = contenders.map(r => Math.abs(r.diff)), flat = D.ladder[h].find(r => r.rung === "all_flat");
+  wrap.appendChild(el("p", { style: "margin-top:.6rem; font-size:.95rem", text: md
+    ? `At ${nAI} graded days only a gap of about ${md[0]}–${md[1]} score points or more would stand out from noise; the offline gaps ` +
+      `between methods were ${Math.min(...diffs).toFixed(3)}–${Math.max(...diffs).toFixed(3)} score points, the always-flat dummy's ${flat ? flat.diff.toFixed(3) : "—"}.`
+    : "Fewer than 5 graded days — no gap can stand out yet." }));
+  return wrap;
+}
+
+// ---- SECTION 4 — promise vs delivered (the rain-forecast test) ----
+function promiseDelivered() {
+  const h = state.horizon, rung = state.rung;
+  const wrap = el("section", { id: "promise" });
+  wrap.appendChild(el("h2", { class: "title", text: "Promise vs delivered — did the odds keep their word?" }));
+  wrap.appendChild(el("p", { class: "lede", text:
+    "When a method said “calm”, how often did a big move come? When it said “watch out”? Counts, beside history's odds and the forecaster that always says nothing happens." }));
+  const rowsOff = offlineRows(h), rowsLive = liveRows(h);
+  // the dot grid of unseen days
+  const n = rowsOff.length, gridRows = Math.ceil(n / 30);
+  const dots = el("svg:svg", { viewBox: `0 0 940 ${gridRows * 16 + 8}`, width: "100%", style: "display:block; max-width:940px" });
+  rowsOff.forEach((r, i) => dots.appendChild(el("svg:circle", {
+    cx: 14 + (i % 30) * 31, cy: 12 + Math.floor(i / 30) * 16, r: 4, fill: BUCKET_COLOR[r.outcome],
+    opacity: isBig(r.outcome) ? 1 : 0.45, "data-tip": `${r.date} · ${esc(D.buckets[r.outcome])}` })));
+  attachTips(dots);
+  wrap.appendChild(dots);
+  const held = heldWide(rowsOff);
+  wrap.appendChild(el("p", { style: "margin-top:.5rem; font-size:.95rem", text:
+    `The wide band (±1.5σ, “no big move”) held on ${held} of ${n} unseen days (${Math.round(100 * held / n)}%) — and on ` +
+    `${heldWide(rowsLive)} of ${rowsLive.length} live days so far.` }));
+  const filters = el("div", { class: "filters", style: "margin-top:.6rem" });
+  filters.appendChild(el("button", { class: state.includeLive ? "on" : "", text: "include live days",
+    onclick: () => { state.includeLive = !state.includeLive; render(); } }));
+  wrap.appendChild(filters);
+
+  const other = rung === "chronos_uni" ? "timesfm_uni" : "chronos_uni";
+  let methods = [rung, "climatology", other, "all_flat"].filter((r, i, a) => a.indexOf(r) === i).filter(r => D.rungs.includes(r));
+  if (isAI(rung)) methods = ["llm_raw", "llm_mem", ...methods];
+  const BIN_TITLE = { calm: `said calm (< ${Math.round(CALM * 100)}%)`, normal: `said normal (${Math.round(CALM * 100)}–${Math.round(WATCH * 100)}%)`, watch: `said watch out (≥ ${Math.round(WATCH * 100)}%)` };
+  const merge = (a, b, useLive) => {
+    const out = {};
+    for (const k of Object.keys(a)) out[k] = {
+      n: a[k].n + (useLive ? b[k].n : 0), hits: a[k].hits + (useLive ? b[k].hits : 0),
+      promisedSum: a[k].promisedSum + (useLive ? b[k].promisedSum : 0),
+      dates: a[k].dates.concat(useLive ? b[k].dates : []), live: useLive ? b[k].n : 0 };
+    return out;
+  };
+  const totals = b => Object.values(b).reduce((t, x) => ({ n: t.n + x.n, hits: t.hits + x.hits, promisedSum: t.promisedSum + x.promisedSum }), { n: 0, hits: 0, promisedSum: 0 });
+  // one forecast box: title, delivered pill, promised tick, caption; hatched when thin
+  const box = (svg, x0, w, title, b, r, binKey) => {
+    const g = el("svg:g", { class: "clickable" });
+    g.appendChild(el("svg:rect", { x: x0, y: 5, width: w, height: 60, rx: 8, fill: "var(--card)", stroke: "var(--line)" }));
+    const thin = b.n < MIN_BIN;
+    if (thin) g.appendChild(el("svg:rect", { x: x0, y: 5, width: w, height: 60, rx: 8, fill: "url(#hatch)" }));
+    g.appendChild(svgText(x0 + 10, 22, title, { "font-size": 11.5, fill: "#21201c" }));
+    const pw = w - 20;
+    g.appendChild(el("svg:rect", { x: x0 + 10, y: 30, width: pw, height: 12, rx: 6, fill: "#efece3" }));
+    if (b.n) g.appendChild(el("svg:rect", { x: x0 + 10, y: 30, width: pw * b.hits / b.n, height: 12, rx: 6, fill: "var(--accent)" }));
+    const pm = b.n ? b.promisedSum / b.n : 0;
+    g.appendChild(el("svg:rect", { x: x0 + 10 + pw * pm - 1, y: 27, width: 2, height: 18, fill: "var(--ink)" }));
+    const cap = thin ? `too few days · ${b.hits} of ${b.n}` : `${b.hits} big of ${b.n} days`;
+    const t = svgText(x0 + 10, 58, cap, { "font-size": 11, fill: "#21201c" });
+    if (b.live) t.appendChild(el("svg:tspan", { fill: "#8d887b", text: `  +${b.live} live` }));
+    g.appendChild(t);
+    const tip = b.n ? `promised on average ${pct1(pm)} · big moves came on ${b.hits} of ${b.n} days · e.g. ${b.dates.slice(0, 3).join(", ")}` : "no days in this bin";
+    for (const c of g.children) c.setAttribute("data-tip", tip);
+    g.addEventListener("click", () => {
+      if (!b.n) return;
+      state.replayFilter = { rung: r, bin: binKey, dates: b.dates.slice() }; state.span = "all"; render();
+      document.getElementById("replay").scrollIntoView({ behavior: "smooth" });
+    });
+    svg.appendChild(g);
+  };
+  const verdictLine = (promisedAll, deliveredAll) => {
+    const d = 100 * (promisedAll - deliveredAll);
+    return Math.abs(d) <= 2 ? `in line (${pct1(promisedAll)} said, ${pct1(deliveredAll)} came)`
+      : d < 0 ? `under-warned by ${Math.abs(d).toFixed(0)} pp (${pct1(promisedAll)} said, ${pct1(deliveredAll)} came)`
+      : `over-warned by ${d.toFixed(0)} pp (${pct1(promisedAll)} said, ${pct1(deliveredAll)} came)`;
+  };
+  for (const r of methods) {
+    const row = el("div", { style: "margin-top:1.1rem" });
+    row.appendChild(el("div", { class: "row" }, swatch(r), el("span", { style: "font-weight:650", title: r, text: cname(r) })));
+    if (isAI(r)) {                              // (d) forward-only: live counts only
+      const bl = bins(rowsLive, r), t = totals(bl);
+      row.appendChild(noteEl(`forward-only: no past to test — ${t.hits} big of ${t.n} live days` +
+        (t.n < VERDICT_N ? ` · too early for a promise test (${t.n} of ${VERDICT_N})` : ""), "margin-top:.3rem"));
+      if (t.n >= VERDICT_N) {
+        const svg = el("svg:svg", { viewBox: "0 0 800 70", class: "boxes" }, el("svg:defs", null, hatchPattern()));
+        ["calm", "normal", "watch"].forEach((k, i) => box(svg, i * 275, 250, BIN_TITLE[k], Object.assign({ live: 0 }, bl[k]), r, k));
+        attachTips(svg); row.appendChild(svg);
+        row.appendChild(noteEl(verdictLine(t.promisedSum / t.n, t.hits / t.n), "margin-top:.3rem"));
+      }
+      wrap.appendChild(row); continue;
+    }
+    const b = merge(bins(rowsOff, r), bins(rowsLive, r), state.includeLive), t = totals(b);
+    const svg = el("svg:svg", { viewBox: "0 0 800 70", class: "boxes" }, el("svg:defs", null, hatchPattern()));
+    if (r === "climatology") {                  // (b) one wide box: history always says the same
+      const all = { n: t.n, hits: t.hits, promisedSum: t.promisedSum, dates: [].concat(...Object.values(b).map(x => x.dates)), live: Object.values(b).reduce((s, x) => s + x.live, 0) };
+      const pm = t.n ? t.promisedSum / t.n : 0;
+      box(svg, 0, 800, `always the same warning: ${pct1(pm)} — big moves came ${t.n ? pct1(t.hits / t.n) : "—"} (${t.hits} of ${t.n})`, all, r, "all");
+    } else if (r === "all_flat") {              // (c) the broken-promise foil
+      const all = { n: t.n, hits: t.hits, promisedSum: 0, dates: [].concat(...Object.values(b).map(x => x.dates)), live: Object.values(b).reduce((s, x) => s + x.live, 0) };
+      box(svg, 0, 800, `promised 0% — big moves came ${t.n ? pct1(t.hits / t.n) : "—"}`, all, r, "all");
+      svg.appendChild(svgText(560, 58, "this is what a broken promise looks like", { "font-size": 11, fill: "#7d5410" }));
+    } else {                                    // (a) three boxes
+      ["calm", "normal", "watch"].forEach((k, i) => box(svg, i * 275, 250, BIN_TITLE[k], b[k], r, k));
+    }
+    attachTips(svg);
+    row.appendChild(svg);
+    if (t.n) row.appendChild(noteEl(verdictLine(t.promisedSum / t.n, t.hits / t.n), "margin-top:.3rem"));
+    wrap.appendChild(row);
+  }
+  wrap.appendChild(noteEl(`${D.window.days} unseen days ${D.window.from} → ${D.window.to}; models trained before ${D.window.clean_from}. ` +
+    "The held-rate is a property of the σ-scaling every method shares — not a method's skill. Boxes with fewer than " +
+    `${MIN_BIN} days are hatched; the pill is the delivered share of big moves, the tick the promised one. Click a box to replay those days.`));
+  return wrap;
+}
+
+// ---- SECTION 5 — replay the record: sealed, then graded ----
+function replay() {
+  const h = state.horizon, rung = state.rung, inst = state.instrument;
+  const wrap = el("section", { id: "replay", tabindex: 0, style: "outline:none" });
+  wrap.appendChild(el("h2", { class: "title", text: "Replay the record — sealed, then graded" }));
+  wrap.appendChild(el("p", { class: "lede", text:
+    "Scrub or press play: each day's bet, then what happened. The outlined tiles at the right end are the live seals — hollow ones are still waiting." }));
+  const ai = isAI(rung);
+  let days = (ai ? [] : offlineRows(h).map(r => Object.assign({}, r, { live: false, pending: false })))
+    .concat(liveRecords().map(r => {
+      const m = r.matured && r.matured[h];
+      return { date: r.as_of, live: true, pending: !m, outcome: m ? m.outcome : undefined, probs: r.horizons[h].rungs,
+        rps: m ? m.rps : undefined, edges: r.horizons[h].edges_pct, sigma: r.horizons[h].sigma_pct, target: m ? m.target_date : undefined };
+    }));
+  const filt = state.replayFilter;
+  if (filt) { const set = new Set(filt.dates); days = days.filter(d => set.has(d.date)); }
+  if (state.span === "live") days = days.filter(d => d.live);
+  else if (state.span !== "all") days = days.slice(-parseInt(state.span, 10));
+  const N = days.length;
+  // controls row
+  const bar = el("div", { class: "filters", style: "margin-top:.2rem" });
+  const playBtn = el("button", { text: "▶ play", title: "replay from the start" });
+  bar.appendChild(playBtn);
+  for (const s of ["30", "90", "all", "live"])
+    bar.appendChild(el("button", { text: s === "all" ? "all days" : s === "live" ? "live only" : "last " + s, class: state.span === s ? "on" : "",
+      onclick: () => { state.span = s; state.replayIdx = null; render(); } }));
+  if (filt) bar.appendChild(el("button", { class: "on", text: `showing ${filt.bin === "all" ? "all" : filt.bin} days for ${cname(filt.rung)} · clear`,
+    onclick: () => { state.replayFilter = null; state.replayIdx = null; render(); } }));
+  wrap.appendChild(bar);
+  if (ai) wrap.appendChild(noteEl("forward-only (ADR-0037): the AI has no past to replay — live seals only.", "margin-top:.5rem"));
+  if (!N) {
+    wrap.appendChild(el("div", { class: "empty", style: "padding:1rem", text: "No days to replay in this view — widen the window or clear the filter." }));
+    return wrap;
+  }
+  let idx = state.replayIdx === null || state.replayIdx >= N ? N - 1 : Math.max(0, state.replayIdx);
+  const stripBox = el("div", { class: "scroll", style: "margin-top:.6rem" });
+  const dayBox = el("div", { class: "two", style: "margin-top:.8rem" });
+  const beliefIn = d => (d.probs[rung] || [])[d.outcome];
+  const W = Math.max(940, 100 + N * 5), w = Math.max(5, (W - 100) / N), xAt = i => 60 + i * w;
+  function drawStrip() {
+    stripBox.textContent = "";
+    const svg = el("svg:svg", { viewBox: `0 0 ${W} 120`, width: "100%", style: "display:block; min-width:700px" });
+    let lastMonth = "";
+    days.forEach((d, i) => {
+      const mo = d.date.slice(0, 7);
+      if (mo !== lastMonth) { svg.appendChild(svgText(xAt(i), 114, mo, { "font-size": 10, fill: "#8d887b" })); lastMonth = mo; }
+    });
+    const firstLive = days.findIndex(d => d.live);
+    if (firstLive > 0) {
+      svg.appendChild(el("svg:line", { x1: xAt(firstLive) - 1, y1: 12, x2: xAt(firstLive) - 1, y2: 100, stroke: "#8d887b", "stroke-width": 1, "stroke-dasharray": "4 3" }));
+      svg.appendChild(svgText(xAt(firstLive) - 5, 10, "offline report | live — sealed before the fact", { "text-anchor": "end", "font-size": 10, fill: "#8d887b" }));
+    } else if (firstLive === 0) svg.appendChild(svgText(60, 10, "live — sealed before the fact", { "font-size": 10, fill: "#8d887b" }));
+    // history's belief in what happened, over the revealed graded tiles
+    const pts = [];
+    days.forEach((d, i) => {
+      if (i > idx || d.pending || !d.probs.climatology) return;
+      pts.push(`${(xAt(i) + w / 2).toFixed(1)},${(90 - (8 + 52 * d.probs.climatology[d.outcome])).toFixed(1)}`);
+    });
+    if (pts.length > 1) svg.appendChild(el("svg:polyline", { points: pts.join(" "), fill: "none", stroke: "#57534a", "stroke-width": 1.2, opacity: 0.9 }));
+    days.forEach((d, i) => {
+      const x = xAt(i) + 0.5, tw = Math.max(1, w - 1);
+      let rect;
+      if (d.pending) rect = el("svg:rect", { class: "tile-pending", x, y: 82, width: tw, height: 8, "data-state": "pending" });
+      else if (i > idx) rect = el("svg:rect", { x, y: 82, width: tw, height: 8, fill: "#efece3", "data-state": "hidden" });
+      else { const p = beliefIn(d), hgt = 8 + 52 * (p === undefined ? 0 : p); rect = el("svg:rect", { x, y: 90 - hgt, width: tw, height: hgt, fill: BUCKET_COLOR[d.outcome], "data-state": "revealed" }); }
+      if (d.live && !d.pending) { rect.setAttribute("stroke", "var(--ink)"); rect.setAttribute("stroke-width", 1.5); }
+      if (i === idx) { rect.setAttribute("stroke", "var(--ink)"); rect.setAttribute("stroke-width", 2); }
+      rect.setAttribute("data-i", i);
+      svg.appendChild(rect);
+    });
+    const cx = xAt(idx) + w / 2;
+    svg.appendChild(el("svg:line", { x1: cx, y1: 16, x2: cx, y2: 96, stroke: "var(--ink)", "stroke-width": 1 }));
+    svg.appendChild(el("svg:polygon", { points: `${cx - 5},9 ${cx + 5},9 ${cx},16`, fill: "var(--ink)" }));
+    const iAt = ev => { const r = svg.getBoundingClientRect(); const px = ((ev.clientX - r.left) / r.width) * W; return Math.max(0, Math.min(N - 1, Math.floor((px - 60) / w))); };
+    attachTips(svg, ev => {
+      const d = days[iAt(ev)];
+      const what = d.pending ? gradeWhenFor(inst, d.date, h).text : esc(D.buckets[d.outcome]);
+      return `<div class="d">${d.date}${d.live ? " · live" : ""} · ${what}</div>${esc(cname(rung))}: ${stripHtml(d.probs[rung])}<br>history's odds: ${stripHtml(d.probs.climatology)}`;
+    });
+    svg.addEventListener("click", ev => { stop(); setIdx(iAt(ev), false); });
+    svg.addEventListener("mousemove", ev => { if (ev.buttons === 1) { stop(); setIdx(iAt(ev), false); } });
+    stripBox.appendChild(svg);
+  }
+  function drawDay(animate) {
+    dayBox.textContent = "";
+    const d = days[idx], left = el("div", null);
+    let priceBase = null, dotSigma = null, priceTicks = null, dotTip = null;
+    if (d.live) {
+      const b0 = lpClose(d.date), c1 = d.target ? lpClose(d.target) : undefined;
+      if (b0 !== undefined) priceBase = b0;
+      if (b0 !== undefined && c1 !== undefined && d.sigma) { const mv = (c1 / b0 - 1) * 100; dotSigma = mv / d.sigma; dotTip = `realised ${fmt(mv, 2)}% → ${priceFmt(c1)} ${INSTRUMENTS[inst].short} (local view)`; }
+    } else if (P && P.horizons && P.horizons[h]) {
+      // offline day, local report layer: the flat zone's price edges + the realised move
+      const ph = P.horizons[h], j = D.daily.findIndex(x => x.date === d.date);
+      if (j >= 0 && ph.flat_lo && ph.flat_lo[j] !== undefined) {
+        priceTicks = { lo: ph.flat_lo[j], hi: ph.flat_hi[j] };
+        const si = P.series.dates.indexOf(d.date), tgt = P.series.dates.indexOf(ph.dates[j]);
+        if (si >= 0 && tgt >= 0) {
+          const b0 = P.series.close[si], c1 = P.series.close[tgt], sig = 2 * Math.log(ph.flat_hi[j] / b0) * 100;
+          if (sig > 0) { const mv = (c1 / b0 - 1) * 100; dotSigma = mv / sig; dotTip = `realised ${fmt(mv, 2)}% → ${priceFmt(c1)} ${INSTRUMENTS[inst].short} (local view)`; }
+        }
+      }
+    }
+    const rl = ruler({ height: 150, minWidth: 560, edges_pct: d.edges || null, sigma_pct: d.sigma || null, buckets: D.buckets,
+      hollow: d.probs.climatology || null, filled: d.probs[rung] || null, filledColor: RUNG_STYLE[rung].color, filledName: cname(rung),
+      outcome: null, showZoneNames: true, showTicks: !!d.edges, priceBase, priceTicks, dotSigma, dotTip,
+      zeroLabel: d.live && priceBase ? `0 = the ${d.date} fix` : "0 = no change" });
+    left.appendChild(el("div", { class: "scroll" }, rl));
+    // odds first, outcome second: the outline lands a frame after the bars
+    if (!d.pending) {
+      const outline = () => {
+        const x0 = 60 + d.outcome * 164;
+        rl.appendChild(el("svg:rect", { class: "outcome", x: x0 + 1.25, y: 19.25, width: 161.5, height: 150 - 40 - 18 - 2.5, rx: 3, fill: "none", stroke: "var(--ink)", "stroke-width": 2.5 }));
+      };
+      if (animate) requestAnimationFrame(outline); else outline();
+    }
+    left.appendChild(noteEl(`${d.date}${d.live ? " · live seal" : " · offline report"} · what happened: ${d.pending ? "not yet graded — " + gradeWhenFor(inst, d.date, h).text : D.buckets[d.outcome]}` +
+      (!d.live && !d.edges ? " · zone names only — the offline report keeps no per-day edges" + (priceTicks ? "; flat-zone prices from the local report layer" : "") : ""), "margin-top:.3rem"));
+    dayBox.appendChild(left);
+    // the tally over graded days up to the scrubber
+    const graded = days.filter((x, i) => i <= idx && !x.pending && x.probs[rung] && x.probs.climatology);
+    const right = el("div", null);
+    if (!graded.length) right.appendChild(noteEl("no graded day under the scrubber yet"));
+    else {
+      const nG = graded.length;
+      const bC = mean(graded.map(x => x.probs[rung][x.outcome])), bH = mean(graded.map(x => x.probs.climatology[x.outcome]));
+      const watch = graded.filter(x => bigP(x.probs[rung]) >= WATCH), calm = graded.filter(x => bigP(x.probs[rung]) < CALM);
+      const closer = graded.filter(x => x.rps && x.rps[rung] !== undefined && x.rps[rung] < x.rps.climatology).length;
+      const st = el("div", { class: "stats", style: "margin-top:0; gap:1.2rem 2rem" });
+      st.appendChild(stat(`${Math.round(100 * bC)}% vs ${Math.round(100 * bH)}%`, "belief given to what happened", `${cname(rung)} vs history's odds · ${nG} days`));
+      st.appendChild(stat(`${watch.filter(x => isBig(x.outcome)).length} big of ${watch.length}`, "“watch out” days", `big-move odds ≥ ${Math.round(WATCH * 100)}%`));
+      st.appendChild(stat(`${calm.filter(x => isBig(x.outcome)).length} big of ${calm.length}`, "“calm” days", `big-move odds < ${Math.round(CALM * 100)}%`));
+      st.appendChild(stat(`${closer} of ${nG} days`, "closer than history", "by the official score, paired per day"));
+      right.appendChild(st);
+    }
+    dayBox.appendChild(right);
+  }
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const setIdx = (i, animate) => { idx = Math.max(0, Math.min(N - 1, i)); state.replayIdx = idx; drawStrip(); drawDay(animate); };
+  const stop = () => { if (replayTimer) { clearTimeout(replayTimer); replayTimer = null; } playBtn.textContent = "▶ play"; };
+  const step = () => { if (idx >= N - 1) { stop(); return; } setIdx(idx + 1, true); replayTimer = setTimeout(step, TILE_MS); };
+  playBtn.addEventListener("click", () => {
+    if (replayTimer) { stop(); return; }
+    if (reduced) { setIdx(N - 1, false); return; }
+    setIdx(0, true); playBtn.textContent = "❚❚ pause"; replayTimer = setTimeout(step, TILE_MS);
+  });
+  wrap.addEventListener("keydown", ev => {
+    if (ev.key === "ArrowLeft") { stop(); setIdx(idx - 1, false); ev.preventDefault(); }
+    else if (ev.key === "ArrowRight") { stop(); setIdx(idx + 1, false); ev.preventDefault(); }
+  });
+  wrap.appendChild(stripBox);
+  wrap.appendChild(noteEl("offline days come from a frozen " + D.window.days + "-day report — the models never saw them, but this is a report; live days were sealed before the outcome existed. " +
+    "Tile colour = what happened, height = the belief " + cname(rung) + " gave it; the thin line is history's belief. ← → step, click or drag to scrub."));
+  wrap.appendChild(dayBox);
+  drawStrip(); drawDay(false);
+  return wrap;
+}
+
+// ---- SECTION 6 — the AI's exact call, beside two dumb bars ----
+function aiCalls() {
+  const h = state.horizon, inst = state.instrument, info = INSTRUMENTS[inst];
+  const wrap = el("section", { id: "ai" });
+  wrap.appendChild(el("h2", { class: "title", text: "The AI's exact call, bet by bet — beside two dumb bars" }));
+  wrap.appendChild(el("p", { class: "lede", text:
+    "Its single number is not what gets scored — the five-zone bet is. It is shown here only next to the bars it must beat: saying “no change”, and always saying “flat”." }));
+  const withLlm = liveRecords().filter(r => r.llm);
+  if (!withLlm.length) {
+    wrap.appendChild(noteEl("No reasoning bets sealed for this instrument yet — the AI is forward-only; its record starts at its first live day."));
+    return wrap;
+  }
+  // stats as the technical page computes them, on the same graded days
+  let sealedN = 0, gradedN = 0, exactN = 0, flatExactN = 0, closerN = 0;
+  const absErr = [], zeroErr = [];
+  const variants = state.aiVariant === "both" ? ["raw", "mem"] : [state.aiVariant];
+  for (const r of withLlm) {
+    const hz = r.horizons[h], m = (r.matured || {})[h], b0 = lpClose(r.as_of);
+    for (const v of variants) {
+      const md = r.llm[v]; if (!md || md.error) continue;
+      const rung = "llm_" + v, probs = hz && hz.rungs[rung]; if (!probs) continue;
+      sealedN++;
+      const pp = (md.point_pct || {})[h];
+      if (m) {
+        gradedN++;
+        const c1 = lpClose(m.target_date);
+        if (b0 !== undefined && c1 !== undefined) { const act = (c1 / b0 - 1) * 100; if (pp !== undefined) { absErr.push(Math.abs(pp - act)); zeroErr.push(Math.abs(act)); } }
+        if (m.outcome === 2) flatExactN++;
+        if (modeOf(probs) === m.outcome) exactN++;
+        if (m.rps[rung] !== undefined && m.rps[rung] < m.rps.climatology) closerN++;
+      }
+    }
+  }
+  const stats = el("div", { class: "stats" });
+  stats.appendChild(stat(`${exactN}/${gradedN}`, "exact bucket", `always-flat would score ${flatExactN}/${gradedN}`));
+  if (absErr.length) stats.appendChild(stat(`${mean(absErr).toFixed(2)}%`, "average miss of its exact call", `saying “no change” would miss ${mean(zeroErr).toFixed(2)}% (local view)`));
+  stats.appendChild(stat(`${closerN}/${gradedN}`, "closer than history's odds", "by the official score, paired per day"));
+  const meterWrap = el("div", { class: "stat" });
+  const meter = el("svg:svg", { viewBox: "0 0 300 14", width: 300, height: 14, style: "display:block; max-width:100%" });
+  meter.appendChild(el("svg:rect", { x: 0, y: 2, width: 300, height: 10, rx: 5, fill: "#efece3" }));
+  meter.appendChild(el("svg:rect", { x: 0, y: 2, width: Math.max(2, 300 * Math.min(gradedN, VERDICT_N) / VERDICT_N), height: 10, rx: 5, fill: "var(--accent)" }));
+  meterWrap.appendChild(el("div", { class: "l", style: "max-width:none", text: `too early — ${gradedN} of ${VERDICT_N} graded` }));
+  meterWrap.appendChild(meter);
+  stats.appendChild(meterWrap);
+  wrap.appendChild(stats);
+  if (!absErr.length) wrap.appendChild(noteEl("average miss needs the local price layer — in the public build the exact call is graded by bucket only."));
+  const newest = withLlm[withLlm.length - 1], hzN = newest.horizons[h];
+  const closes = LP[inst] || {}, cd = Object.keys(closes).sort();
+  const dailyAbs = cd.slice(1).map((d, i) => Math.abs(closes[d] / closes[cd[i]] - 1) * 100).sort((a, b) => a - b);
+  const typical = dailyAbs.length >= 10 ? dailyAbs[Math.floor(dailyAbs.length / 2)] : null;
+  wrap.appendChild(noteEl(`σ = ${hzN ? hzN.sigma_pct : "—"}% is the sealed scale of a typical move here` +
+    (typical !== null ? ` · a next-session move is typically about ${typical.toFixed(2)}% either way (median of the last ${dailyAbs.length} sessions) — no point forecaster gets under that floor` : "")));
+  const filters = el("div", { class: "filters", style: "margin-top:.6rem" });
+  for (const [k, lab] of [["raw", "no memory"], ["mem", "with memory"], ["both", "both"]])
+    filters.appendChild(el("button", { text: lab, class: state.aiVariant === k ? "on" : "", onclick: () => { state.aiVariant = k; render(); } }));
+  wrap.appendChild(filters);
+  const otherH = D.horizons.find(x => x !== h);
+  const otherGraded = otherH ? withLlm.filter(r => (r.matured || {})[otherH]).reduce((n, r) => n + ["raw", "mem"].filter(v => r.llm[v] && !r.llm[v].error).length, 0) : 0;
+  if (gradedN === 0 && otherGraded > 0)
+    wrap.appendChild(el("div", { class: "aim", text: `Nothing at t+${h} has come due yet — a t+${h} bet needs ${h} trading sessions before it can be graded. Pick t+${otherH} in the bar above to see the ${otherGraded} bet${otherGraded === 1 ? "" : "s"} already graded.` }));
+  // one row per sealed bet × variant
+  for (const r of withLlm) {
+    const hz = r.horizons[h]; if (!hz) continue;
+    const m = (r.matured || {})[h], b0 = lpClose(r.as_of), c1 = m ? lpClose(m.target_date) : undefined;
+    for (const v of variants) {
+      const md = r.llm[v]; if (!md) continue;
+      const rung = "llm_" + v, probs = hz.rungs[rung], pp = (md.point_pct || {})[h];
+      const row = el("div", { style: "margin-top:.9rem; border-top:1px solid var(--line); padding-top:.6rem" });
+      const head = el("div", { class: "row", style: "justify-content:space-between" });
+      head.appendChild(el("span", { style: "font-size:.85rem", title: rung }, swatch(rung), document.createTextNode(` sealed ${r.as_of} · ${v === "raw" ? "no memory" : "with memory"} · ${r.llm.model}`)));
+      let pill;
+      if (md.error) pill = el("span", { class: "verdict v-nd", text: "failed that day" });
+      else if (!m) {
+        // a lagged series (USD/INR weekly, WTI) is past due when the page already holds newer dates than its calendar
+        const gw = gradeWhenFor(inst, r.as_of, h).text, frsh = freshness(inst);
+        const due = (gw.startsWith("grades ") && gw.slice(7) <= pageNewest()) || (frsh && !frsh.fresh);
+        pill = el("span", { class: "verdict v-nd", text: due ? `awaiting the source's next release · ${gw}` : gw });
+      } else if (probs) {
+        const off = Math.abs(modeOf(probs) - m.outcome);
+        pill = off === 0 ? el("span", { class: "verdict v-better", text: "landed in its bucket" })
+          : off === 1 ? el("span", { class: "verdict v-nd", text: "one bucket off" })
+          : el("span", { class: "verdict v-worse", text: "missed" });
+      } else pill = el("span", { class: "verdict v-nd", text: "no odds sealed" });
+      head.appendChild(pill);
+      row.appendChild(head);
+      if (!md.error) {
+        const dot = (m && b0 !== undefined && c1 !== undefined) ? ((c1 / b0 - 1) * 100) / hz.sigma_pct : null;
+        const pointTip = pp === undefined ? "" : `called ${fmt(pp, 2)}%${b0 !== undefined ? " (" + priceFmt(b0 * (1 + pp / 100)) + " " + info.short + " locally)" : ""} · happened ${m ? esc(D.buckets[m.outcome]) : "not yet"}<br>${stripHtml(probs)}`;
+        row.appendChild(ruler({ height: 54, edges_pct: hz.edges_pct, sigma_pct: hz.sigma_pct, buckets: D.buckets, hollow: null, filled: null,
+          outcome: m ? m.outcome : null, pointSigma: pp !== undefined ? pp / hz.sigma_pct : null, pointColor: RUNG_STYLE[rung].color, pointTip,
+          dotSigma: dot, dotTip: dot !== null ? `realised ${fmt((c1 / b0 - 1) * 100, 2)}% → ${priceFmt(c1)} ${info.short} (local view)` : null,
+          showZoneNames: false, showTicks: false,
+          tipFn: i => `<div class="d">${esc(D.buckets[i])}</div>${esc(cname(rung))} ${probs ? pct1(probs[i]) : "—"} · history's odds ${pct1(hz.rungs.climatology[i])}` }));
+        row.appendChild(noteEl(`its exact call: ${pp === undefined ? "—" : fmt(pp, 2) + "%"} (the diamond) · its five-zone bet: “${probs ? D.buckets[modeOf(probs)] : "—"}” most likely · σ ${hz.sigma_pct}%`, "margin-top:.2rem"));
+        if (md.rationale) {
+          const det = el("details", null, el("summary", { text: "its reasoning ▸" }));
+          det.appendChild(el("p", { class: "note", style: "margin-top:.3rem", text: `“${md.rationale}”` }));
+          det.appendChild(noteEl(`brief ${md.brief_sha256.slice(0, 10)}… · response ${md.response_sha256.slice(0, 10)}… — recorded locally, hash-sealed here`, "margin-top:.3rem"));
+          row.appendChild(det);
+        }
+      }
+      wrap.appendChild(row);
+    }
+  }
+  wrap.appendChild(noteEl("Its single number — not the thing that gets scored; the five-bucket bet is, so the exact call can never be gamed into the headline. Shown here only beside the bars it must beat." +
+    (Object.keys(LP).length ? "" : " Price conversions need the local price layer — absent here, so bets stay in percent, the committed truth.")));
+  return wrap;
+}
+
+// ---- SECTION 7 — what it currently believes, and what it un-learned ----
+function memory() {
+  const h = state.horizon, wrap = el("section", { id: "memory" });
+  wrap.appendChild(el("h2", { class: "title", text: "What it currently believes — and what it un-learned" }));
+  wrap.appendChild(el("p", { class: "lede", text:
+    "Numbers by code, words by the model, never mixed. Lessons must be rare, cited and falsifiable; a code guard retires any lesson conditioned on a label present on most days." }));
+  const Wk = window.POC_WIKI, page = Wk && Wk.instruments && Wk.instruments[state.instrument];
+  const E = window.POC_EVENTS, hasE = !!(E && E.days && E.days.length && E.filter);
+  if (!page || !page.versions || !page.versions.length) { wrap.appendChild(noteEl("No memory page for this instrument yet.")); return wrap; }
+  const versions = page.versions, last = versions[versions.length - 1];
+  const vi = state.wikiVersion !== null && state.wikiVersion < versions.length ? state.wikiVersion : versions.length - 1;
+  const cur = versions[vi];
+  const retired = versions.slice(1).flatMap((v, i) => versions[i].lessons.filter(l => !v.lessons.some(x => x.text === l.text)).map(l => Object.assign({}, l, { retiredIn: v })));
+  const shares = labelShares();
+  const reasonFor = lesson => {
+    const hit = shares.find(s => s.share > UNIVERSAL_LABEL_SHARE && lesson.text.toLowerCase().includes(s.label.toLowerCase()));
+    return hit ? `retired because ${hit.label} appeared on ${hit.days} of ${hit.total} days, so it cannot be a signal`
+      : lesson.retiredIn.curator_note ? `retired — curator: “${lesson.retiredIn.curator_note}”` : "retired";
+  };
+  wrap.appendChild(el("div", { class: "display", style: "font-size:1.05rem", text:
+    `lessons live: ${last.lessons.length} · retired: ${retired.length}` + (retired.length ? ` · ${reasonFor(retired[retired.length - 1])}` : " · nothing retired yet") }));
+  // the notebook, by version
+  const tabs = el("div", { class: "filters", style: "margin-top:.8rem" });
+  versions.forEach((v, i) => {
+    const b = el("button", { class: i === vi ? "on" : "", onclick: () => { state.wikiVersion = i; render(); } });
+    b.appendChild(document.createTextNode(`v${v.version} · ${v.as_of} `));
+    const bar = el("span", { style: `display:inline-block;height:6px;width:${4 + 8 * v.lessons.length}px;border-radius:3px;background:${i === vi ? "var(--paper)" : "var(--accent)"};opacity:.8`, title: `${v.lessons.length} lesson${v.lessons.length === 1 ? "" : "s"}` });
+    b.appendChild(bar); tabs.appendChild(b);
+  });
+  wrap.appendChild(tabs);
+  const cite = d => { const m = liveRecords().find(r => r.as_of === d), g = m && m.matured && m.matured[h]; return chip(d + (g ? ` → ${D.buckets[g.outcome]}` : "")); };
+  if (cur.lessons.length) for (const l of cur.lessons) {
+    const card = el("div", { class: "lesson" }, el("div", { text: l.text }));
+    const cites = el("div", { class: "stamps", style: "margin-top:.4rem" }); (l.cites || []).forEach(d => cites.appendChild(cite(d))); card.appendChild(cites);
+    wrap.appendChild(card);
+  } else wrap.appendChild(el("div", { class: "empty", style: "padding:1rem", text: "No lessons — the honest state early on. A lesson must name a condition that is rare, cite dates, and be falsifiable." }));
+  if (vi > 0) for (const l of versions[vi - 1].lessons.filter(l => !cur.lessons.some(x => x.text === l.text))) {
+    const card = el("div", { class: "lesson retired" }, el("div", { text: l.text }));
+    card.appendChild(el("div", { style: "margin-top:.4rem" }, el("span", { class: "chip", style: "text-decoration:none; white-space:normal", text: reasonFor(Object.assign({}, l, { retiredIn: cur })) })));
+    wrap.appendChild(card);
+  }
+  if (cur.curator_note) wrap.appendChild(el("div", { class: "aim", text: `Curator's note: “${cur.curator_note}”` }));
+  // value-of-memory strip: paired official scores, with memory minus without
+  const hs = state.poolH ? D.horizons : [h];
+  const pairs = [];
+  for (const r of liveRecords()) for (const hh of hs) { const m = r.matured && r.matured[hh]; if (m && m.rps.llm_mem !== undefined && m.rps.llm_raw !== undefined) pairs.push({ date: r.as_of, h: hh, mem: m.rps.llm_mem, raw: m.rps.llm_raw, diff: m.rps.llm_mem - m.rps.llm_raw }); }
+  const vm = el("div", { style: "margin-top:1.1rem" });
+  vm.appendChild(el("div", { class: "row", style: "justify-content:space-between" }, el("span", { style: "font-weight:650", text: "what memory is worth — paired, by the official score" }),
+    el("div", { class: "filters" }, el("button", { text: "pool both horizons", class: state.poolH ? "on" : "", onclick: () => { state.poolH = !state.poolH; render(); } }))));
+  const svg = el("svg:svg", { viewBox: "0 0 940 80", width: "100%", style: "display:block; margin-top:.4rem" }, el("svg:defs", null, hatchPattern()));
+  svg.appendChild(el("svg:line", { x1: 60, y1: 40, x2: 880, y2: 40, stroke: "#8d887b", "stroke-width": 1 }));
+  svg.appendChild(el("svg:line", { x1: 470, y1: 30, x2: 470, y2: 50, stroke: "var(--ink)", "stroke-width": 1.5 }));
+  svg.appendChild(svgText(60, 70, "memory closer ←", { "font-size": 10.5 }));
+  svg.appendChild(svgText(880, 70, "→ memory further", { "font-size": 10.5, "text-anchor": "end" }));
+  svg.appendChild(svgText(470, 70, "0", { "font-size": 10.5, "text-anchor": "middle" }));
+  const xd = d => 470 + Math.max(-1, Math.min(1, d / 0.03)) * 410;
+  for (const p of pairs) svg.appendChild(el("svg:circle", { cx: xd(p.diff), cy: 40, r: 5, fill: RUNG_STYLE.llm_mem.color, opacity: 0.85,
+    "data-tip": `${p.date} · t+${p.h} · with memory ${p.mem.toFixed(4)} vs without ${p.raw.toFixed(4)}` }));
+  if (pairs.length < VERDICT_N) { svg.appendChild(el("svg:rect", { x: 60, y: 22, width: 820, height: 36, fill: "url(#hatch)", opacity: 0.5 })); svg.appendChild(svgText(470, 16, `too early — ${pairs.length} of ${VERDICT_N} paired bets`, { "text-anchor": "middle", "font-size": 10.5 })); }
+  attachTips(svg);
+  vm.appendChild(svg);
+  const wins = pairs.filter(p => p.diff < 0).length, md = mean(pairs.map(p => p.diff));
+  vm.appendChild(noteEl(pairs.length ? `closer to what happened on ${wins} of ${pairs.length} paired bets · average difference ${md.toFixed(4)} — noise at this size` : "no paired bets graded yet", "margin-top:.2rem"));
+  wrap.appendChild(vm);
+  // the week's events as a label × day heat grid, with the days-present column
+  wrap.appendChild(el("div", { style: "font-weight:650; margin-top:1.1rem", text: "what it read — the week's event shortlist, by type and day" }));
+  if (!hasE) { wrap.appendChild(noteEl("no event shortlist loaded")); }
+  else {
+    const labels = Object.values(E.filter.roots), daysAsc = E.days.slice().reverse(), Dn = daysAsc.length;
+    const counts = labels.map(l => daysAsc.map(d => d.events.filter(e => e.label === l)));
+    const maxC = Math.max(1, ...counts.flat().map(a => a.length));
+    const cw = 60, ch = 26, lw = 130, W = lw + Dn * cw + 130, H = 20 + labels.length * ch;
+    const g = el("svg:svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", style: `display:block; min-width:560px; max-width:${W}px` });
+    const selDay = state.eventsDay || E.days[0].date;
+    daysAsc.forEach((d, j) => g.appendChild(svgText(lw + j * cw + cw / 2, 13, d.date.slice(5), { "text-anchor": "middle", "font-size": 10.5, class: "clickable", fill: d.date === selDay ? "#21201c" : "#6f6a5e", onclick: () => { state.eventsDay = d.date; render(); } })));
+    g.appendChild(svgText(lw + Dn * cw + 8, 13, "days present", { "font-size": 10.5 }));
+    labels.forEach((l, i) => {
+      const y = 20 + i * ch, present = counts[i].filter(a => a.length).length, share = present / Dn;
+      if (share > UNIVERSAL_LABEL_SHARE) g.appendChild(el("svg:rect", { x: 0, y, width: W, height: ch, fill: "var(--ink)", opacity: 0.06 }));
+      g.appendChild(svgText(4, y + 17, l, { "font-size": 11, fill: "#21201c" }));
+      counts[i].forEach((a, j) => {
+        const cell = el("svg:rect", { x: lw + j * cw + 1, y: y + 1, width: cw - 2, height: ch - 2, rx: 3, fill: "var(--accent)", opacity: 0.08 + 0.77 * (a.length / maxC), class: "clickable",
+          "data-tip": `${esc(l)}: ${a.length} event${a.length === 1 ? "" : "s"}, ${a.reduce((s, e) => s + (e.mentions || 0), 0).toLocaleString("en-US")} mentions`,
+          onclick: () => { state.eventsDay = daysAsc[j].date; render(); } });
+        g.appendChild(cell);
+        if (a.length) g.appendChild(svgText(lw + j * cw + cw / 2, y + 17, String(a.length), { "text-anchor": "middle", "font-size": 10.5, fill: "#21201c", "pointer-events": "none" }));
+      });
+      const bx = lw + Dn * cw + 8;
+      g.appendChild(el("svg:rect", { x: bx, y: y + 9, width: 60, height: 8, rx: 4, fill: "#efece3" }));
+      g.appendChild(el("svg:rect", { x: bx, y: y + 9, width: 60 * share, height: 8, rx: 4, fill: share > UNIVERSAL_LABEL_SHARE ? "var(--ink)" : "var(--accent)" }));
+      g.appendChild(svgText(bx + 64, y + 17, `${present} of ${Dn}`, { "font-size": 10.5 }));
+    });
+    attachTips(g);
+    wrap.appendChild(el("div", { class: "scroll", style: "margin-top:.4rem" }, g));
+    const universal = labels.filter((l, i) => counts[i].filter(a => a.length).length / Dn > UNIVERSAL_LABEL_SHARE);
+    if (universal.length) wrap.appendChild(noteEl(`${universal.join(", ")}: on most days — cannot be a lesson (a label present on more than ${Math.round(UNIVERSAL_LABEL_SHARE * 100)}% of the shortlist's days is retired by code)`, "margin-top:.3rem"));
+    const day = E.days.find(d => d.date === selDay) || E.days[0];
+    wrap.appendChild(el("div", { class: "evdate", text: day.date }));
+    for (const e of day.events) {
+      const severity = e.goldstein <= -8 ? "var(--bad)" : e.goldstein <= -5 ? "#d9a441" : "#8d887b";
+      const line = el("div", { class: "ev" },
+        el("span", { class: "dot", style: `background:${severity}; flex:0 0 auto; align-self:center; display:inline-block; width:.62rem; height:.62rem; border-radius:50%` }),
+        el("b", { text: e.label }),
+        el("span", { class: "who", text: e.actors + (e.place ? " — " + e.place : "") }),
+        el("span", { class: "m", text: e.mentions.toLocaleString("en-US") + " mentions" }));
+      line.appendChild(el("a", { href: e.url, target: "_blank", rel: "noopener", text: "source ↗" }));
+      wrap.appendChild(line);
+    }
+    const roots = Object.values(E.filter.roots).join(", ").toLowerCase();
+    wrap.appendChild(noteEl(`a pure code filter — no model chose these: types [${roots}], ≥ ${E.filter.min_mentions} mentions, ≤ ${E.filter.cap_per_day} a day`));
+    const newestEvents = E.days[0].date, newestSeal = newestLiveRecord() ? newestLiveRecord().as_of : null;
+    if (newestSeal && newestEvents < newestSeal)
+      wrap.appendChild(noteEl(`GDELT publishes a day's file with a lag of about a day and a half — the newest available day is ${newestEvents}, so events after it are not yet published, not absent; the AI's brief says so explicitly.`, "margin-top:.3rem"));
+    wrap.appendChild(noteEl(E.attribution, "margin-top:.3rem"));
+  }
+  wrap.appendChild(noteEl("seeded = the " + D.window.days + "-day report, observed = live — labelled, never averaged (ADR-0038); the with-memory bet reads this page, the no-memory bet does not; their paired gap is what memory is worth."));
+  return wrap;
+}
+
+// ---- SECTION 8 — how to read this page, and what it is not ----
+const DISCLAIMER = "What this is: a research artefact that measures its own forecasts in public. What it is not: investment advice, " +
+  "a recommendation to buy, sell or hold anything, a price target, or a claim that any of this makes money — no method here beats " +
+  "history's odds detectably on the days tested, and transaction costs are not modelled. It is not registered with SEBI or any " +
+  "regulator, and no seal on this page is a regulatory verification. Gold and silver are the Bank of Russia's rouble-per-gram fixes, " +
+  "not the dollar price. USD/INR and WTI arrive with source lags. The record is tamper-evident and recomputable, not tamper-proof: " +
+  "forecaster, sealer and grader are currently the same person and publication is by hand. A record this small is not a result.";
+function glyph(kind) {
+  // 24px inline glyphs drawn in the page's own shapes
+  const s = el("svg:svg", { viewBox: "0 0 24 24", width: 24, height: 24, style: "flex:0 0 auto; vertical-align:middle" });
+  const ink = "#21201c";
+  if (kind === "zone") for (let i = 0; i < 5; i++) s.appendChild(el("svg:rect", { x: 1 + i * 4.5, y: 6, width: 4, height: 12, fill: BUCKET_COLOR[i], opacity: 0.6 }));
+  else if (kind === "odds") { s.appendChild(el("svg:rect", { x: 4, y: 8, width: 6, height: 12, fill: "none", stroke: "#57534a", "stroke-width": 1.5 })); s.appendChild(el("svg:rect", { x: 14, y: 4, width: 6, height: 16, fill: "var(--accent)", opacity: 0.85 })); }
+  else if (kind === "sealed") { s.appendChild(el("svg:circle", { cx: 12, cy: 12, r: 8, fill: "none", stroke: ink, "stroke-width": 1.5 })); s.appendChild(el("svg:circle", { cx: 12, cy: 12, r: 3, fill: ink })); }
+  else if (kind === "graded") { s.appendChild(el("svg:rect", { x: 3, y: 5, width: 18, height: 14, rx: 2, fill: BUCKET_COLOR[3], opacity: 0.4 })); s.appendChild(el("svg:rect", { x: 3, y: 5, width: 18, height: 14, rx: 2, fill: "none", stroke: ink, "stroke-width": 2 })); }
+  else if (kind === "big") { s.appendChild(el("svg:rect", { x: 1, y: 6, width: 6, height: 12, fill: BUCKET_COLOR[0], opacity: 0.6 })); s.appendChild(el("svg:rect", { x: 17, y: 6, width: 6, height: 12, fill: BUCKET_COLOR[4], opacity: 0.6 })); s.appendChild(el("svg:rect", { x: 8, y: 6, width: 8, height: 12, fill: "#efece3" })); }
+  else if (kind === "early") { s.appendChild(el("svg:defs", null, hatchPattern())); s.appendChild(el("svg:rect", { x: 2, y: 5, width: 20, height: 14, rx: 3, fill: "url(#hatch)", stroke: "#b0aa9b" })); }
+  return s;
+}
+function howToRead() {
+  const wrap = el("section", { id: "how" });
+  wrap.appendChild(el("h2", { class: "title", text: "How to read this page — and what it is not" }));
+  // seal → wait → grade → tally
+  const svg = el("svg:svg", { viewBox: "0 0 940 110", width: "100%", style: "display:block; margin-top:.8rem; min-width:700px" });
+  const steps = [
+    ["SEAL", "every method's five-zone bet, that day's σ-edges and the AI's words are written down before the fix is struck"],
+    ["WAIT", "1 or 5 sessions; a re-run cannot change a sealed day (seal-once)"],
+    ["GRADE", "the outcome is scored against the sealed edges"],
+    ["TALLY", "against history's odds, in paired days"],
+  ];
+  const wrapText = (t, width) => { const words = t.split(" "), lines = [""]; for (const w of words) { if ((lines[lines.length - 1] + " " + w).trim().length > width) lines.push(w); else lines[lines.length - 1] = (lines[lines.length - 1] + " " + w).trim(); } return lines; };
+  steps.forEach(([title, cap], i) => {
+    const x0 = 20 + i * 240;
+    svg.appendChild(el("svg:rect", { x: x0, y: 12, width: 200, height: 86, rx: 10, fill: "var(--card)", stroke: "var(--line)" }));
+    // glyphs: a seal ring, an hourglass, a ruler with a tick, a tally of strokes
+    if (i === 0) { svg.appendChild(el("svg:circle", { cx: x0 + 22, cy: 30, r: 9, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5 })); svg.appendChild(el("svg:circle", { cx: x0 + 22, cy: 30, r: 3.5, fill: "var(--ink)" })); }
+    else if (i === 1) svg.appendChild(el("svg:path", { d: `M${x0 + 14},21 h16 l-7,9 l7,9 h-16 l7,-9 z`, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5 }));
+    else if (i === 2) { svg.appendChild(el("svg:rect", { x: x0 + 12, y: 25, width: 22, height: 8, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5 })); for (const k of [17, 22, 27]) svg.appendChild(el("svg:line", { x1: x0 + k, y1: 25, x2: x0 + k, y2: 29, stroke: "var(--ink)", "stroke-width": 1.2 })); svg.appendChild(el("svg:line", { x1: x0 + 30, y1: 20, x2: x0 + 30, y2: 37, stroke: "var(--ink)", "stroke-width": 2 })); }
+    else { for (const k of [12, 17, 22, 27]) svg.appendChild(el("svg:line", { x1: x0 + k, y1: 22, x2: x0 + k, y2: 38, stroke: "var(--ink)", "stroke-width": 1.5 })); svg.appendChild(el("svg:line", { x1: x0 + 9, y1: 36, x2: x0 + 31, y2: 24, stroke: "var(--ink)", "stroke-width": 1.5 })); }
+    svg.appendChild(svgText(x0 + 42, 34, title, { "font-size": 12, fill: "#21201c", "font-weight": 700, "letter-spacing": "1px" }));
+    wrapText(cap, 40).slice(0, 4).forEach((ln, k) => svg.appendChild(svgText(x0 + 10, 52 + k * 12, ln, { "font-size": 9.5 })));
+    if (i < 3) svg.appendChild(el("svg:path", { d: `M${x0 + 206},55 h24 m-6,-5 l6,5 l-6,5`, fill: "none", stroke: "#8d887b", "stroke-width": 1.5 }));
+  });
+  wrap.appendChild(el("div", { class: "scroll" }, svg));
+  // ledger counts across ALL instruments
+  const per = {}; let sealed = 0, graded = 0, waiting = 0, hashed = 0;
+  for (const k of AVAILABLE) {
+    const recs = liveTrack(k).records; const p = { sealed: recs.length, graded: 0, waiting: 0, hashed: 0 };
+    for (const r of recs) {
+      const g = Object.keys(r.matured || {}).length; p.graded += g; p.waiting += Object.keys(r.horizons).length - g;
+      p.hashed += ["raw", "mem"].filter(v => r.llm && r.llm[v] && r.llm[v].brief_sha256).length;
+    }
+    per[k] = p; sealed += p.sealed; graded += p.graded; waiting += p.waiting; hashed += p.hashed;
+  }
+  const breakdown = key => AVAILABLE.map(k => `${INSTRUMENTS[k].label} ${per[k][key]}`).join(" · ");
+  const stats = el("div", { class: "stats" });
+  for (const [v, l, key] of [[sealed, "records sealed", "sealed"], [graded, "horizons graded", "graded"], [waiting, "waiting", "waiting"], [hashed, "AI bets hash-sealed", "hashed"]])
+    stats.appendChild(stat(String(v), l, null, breakdown(key)));
+  wrap.appendChild(stats);
+  wrap.appendChild(noteEl("across all five instruments · hover a number for the per-instrument breakdown"));
+  // glossary
+  const gl = el("div", { class: "glossary", style: "margin-top:1rem" });
+  for (const [k, term, text] of [
+    ["zone", "zone", "one of five bands sized to that day's typical move (σ), computed by code and sealed with the bet — the ruler"],
+    ["odds", "history's odds", "how often each zone happened before, on days scaled the same way — the hollow bars, the bar every method must beat"],
+    ["sealed", "sealed", "written down before the outcome existed; a re-run cannot change it — the stamp"],
+    ["graded", "graded", "scored against the very edges sealed with it, once the session has closed — the outlined zone"],
+    ["big", "big move", "beyond ±1.5σ — the two outer zones, fading “and beyond”"],
+    ["early", "too early", "hatched: fewer graded days than the pre-registered rule needs (~60 for the AI, ~250 for a covariate control)"],
+  ]) {
+    const d = el("div", { class: "row", style: "align-items:flex-start" }, glyph(k));
+    const t = el("div", null); t.appendChild(el("div", { style: "font-weight:650", text: term })); t.appendChild(el("div", { class: "note", style: "margin-top:.1rem", text }));
+    d.appendChild(t); gl.appendChild(d);
+  }
+  wrap.appendChild(gl);
+  wrap.appendChild(el("div", { class: "disclaimer", text: DISCLAIMER }));
+  return wrap;
+}
+
+function footer() {
+  const f = document.getElementById("foot");
+  f.textContent = "";
+  const E = window.POC_EVENTS;
+  const local = Object.keys(LP).length || P;
+  f.appendChild(el("div", { text:
+    "Sources: Bank of Russia daily fixes (gold, silver, USD/RUB) · US Federal Reserve H.10 (USD/INR) · EIA via FRED (WTI)" +
+    (E && E.attribution ? " · " + E.attribution : "") +
+    (local ? " · local view: price levels shown on this machine only" : " · public build — odds in percent; price levels are never published") +
+    " · generated from data through " + D.generated }));
+  f.appendChild(el("a", { href: "./index.html", text: "the technical page — every score, interval and table" }));
+}
+
+// ---- RENDER + BOOT ----
+function render() {
+  if (replayTimer) { clearTimeout(replayTimer); replayTimer = null; }
+  ({ D, P } = pack(state.instrument));
+  if (!state.horizon || !D.horizons.includes(state.horizon))
+    state.horizon = horizonWithGrades(D.horizons) || (D.horizons.includes("1") ? "1" : D.horizons[0]);
+  const ch = challengers();
+  if (!ch.includes(state.rung)) state.rung = ch.includes(DEFAULT_CHALLENGER) ? DEFAULT_CHALLENGER : (ch[0] || DEFAULT_CHALLENGER);
+  meta();
+  controls();
+  const c = document.getElementById("content");
+  c.textContent = "";
+  for (const section of [hero, picture, verdictMeter, promiseDelivered, replay, aiCalls, memory, howToRead]) {
+    try { c.appendChild(section()); }
+    catch (err) { showError(err); c.appendChild(el("section", null, el("div", { class: "note", text: `this part could not render: ${err.message}` }))); }
+  }
+  footer();
+}
+
+if (!AVAILABLE.length) {
+  emptyState();
+} else {
+  if (!AVAILABLE.includes(state.instrument)) state.instrument = AVAILABLE[0];
+  render();
+}
+} catch (err) { showError(err); }
+</script>
+</body>
+</html>

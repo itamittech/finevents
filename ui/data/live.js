@@ -672,7 +672,27 @@ window.POC_LIVE = {
        }
       }
      },
-     "matured": {},
+     "matured": {
+      "1": {
+       "target_date": "2026-08-18",
+       "outcome": 3,
+       "rps": {
+        "all_flat": 0.25,
+        "climatology": 0.142025,
+        "cond_climatology": 0.136637,
+        "chronos_uni": 0.087186,
+        "chronos_cov": 0.265412,
+        "chronos_oilfx": 0.201648,
+        "chronos_rwcov": 0.125035,
+        "timesfm_uni": 0.140883,
+        "timesfm_cov": 0.227207,
+        "timesfm_oilfx": 0.173396,
+        "timesfm_rwcov": 0.154389,
+        "llm_raw": 0.13665,
+        "llm_mem": 0.126825
+       }
+      }
+     },
      "llm": {
       "model": "gpt-5.6-sol",
       "raw": {
@@ -693,6 +713,252 @@ window.POC_LIVE = {
        "point_pct": {
         "1": 0.3,
         "5": 1.1
+       }
+      }
+     }
+    },
+    {
+     "as_of": "2026-08-18",
+     "rw_seed": 20260818,
+     "horizons": {
+      "1": {
+       "sigma_pct": 1.808,
+       "edges": [
+        -0.0268792823,
+        -0.0089597608,
+        0.0089597608,
+        0.0268792823
+       ],
+       "edges_pct": [
+        -2.65,
+        -0.89,
+        0.9,
+        2.72
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.057,
+         0.1965,
+         0.4499,
+         0.2223,
+         0.0743
+        ],
+        "cond_climatology": [
+         0.0493,
+         0.1995,
+         0.4408,
+         0.2537,
+         0.0567
+        ],
+        "chronos_uni": [
+         0.0451,
+         0.1675,
+         0.3095,
+         0.3071,
+         0.1708
+        ],
+        "chronos_cov": [
+         0.2065,
+         0.3193,
+         0.3154,
+         0.1282,
+         0.0306
+        ],
+        "chronos_oilfx": [
+         0.1342,
+         0.3025,
+         0.3738,
+         0.1523,
+         0.0372
+        ],
+        "chronos_rwcov": [
+         0.0803,
+         0.2108,
+         0.369,
+         0.2421,
+         0.0978
+        ],
+        "timesfm_uni": [
+         0.1008,
+         0.1859,
+         0.3219,
+         0.1976,
+         0.1938
+        ],
+        "timesfm_cov": [
+         0.0839,
+         0.2723,
+         0.4679,
+         0.1539,
+         0.022
+        ],
+        "timesfm_oilfx": [
+         0.1173,
+         0.2333,
+         0.311,
+         0.188,
+         0.1504
+        ],
+        "timesfm_rwcov": [
+         0.158,
+         0.1969,
+         0.2933,
+         0.2183,
+         0.1335
+        ],
+        "llm_raw": [
+         0.06,
+         0.18,
+         0.4,
+         0.27,
+         0.09
+        ],
+        "llm_mem": [
+         0.06,
+         0.17,
+         0.39,
+         0.275,
+         0.105
+        ]
+       }
+      },
+      "5": {
+       "sigma_pct": 4.073,
+       "edges": [
+        -0.0598884985,
+        -0.0199628328,
+        0.0199628328,
+        0.0598884985
+       ],
+       "edges_pct": [
+        -5.81,
+        -1.98,
+        2.02,
+        6.17
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.0578,
+         0.2148,
+         0.391,
+         0.2343,
+         0.1021
+        ],
+        "cond_climatology": [
+         0.0493,
+         0.1897,
+         0.4013,
+         0.2833,
+         0.0764
+        ],
+        "chronos_uni": [
+         0.0381,
+         0.1952,
+         0.3867,
+         0.276,
+         0.104
+        ],
+        "chronos_cov": [
+         0.0907,
+         0.3044,
+         0.3928,
+         0.184,
+         0.0281
+        ],
+        "chronos_oilfx": [
+         0.0725,
+         0.2459,
+         0.3899,
+         0.2271,
+         0.0646
+        ],
+        "chronos_rwcov": [
+         0.0475,
+         0.2212,
+         0.4072,
+         0.2544,
+         0.0697
+        ],
+        "timesfm_uni": [
+         0.0849,
+         0.1914,
+         0.2793,
+         0.2606,
+         0.1838
+        ],
+        "timesfm_cov": [
+         0.068,
+         0.3535,
+         0.4747,
+         0.099,
+         0.0048
+        ],
+        "timesfm_oilfx": [
+         0.0443,
+         0.1682,
+         0.3738,
+         0.2791,
+         0.1346
+        ],
+        "timesfm_rwcov": [
+         0.1701,
+         0.2398,
+         0.313,
+         0.2101,
+         0.067
+        ],
+        "llm_raw": [
+         0.06,
+         0.18,
+         0.37,
+         0.28,
+         0.11
+        ],
+        "llm_mem": [
+         0.05,
+         0.16,
+         0.37,
+         0.29,
+         0.13
+        ]
+       }
+      }
+     },
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "c73e5bd5166958aa3dd32bf9f97e4edf5be551f1b9d7831690f967ca3688869b",
+       "response_sha256": "652f38ec47ea6afe45038b7723bbb870996cd4bb05c18384a9e91e3b58451913",
+       "rationale": "I stay fairly close to the base rates because the event feed is noisy and the short live record does not justify strongly favoring any model. The 15.78% ten-session rise and weaker dollar favor continued momentum, while USD/RUB appreciation directly supports XAU/RUB; however, gold's extreme run relative to silver, lower VIX, and slightly higher real yields raise reversal risk. I therefore retain a modest upward tilt, stronger over five sessions but with broad tails. A sharp reversal in USD/RUB o",
+       "point_pct": {
+        "1": 0.45,
+        "5": 1.35
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "261a2297220d67ea11a6a6604fe91b7ec2d1af4e9847049914cf82a0f4cbb0b9",
+       "response_sha256": "49b164ca352aa22fd8fecc3cf052dff5ecde471634c06bd035bc7ca61b486f9b",
+       "rationale": "The 10-session +15.78% run and continued USD/RUB rise favor some momentum persistence, especially over five sessions, but the move is stretched and silver, the dollar index, VIX, and real yields provide little confirmation. The event feed is noisy rather than a clear new catalyst, so I stay fairly close to the historically competitive base rates while shifting probability modestly upward. A clear RUB rebound or a bullion reversal accompanied by rising real yields would have changed the tilt to f",
+       "point_pct": {
+        "1": 0.7,
+        "5": 2.3
        }
       }
      }
@@ -1093,7 +1359,20 @@ window.POC_LIVE = {
        }
       }
      },
-     "matured": {},
+     "matured": {
+      "1": {
+       "target_date": "2026-08-18",
+       "outcome": 3,
+       "rps": {
+        "all_flat": 0.25,
+        "climatology": 0.15047,
+        "chronos_uni": 0.068872,
+        "timesfm_uni": 0.104541,
+        "llm_raw": 0.070125,
+        "llm_mem": 0.072975
+       }
+      }
+     },
      "llm": {
       "model": "gpt-5.6-sol",
       "raw": {
@@ -1114,6 +1393,154 @@ window.POC_LIVE = {
        "point_pct": {
         "1": 0.56,
         "5": 1.8
+       }
+      }
+     }
+    },
+    {
+     "as_of": "2026-08-18",
+     "rw_seed": null,
+     "horizons": {
+      "1": {
+       "sigma_pct": 0.809,
+       "edges": [
+        -0.0120892243,
+        -0.0040297414,
+        0.0040297414,
+        0.0120892243
+       ],
+       "edges_pct": [
+        -1.2,
+        -0.4,
+        0.4,
+        1.22
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.0534,
+         0.2052,
+         0.4675,
+         0.2067,
+         0.0672
+        ],
+        "chronos_uni": [
+         0.0576,
+         0.1587,
+         0.3379,
+         0.2872,
+         0.1586
+        ],
+        "timesfm_uni": [
+         0.094,
+         0.1557,
+         0.2633,
+         0.2324,
+         0.2546
+        ],
+        "llm_raw": [
+         0.05,
+         0.15,
+         0.31,
+         0.33,
+         0.16
+        ],
+        "llm_mem": [
+         0.05,
+         0.15,
+         0.32,
+         0.32,
+         0.16
+        ]
+       }
+      },
+      "5": {
+       "sigma_pct": 2.107,
+       "edges": [
+        -0.031279386,
+        -0.010426462,
+        0.010426462,
+        0.031279386
+       ],
+       "edges_pct": [
+        -3.08,
+        -1.04,
+        1.05,
+        3.18
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.0634,
+         0.2275,
+         0.4043,
+         0.2151,
+         0.0897
+        ],
+        "chronos_uni": [
+         0.0331,
+         0.171,
+         0.342,
+         0.2994,
+         0.1545
+        ],
+        "timesfm_uni": [
+         0.05,
+         0.1588,
+         0.2838,
+         0.2804,
+         0.227
+        ],
+        "llm_raw": [
+         0.04,
+         0.16,
+         0.3,
+         0.32,
+         0.18
+        ],
+        "llm_mem": [
+         0.04,
+         0.15,
+         0.3,
+         0.31,
+         0.2
+        ]
+       }
+      }
+     },
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "9b2a9c10ff431bb05e6a98c206484d3209c0a5bd3d08e508ecef395a44136465",
+       "response_sha256": "00c5fe805b0c8e07fb416c92a400d402b2edd86ee4530d2157da201aba2c5914",
+       "rationale": "The unusually persistent rise in USD/RUB\u2014eight gains in ten sessions and +6.18% compounded\u2014supports a modest upside tilt, especially at t+1, but it is not enough to extrapolate the full recent pace. Higher oil, a softer broad dollar, and lower market stress should support the rouble and argue against a highly confident continuation call. The event feed adds some Russia\u2013Ukraine risk but no clean, current catalyst, so I stay fairly close to the historically competitive base-rate distributions. Cle",
+       "point_pct": {
+        "1": 0.47,
+        "5": 1.55
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "44f1ac63239649e649825747cacc1b7bc56628eadb112422437f29ec0962a7a7",
+       "response_sha256": "3b9f99a1656a0db9d701f8878592a4b0fe5e460f27978f65d5abe59c5023fd3d",
+       "rationale": "The persistent rise in USD/RUB\u2014eight gains in ten sessions and four consecutively\u2014supports a modest continuation tilt, especially over five sessions. I keep the distributions broad and fairly close to base rates because the sample is short, the models disagree on tail strength, and stronger oil plus a softer broad dollar should support the rouble and limit extrapolation. The event feed provides no clear incremental Russia-specific catalyst. A confirmed sanctions, capital-control, intervention, o",
+       "point_pct": {
+        "1": 0.43,
+        "5": 1.48
        }
       }
      }
@@ -1245,7 +1672,32 @@ window.POC_LIVE = {
        }
       }
      },
-     "matured": {},
+     "matured": {
+      "1": {
+       "target_date": "2026-08-10",
+       "outcome": 2,
+       "rps": {
+        "all_flat": 0.0,
+        "climatology": 0.038131,
+        "chronos_uni": 0.048803,
+        "timesfm_uni": 0.056362,
+        "llm_raw": 0.041075,
+        "llm_mem": 0.039938
+       }
+      },
+      "5": {
+       "target_date": "2026-08-14",
+       "outcome": 2,
+       "rps": {
+        "all_flat": 0.0,
+        "climatology": 0.046393,
+        "chronos_uni": 0.06408,
+        "timesfm_uni": 0.064698,
+        "llm_raw": 0.055025,
+        "llm_mem": 0.052169
+       }
+      }
+     },
      "llm": {
       "model": "gpt-5.6-sol",
       "raw": {
@@ -1266,6 +1718,154 @@ window.POC_LIVE = {
        "point_pct": {
         "1": 0.04,
         "5": 0.16
+       }
+      }
+     }
+    },
+    {
+     "as_of": "2026-08-14",
+     "rw_seed": null,
+     "horizons": {
+      "1": {
+       "sigma_pct": 0.341,
+       "edges": [
+        -0.0051100957,
+        -0.0017033652,
+        0.0017033652,
+        0.0051100957
+       ],
+       "edges_pct": [
+        -0.51,
+        -0.17,
+        0.17,
+        0.51
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.051,
+         0.2053,
+         0.4654,
+         0.2015,
+         0.0768
+        ],
+        "chronos_uni": [
+         0.0527,
+         0.2079,
+         0.4455,
+         0.2303,
+         0.0636
+        ],
+        "timesfm_uni": [
+         0.1186,
+         0.2284,
+         0.3635,
+         0.2344,
+         0.0551
+        ],
+        "llm_raw": [
+         0.05,
+         0.2,
+         0.47,
+         0.21,
+         0.07
+        ],
+        "llm_mem": [
+         0.05,
+         0.2,
+         0.47,
+         0.215,
+         0.065
+        ]
+       }
+      },
+      "5": {
+       "sigma_pct": 0.658,
+       "edges": [
+        -0.0098324042,
+        -0.0032774681,
+        0.0032774681,
+        0.0098324042
+       ],
+       "edges_pct": [
+        -0.98,
+        -0.33,
+        0.33,
+        0.99
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.0608,
+         0.1864,
+         0.4213,
+         0.2294,
+         0.1021
+        ],
+        "chronos_uni": [
+         0.0666,
+         0.2353,
+         0.4414,
+         0.2308,
+         0.0259
+        ],
+        "timesfm_uni": [
+         0.0978,
+         0.2269,
+         0.3668,
+         0.2477,
+         0.0608
+        ],
+        "llm_raw": [
+         0.06,
+         0.18,
+         0.41,
+         0.25,
+         0.1
+        ],
+        "llm_mem": [
+         0.055,
+         0.18,
+         0.42,
+         0.245,
+         0.1
+        ]
+       }
+      }
+     },
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "8ed31702f0b867f7aaa0cceafad3f1cff21b8deae22244462f313a04630108c9",
+       "response_sha256": "5d1131f702f61da6cfaebd610a95d581d44f51c7e765c690d646feeec3b6b303",
+       "rationale": "Evidence is thin and conflicting, so I stay close to climatological base rates rather than extrapolating the unusually quiet recent tape or the two-result live record. The sharp five-day oil rise is modestly INR-negative and creates a small t+5 upside tilt in USD/INR, but softer DXY and lower VIX offset it, leaving t+1 nearly neutral. A clear India-specific policy/capital-flow shock, sustained broad-dollar move, or further oil breakout would justify a larger shift.",
+       "point_pct": {
+        "1": 0.01,
+        "5": 0.14
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "9116ddb124c7d17786489346ecd24933331a863e32db28c87a3e0a8cc0a70974",
+       "response_sha256": "f34cf944c39e5cafb2212606b8304cef3e74bd439ffcd93f544e3f67e5433f22",
+       "rationale": "Evidence is thin, so I stay near the historically strongest climatology rather than react strongly to one live flat outcome. The softer dollar index and lower VIX favor INR, while the sharp five-day oil rise\u2014important for India\u2019s import bill\u2014and stronger gold offset that support and create a mild USD/INR upside skew, especially at t+5. Recent USD/INR moves remain exceptionally subdued, supporting high flat probabilities. A decisive broad-dollar move, sustained risk-off spike, or further oil brea",
+       "point_pct": {
+        "1": 0.02,
+        "5": 0.14
        }
       }
      }
@@ -1994,7 +2594,24 @@ window.POC_LIVE = {
        }
       }
      },
-     "matured": {},
+     "matured": {
+      "1": {
+       "target_date": "2026-08-18",
+       "outcome": 2,
+       "rps": {
+        "all_flat": 0.0,
+        "climatology": 0.040391,
+        "chronos_uni": 0.051729,
+        "chronos_cov": 0.05213,
+        "chronos_rwcov": 0.045988,
+        "timesfm_uni": 0.068044,
+        "timesfm_cov": 0.03064,
+        "timesfm_rwcov": 0.084018,
+        "llm_raw": 0.051612,
+        "llm_mem": 0.044775
+       }
+      }
+     },
      "llm": {
       "model": "gpt-5.6-sol",
       "raw": {
@@ -2015,6 +2632,210 @@ window.POC_LIVE = {
        "point_pct": {
         "1": 0.9,
         "5": 2.8
+       }
+      }
+     }
+    },
+    {
+     "as_of": "2026-08-18",
+     "rw_seed": 20260818,
+     "horizons": {
+      "1": {
+       "sigma_pct": 3.027,
+       "edges": [
+        -0.0447253438,
+        -0.0149084479,
+        0.0149084479,
+        0.0447253438
+       ],
+       "edges_pct": [
+        -4.37,
+        -1.48,
+        1.5,
+        4.57
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.0616,
+         0.1996,
+         0.4487,
+         0.2176,
+         0.0725
+        ],
+        "chronos_uni": [
+         0.0408,
+         0.1788,
+         0.3822,
+         0.2591,
+         0.1391
+        ],
+        "chronos_cov": [
+         0.0361,
+         0.1675,
+         0.3888,
+         0.2702,
+         0.1374
+        ],
+        "chronos_rwcov": [
+         0.0637,
+         0.2242,
+         0.4268,
+         0.2139,
+         0.0714
+        ],
+        "timesfm_uni": [
+         0.1117,
+         0.1906,
+         0.3345,
+         0.1935,
+         0.1697
+        ],
+        "timesfm_cov": [
+         0.0329,
+         0.1913,
+         0.484,
+         0.2343,
+         0.0575
+        ],
+        "timesfm_rwcov": [
+         0.0394,
+         0.1829,
+         0.4542,
+         0.2429,
+         0.0806
+        ],
+        "llm_raw": [
+         0.05,
+         0.18,
+         0.43,
+         0.25,
+         0.09
+        ],
+        "llm_mem": [
+         0.045,
+         0.18,
+         0.43,
+         0.25,
+         0.095
+        ]
+       }
+      },
+      "5": {
+       "sigma_pct": 7.084,
+       "edges": [
+        -0.1026618125,
+        -0.0342206042,
+        0.0342206042,
+        0.1026618125
+       ],
+       "edges_pct": [
+        -9.76,
+        -3.36,
+        3.48,
+        10.81
+       ],
+       "rungs": {
+        "all_flat": [
+         0.0,
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        "climatology": [
+         0.0663,
+         0.2048,
+         0.4075,
+         0.2232,
+         0.0982
+        ],
+        "chronos_uni": [
+         0.0337,
+         0.2025,
+         0.4003,
+         0.2409,
+         0.1226
+        ],
+        "chronos_cov": [
+         0.0297,
+         0.1932,
+         0.413,
+         0.2453,
+         0.1188
+        ],
+        "chronos_rwcov": [
+         0.0341,
+         0.2228,
+         0.4406,
+         0.2299,
+         0.0726
+        ],
+        "timesfm_uni": [
+         0.1031,
+         0.2226,
+         0.2803,
+         0.2227,
+         0.1713
+        ],
+        "timesfm_cov": [
+         0.0077,
+         0.1596,
+         0.5382,
+         0.261,
+         0.0335
+        ],
+        "timesfm_rwcov": [
+         0.0901,
+         0.2179,
+         0.3503,
+         0.2451,
+         0.0966
+        ],
+        "llm_raw": [
+         0.045,
+         0.18,
+         0.4,
+         0.26,
+         0.115
+        ],
+        "llm_mem": [
+         0.04,
+         0.17,
+         0.405,
+         0.265,
+         0.12
+        ]
+       }
+      }
+     },
+     "matured": {},
+     "llm": {
+      "model": "gpt-5.6-sol",
+      "raw": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "41e26d6ce20002ce473a07624208257080c4dba8d08143325641e2ca51807708",
+       "response_sha256": "89a4c5d6967805a0d330c7164354af4600b4064d6baa65e32fac7391d8892dfe",
+       "rationale": "The strongest usable signal is positive but not decisive: gold is up 4.22% and USD/RUB 2.91% over five sessions, both supporting silver in roubles, while silver's 18.83% surge creates meaningful mean-reversion risk. The event list is noisy and supplies no clear incremental geopolitical signal. I therefore retain base-rate-like, flat-centered distributions with a modest upward skew rather than extrapolating the rally; a sharp reversal in gold or USD/RUB would have shifted the forecast downward, w",
+       "point_pct": {
+        "1": 0.65,
+        "5": 2.0
+       }
+      },
+      "mem": {
+       "model": "gpt-5.6-sol",
+       "brief_sha256": "f65dc158d73037526963ec653fb4f1671a2949f07e6dbf7fdf009152e5f267ae",
+       "response_sha256": "8f05de92617fbaf02f7d67c136338ab6e02b6712ce01d2e372605aa9ab13fe7a",
+       "rationale": "The signal is mildly bullish: gold is rising and USD/RUB is up, so both components of rouble-denominated silver provide support. However, silver has already compounded 18.83% in ten sessions, the latest move was flat, and model disagreement plus the weak event signal argue against extrapolating the surge. I therefore stay fairly close to climatological bucket rates while shifting modest probability toward gains; a fresh acceleration in gold or rouble depreciation would have justified a stronger ",
+       "point_pct": {
+        "1": 0.7,
+        "5": 2.25
        }
       }
      }
