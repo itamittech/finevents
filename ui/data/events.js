@@ -15,6 +15,143 @@ window.POC_EVENTS = {
  },
  "days": [
   {
+   "date": "2026-08-19",
+   "events": [
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "FLORIDA",
+     "place": "Florida, United States",
+     "country": "US",
+     "goldstein": -5.0,
+     "mentions": 2645,
+     "tone": -12.0,
+     "url": "https://nypost.com/2026/08/18/us-news/rep-debbie-wasserman-schultz-wins-florida-house-primary-over-indicted-dem-sheila-cherfilis-mccormick/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "POLICE",
+     "place": "",
+     "country": "",
+     "goldstein": -5.0,
+     "mentions": 2290,
+     "tone": -7.6,
+     "url": "https://www.wbrz.com/news/brpd-crews-to-continue-landfill-search-for-ja-derrius-minnieweather-after-human-remains-found"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "COMPANY",
+     "place": "Denmark",
+     "country": "DA",
+     "goldstein": -10.0,
+     "mentions": 2000,
+     "tone": 3.6,
+     "url": "https://www.milfordmercury.co.uk/news/national/26477684.carlsberg-boosted-strong-sales-soft-drinks-alcohol-free-beer/"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "VICTORIA / PROSECUTOR",
+     "place": "Australia",
+     "country": "AS",
+     "goldstein": -5.0,
+     "mentions": 1830,
+     "tone": -7.3,
+     "url": "https://www.katherinetimes.com.au/story/9333024/jury-accommodation-catastrophic-to-mushroom-trial/"
+    },
+    {
+     "label": "Protest",
+     "code": "14",
+     "actors": "KINGSTON",
+     "place": "",
+     "country": "",
+     "goldstein": -7.5,
+     "mentions": 1605,
+     "tone": -3.9,
+     "url": "https://www.clactonandfrintongazette.co.uk/news/national/26476151.three-people-family-die-getting-trouble-off-sussex-coast/"
+    },
+    {
+     "label": "Threat",
+     "code": "13",
+     "actors": "UNITED KINGDOM",
+     "place": "Shoreham, West Sussex, United Kingdom",
+     "country": "UK",
+     "goldstein": -4.4,
+     "mentions": 1202,
+     "tone": -3.3,
+     "url": "https://www.aol.co.uk/articles/andy-burnham-warns-dangers-open-124520000.html"
+    },
+    {
+     "label": "Assault",
+     "code": "18",
+     "actors": "UNITED STATES",
+     "place": "Florida, United States",
+     "country": "US",
+     "goldstein": -9.0,
+     "mentions": 1136,
+     "tone": -13.3,
+     "url": "https://1071kissfm.iheart.com/content/2026-08-19-couple-busted-into-cruise-ship-cabin-attacking-family-and-nine-year-old/"
+    },
+    {
+     "label": "Assault",
+     "code": "18",
+     "actors": "AUSTRALIA",
+     "place": "Sydney, New South Wales, Australia",
+     "country": "AS",
+     "goldstein": -9.0,
+     "mentions": 940,
+     "tone": -6.5,
+     "url": "https://www.brisbanetimes.com.au/national/nsw/alan-jones-trial-live-updates-former-2gb-broadcaster-s-lawyers-continue-cross-examination-of-complainant-c-in-indecent-assault-sexual-touching-trial-20260818-p60pfp.html"
+    },
+    {
+     "label": "Coercion",
+     "code": "17",
+     "actors": "ISRAELI / PALESTINIAN",
+     "place": "Gaza, Israel (general), Israel",
+     "country": "IS",
+     "goldstein": -5.0,
+     "mentions": 917,
+     "tone": -9.2,
+     "url": "https://english.aawsat.com/arab-world/5308768-israel-opens-criminal-probes-over-killings-hind-rajab-and-gaza-rescue-workers"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "ISRAEL",
+     "place": "Gaza, Israel (general), Israel",
+     "country": "IS",
+     "goldstein": -10.0,
+     "mentions": 798,
+     "tone": -6.1,
+     "url": "https://www.cbc.ca/news/canada/toronto/tmu-task-force-to-begin-conservations-september-9.7311284"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "POLICE",
+     "place": "",
+     "country": "",
+     "goldstein": -10.0,
+     "mentions": 790,
+     "tone": -7.2,
+     "url": "https://www.wbrz.com/news/brpd-crews-to-continue-landfill-search-for-ja-derrius-minnieweather-after-human-remains-found"
+    },
+    {
+     "label": "Fighting",
+     "code": "19",
+     "actors": "AUSTRALIAN",
+     "place": "Australia",
+     "country": "AS",
+     "goldstein": -10.0,
+     "mentions": 721,
+     "tone": -6.0,
+     "url": "https://www.fox13now.com/news/utah-wildfires/australian-crews-battling-utah-wildfire-alongside-local-firefighters"
+    }
+   ]
+  },
+  {
    "date": "2026-08-18",
    "events": [
     {
@@ -833,143 +970,6 @@ window.POC_EVENTS = {
      "mentions": 1140,
      "tone": -3.2,
      "url": "https://www.winnipegfreepress.com/arts-and-life/life/sci-tech/2026/08/13/taiwan-briefly-slows-its-mobile-internet-to-text-only-speed-as-part-of-defense-drill"
-    }
-   ]
-  },
-  {
-   "date": "2026-08-12",
-   "events": [
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "RAIDER",
-     "place": "Kansas, United States",
-     "country": "US",
-     "goldstein": -10.0,
-     "mentions": 2745,
-     "tone": 1.4,
-     "url": "https://q95.iheart.com/content/2026-08-12-mystery-military-aircraft-filmed-near-wichitas-mcconnell-air-force-base/"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "POLICE",
-     "place": "",
-     "country": "",
-     "goldstein": -5.0,
-     "mentions": 1700,
-     "tone": -8.1,
-     "url": "https://www.mirror.co.uk/news/uk-news/gorton-crash-tributes-woman-killed-37540977"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "UNITED KINGDOM",
-     "place": "South Yorkshire, United Kingdom (general), United Kingdom",
-     "country": "UK",
-     "goldstein": -10.0,
-     "mentions": 1469,
-     "tone": -0.1,
-     "url": "https://www.bridgwatermercury.co.uk/news/national/26456377.mourners-gather-ann-widdecombes-funeral/"
-    },
-    {
-     "label": "Assault",
-     "code": "18",
-     "actors": "VENEZUELA",
-     "place": "Valencia, Carabobo, Venezuela",
-     "country": "VE",
-     "goldstein": -9.0,
-     "mentions": 1182,
-     "tone": -10.4,
-     "url": "https://www.readingchronicle.co.uk/news/national/26456376.serial-sex-attacker-facing-life-jail-double-murder/"
-    },
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "SCOTTISH",
-     "place": "Glasgow, Glasgow City, United Kingdom",
-     "country": "UK",
-     "goldstein": -4.4,
-     "mentions": 1156,
-     "tone": -3.5,
-     "url": "https://www.denbighshirefreepress.co.uk/news/national/26459808.candidates-warn-division-pitches-lead-scottish-labour/"
-    },
-    {
-     "label": "Assault",
-     "code": "18",
-     "actors": "SYRIA",
-     "place": "Damascus, Dimashq, Syria",
-     "country": "SY",
-     "goldstein": -9.0,
-     "mentions": 1148,
-     "tone": -12.4,
-     "url": "https://www.wunc.org/2026-08-11/former-syrian-president-assad-sentenced-to-death-in-absentia"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "VENEZUELA",
-     "place": "Valencia, Carabobo, Venezuela",
-     "country": "VE",
-     "goldstein": -5.0,
-     "mentions": 1072,
-     "tone": -10.1,
-     "url": "https://signalscv.com/2026/08/homicide-officials-confirm-arrest-in-2023-murder/"
-    },
-    {
-     "label": "Coercion",
-     "code": "17",
-     "actors": "SYRIA",
-     "place": "Damascus, Dimashq, Syria",
-     "country": "SY",
-     "goldstein": -5.0,
-     "mentions": 1072,
-     "tone": -11.5,
-     "url": "https://www.local10.com/news/2026/08/11/us-military-says-it-has-fired-on-a-ship-in-gulf-of-oman-to-enforce-its-blockade-of-iranian-ports/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "FIREFIGHTER",
-     "place": "",
-     "country": "",
-     "goldstein": -10.0,
-     "mentions": 905,
-     "tone": -2.9,
-     "url": "https://sunny943.com/2026/08/11/historic-dunrovin-country-store-ravaged-by-fire-in-moore-county/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "SENATOR / COMPANIES",
-     "place": "Canberra, Australian Capital Territory, Australia",
-     "country": "AS",
-     "goldstein": -10.0,
-     "mentions": 882,
-     "tone": -3.2,
-     "url": "https://www.crookwellgazette.com.au/story/9328627/stop-the-madness-liberal-eyes-big-tech-party-policy/"
-    },
-    {
-     "label": "Fighting",
-     "code": "19",
-     "actors": "SYRIAN",
-     "place": "Damascus, Dimashq, Syria",
-     "country": "SY",
-     "goldstein": -10.0,
-     "mentions": 880,
-     "tone": -12.5,
-     "url": "https://www.odt.co.nz/news/world/death-sentence-for-absent-bashar-al-assad-nbld08ie"
-    },
-    {
-     "label": "Threat",
-     "code": "13",
-     "actors": "IRAN / AIR FORCE",
-     "place": "Iran",
-     "country": "IR",
-     "goldstein": -4.4,
-     "mentions": 875,
-     "tone": -1.0,
-     "url": "https://www.thewrap.com/media-platforms/journalism/whca-trump-white-house-meeting-air-force-one-decoy/"
     }
    ]
   }

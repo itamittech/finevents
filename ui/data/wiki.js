@@ -445,6 +445,119 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "Only four matured days are available; the two apparent Protest\u2192flat cases are still a note, not a rule."
+    },
+    {
+     "version": 5,
+     "as_of": "2026-08-20",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.125,
+        "n": 6
+       },
+       "chronos_cov": {
+        "mean_rps": 0.1766,
+        "n": 6
+       },
+       "chronos_oilfx": {
+        "mean_rps": 0.0977,
+        "n": 4
+       },
+       "chronos_rwcov": {
+        "mean_rps": 0.0997,
+        "n": 6
+       },
+       "chronos_uni": {
+        "mean_rps": 0.101,
+        "n": 6
+       },
+       "climatology": {
+        "mean_rps": 0.0895,
+        "n": 6
+       },
+       "cond_climatology": {
+        "mean_rps": 0.1014,
+        "n": 6
+       },
+       "llm_mem": {
+        "mean_rps": 0.0709,
+        "n": 4
+       },
+       "llm_raw": {
+        "mean_rps": 0.0705,
+        "n": 4
+       },
+       "timesfm_cov": {
+        "mean_rps": 0.1381,
+        "n": 6
+       },
+       "timesfm_oilfx": {
+        "mean_rps": 0.1014,
+        "n": 4
+       },
+       "timesfm_rwcov": {
+        "mean_rps": 0.1222,
+        "n": 6
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.1022,
+        "n": 6
+       }
+      },
+      "seeded": {
+       "cond_climatology": {
+        "mean_rps_by_h": {
+         "1": 0.1362,
+         "5": 0.148465
+        },
+        "n": 147
+       },
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.136272,
+         "5": 0.146699
+        },
+        "n": 147
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.139471,
+         "5": 0.148222
+        },
+        "n": 147
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.14114,
+         "5": 0.144816
+        },
+        "n": 147
+       },
+       "timesfm_cov": {
+        "mean_rps_by_h": {
+         "1": 0.146522,
+         "5": 0.164993
+        },
+        "n": 147
+       },
+       "chronos_cov": {
+        "mean_rps_by_h": {
+         "1": 0.155234,
+         "5": 0.161837
+        },
+        "n": 147
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.178571,
+         "5": 0.192176
+        },
+        "n": 147
+       }
+      }
+     },
+     "lessons": [],
+     "curator_note": "No rare event condition has at least five consistent matured outcomes; protest evidence is mixed, so no lesson is added."
     }
    ]
   },
@@ -825,6 +938,100 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "Only four matured days are available; no rare condition has enough repeated support to justify a lesson."
+    },
+    {
+     "version": 5,
+     "as_of": "2026-08-20",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.0833,
+        "n": 6
+       },
+       "chronos_cov": {
+        "mean_rps": 0.0823,
+        "n": 6
+       },
+       "chronos_rwcov": {
+        "mean_rps": 0.0877,
+        "n": 6
+       },
+       "chronos_uni": {
+        "mean_rps": 0.0833,
+        "n": 6
+       },
+       "climatology": {
+        "mean_rps": 0.0766,
+        "n": 6
+       },
+       "llm_mem": {
+        "mean_rps": 0.0679,
+        "n": 4
+       },
+       "llm_raw": {
+        "mean_rps": 0.0724,
+        "n": 4
+       },
+       "timesfm_cov": {
+        "mean_rps": 0.0672,
+        "n": 6
+       },
+       "timesfm_rwcov": {
+        "mean_rps": 0.09,
+        "n": 6
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.0915,
+        "n": 6
+       }
+      },
+      "seeded": {
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.126837,
+         "5": 0.138615
+        },
+        "n": 147
+       },
+       "timesfm_cov": {
+        "mean_rps_by_h": {
+         "1": 0.126869,
+         "5": 0.134966
+        },
+        "n": 147
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.127229,
+         "5": 0.134674
+        },
+        "n": 147
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.135639,
+         "5": 0.147373
+        },
+        "n": 147
+       },
+       "chronos_cov": {
+        "mean_rps_by_h": {
+         "1": 0.137586,
+         "5": 0.148211
+        },
+        "n": 147
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.166666,
+         "5": 0.180271
+        },
+        "n": 147
+       }
+      }
+     },
+     "lessons": [],
+     "curator_note": null
     }
    ]
   },
@@ -1085,6 +1292,70 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "Only four matured days are available; no rare condition has enough repeated support to justify a lesson."
+    },
+    {
+     "version": 5,
+     "as_of": "2026-08-20",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.1667,
+        "n": 6
+       },
+       "chronos_uni": {
+        "mean_rps": 0.0707,
+        "n": 6
+       },
+       "climatology": {
+        "mean_rps": 0.112,
+        "n": 6
+       },
+       "llm_mem": {
+        "mean_rps": 0.0749,
+        "n": 4
+       },
+       "llm_raw": {
+        "mean_rps": 0.0751,
+        "n": 4
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.0967,
+        "n": 6
+       }
+      },
+      "seeded": {
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.131893,
+         "5": 0.147883
+        },
+        "n": 147
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.132219,
+         "5": 0.146871
+        },
+        "n": 147
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.135638,
+         "5": 0.151194
+        },
+        "n": 147
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.180271,
+         "5": 0.207482
+        },
+        "n": 147
+       }
+      }
+     },
+     "lessons": [],
+     "curator_note": "No lesson yet: rare conditions have only two agreeing outcomes at most, while protest days produced mixed t+1 results."
     }
    ]
   },
@@ -1235,6 +1506,70 @@ window.POC_WIKI = {
      },
      "lessons": [],
      "curator_note": "initial page \u2014 seeded statistics, no lessons yet"
+    },
+    {
+     "version": 2,
+     "as_of": "2026-08-18",
+     "statistics": {
+      "observed": {
+       "all_flat": {
+        "mean_rps": 0.0,
+        "n": 2
+       },
+       "chronos_uni": {
+        "mean_rps": 0.064,
+        "n": 2
+       },
+       "climatology": {
+        "mean_rps": 0.0491,
+        "n": 2
+       },
+       "llm_mem": {
+        "mean_rps": 0.0522,
+        "n": 2
+       },
+       "llm_raw": {
+        "mean_rps": 0.0518,
+        "n": 2
+       },
+       "timesfm_uni": {
+        "mean_rps": 0.0563,
+        "n": 2
+       }
+      },
+      "seeded": {
+       "climatology": {
+        "mean_rps_by_h": {
+         "1": 0.148242,
+         "5": 0.163671
+        },
+        "n": 147
+       },
+       "chronos_uni": {
+        "mean_rps_by_h": {
+         "1": 0.154709,
+         "5": 0.173659
+        },
+        "n": 147
+       },
+       "timesfm_uni": {
+        "mean_rps_by_h": {
+         "1": 0.157923,
+         "5": 0.173212
+        },
+        "n": 147
+       },
+       "all_flat": {
+        "mean_rps_by_h": {
+         "1": 0.198979,
+         "5": 0.234693
+        },
+        "n": 147
+       }
+      }
+     },
+     "lessons": [],
+     "curator_note": "Only one forecast date has matured; the flat outcome at both t+1 and t+5 is insufficient to establish a lesson."
     }
    ]
   }
