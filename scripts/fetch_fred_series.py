@@ -45,8 +45,15 @@ import io
 import sys
 import urllib.error
 import urllib.request
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from gold_poc_data import (  # noqa: E402
+    DEFAULT_FRED_LAG_DAYS,
+    FRED_PUBLICATION_LAG_DAYS,
+)
 
 OUT = Path(__file__).resolve().parent.parent / "data"
 UA = {"User-Agent": "FinEvents-research/0.1 (+https://github.com/itamittech/finevents)"}
@@ -120,13 +127,28 @@ def write(series: str, rows: list[dict[str, str]]) -> Path:
 FIRST_SEEN = OUT / "fred_first_seen.csv"
 
 
-def record_first_seen(series: str, rows: list[dict], today: date) -> int:
-    """Append the value dates we are seeing for the first time, stamped today.
+def record_first_seen(series: str, rows: list[dict], today: date) -> tuple[int, int]:
+    """Append the value dates seen for the first time, stamped today - but only
+    the ones today could plausibly be the publication day for.
 
     This is the POC's small version of ADR-0016's knowledge time: a modelled lag
-    is a guess that can be too small — and was (review finding L4) — while an
-    observation cannot. It only ever grows forward, so history still needs the
-    measured bounds in `gold_poc_data.FRED_PUBLICATION_LAG_DAYS`.
+    is a guess that can be too small, while an observation cannot. What an
+    observation *also* cannot be is a backfill. The first download of a series
+    returns its whole history at once, and writing eleven years of rows saying
+    "first seen today" observes nothing except the day someone first ran this
+    script, while asserting something plainly false about every one of them.
+
+    That bootstrap took the 2026-08-20 run down. It was not a corruption of an
+    existing ledger and nothing was lost: this file had never been written
+    before, so its very first write was the poisonous one, and a fresh clone
+    would have hit it on day one just the same.
+
+    So a value date older than the series' measured bound is backfill. It gets
+    no row, and history keeps the conservative table in
+    `gold_poc_data.FRED_PUBLICATION_LAG_DAYS` - which is exactly what that table
+    is for. The ledger now only ever contains rows it genuinely witnessed.
+
+    Returns (recorded, skipped as backfill).
     """
     key = series.lower()
     known: set[str] = set()
@@ -137,17 +159,20 @@ def record_first_seen(series: str, rows: list[dict], today: date) -> int:
             if r["series"] == key
         }
     fresh = [r["date"] for r in rows if r["date"] not in known]
-    if not fresh:
-        return 0
+    bound = timedelta(days=FRED_PUBLICATION_LAG_DAYS.get(key, DEFAULT_FRED_LAG_DAYS))
+    observed = [d for d in fresh if today - date.fromisoformat(d) <= bound]
+    backfilled = len(fresh) - len(observed)
+    if not observed:
+        return 0, backfilled
     OUT.mkdir(exist_ok=True)
     new_file = not FIRST_SEEN.exists()
     with FIRST_SEEN.open("a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if new_file:
             writer.writerow(["series", "value_date", "first_seen"])
-        for value_date in sorted(fresh):
+        for value_date in sorted(observed):
             writer.writerow([key, value_date, today.isoformat()])
-    return len(fresh)
+    return len(observed), backfilled
 
 
 def main(argv: list[str]) -> int:
@@ -164,10 +189,12 @@ def main(argv: list[str]) -> int:
             continue
 
         write(series, rows)
-        first = record_first_seen(series, rows, today)
+        first, backfilled = record_first_seen(series, rows, today)
         flag = "RESTRICTED" if restricted else "unrestricted"
         span = f"{rows[0]['date']} -> {rows[-1]['date']}" if rows else "empty"
         seen = f"  +{first} first seen" if first else ""
+        if backfilled:
+            seen += f"  ({backfilled} backfilled, not stamped)"
         print(f"  {series:<12} {len(rows):>5} rows  {span}  [{flag}]  {source}{seen}")
         if restricted:
             print(f"               cite: {CITATIONS[series]}")

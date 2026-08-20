@@ -61,16 +61,28 @@ docs/analysis/power/results.txt
 # Acquired price/market data — fetched locally, never committed (ADR-0044, REQ-1107).
 # Commit the FETCHER, not the data. If a source is public-domain or CC-BY, that is a
 # deliberate exception recorded in DATA_SOURCES.md, not a default.
-data/
 **/data/
+# Git never descends into an excluded DIRECTORY, so a negation written inside
+# one is dead on arrival. The files we do publish need the directory itself
+# re-included first and its contents excluded by pattern — the same shape the
+# ui/data/ block below already uses. Subdirectories (runner_logs/, reasoning/)
+# stay excluded by `data/*`, which is what we want.
+!data/
+data/*
 !data/README.md
-# The knowledge-time ledger is OUR observation of when each FRED value became
-# readable - dates only, no source values - and losing it would silently return
-# every join to a guess. Committed as derived work (REQ-1106).
-!data/fred_first_seen.csv
 !docs/analysis/**
 *.csv
 !docs/**/*.csv
+# The knowledge-time ledger is OUR observation of when each FRED value became
+# readable — dates only, no source values — and without it every join falls back
+# to the conservative bound. Committed as derived work (REQ-1106).
+#
+# This negation MUST stay below `*.csv`. Above it, that line silently re-excluded
+# the ledger; together with the dead directory negation that stood here until
+# 2026-08-20 it meant the file was never once committable, despite the docstring
+# in gold_poc_data.py saying it was committed on purpose. Two rules, one file,
+# both wrong, and nothing failed loudly to say so.
+!data/fred_first_seen.csv
 
 # The dashboard's generated record is the one deliberate exception to **/data/:
 # it is OUR derived work — scores, probabilities, verdicts — which REQ-1106

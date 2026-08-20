@@ -95,13 +95,38 @@ def load_first_seen() -> dict[tuple[str, date], date]:
 
 
 def fred_knowledge_date(column: str, value_date: date, ledger: dict | None = None) -> date:
-    """The day a FRED observation could first have been read: observed if the
-    ledger has it, otherwise the conservative per-series bound."""
-    seen = (ledger if ledger is not None else load_first_seen()).get((column, value_date))
-    if seen is not None:
-        return seen
+    """The day a FRED observation could first have been read: the ledger's
+    observation where it has one, otherwise the conservative per-series bound.
+
+    A ledger row is evidence about *publication* only when the value was seen
+    inside the window in which the publisher could have released it. A row
+    stamped later than the bound records something else: the day WE first
+    downloaded it. That is a fact about our fetching, not about the world, and
+    honouring it is what took the 2026-08-20 run down - the ledger's first write
+    backfilled eleven years of value dates with that morning's date, every
+    covariate collapsed onto a single knowledge day, the panel intersected to
+    one session and sigma abstained by construction. Such a row is rejected here
+    and the measured bound stands.
+
+    The trade is deliberate and it runs one way. Rejecting a late row makes a
+    value knowable *earlier* than we happened to fetch it, which is the leak
+    direction - so the rule is not "prefer the smaller number", it is "a row
+    that cannot be a publication observation is not evidence about publication".
+    The bound it falls back to was itself measured from the runner logs, and the
+    ledger keeps its entire purpose: it may still tighten that bound, which is
+    the only thing it was ever able to do honestly.
+
+    This also makes the collapse structurally impossible rather than merely
+    repaired: at most ``lag + 1`` consecutive value dates can share a knowledge
+    day, so a series can never shrink below roughly ``rows / (lag + 1)`` points.
+    `test_knowledge_time.py` pins that bound.
+    """
     lag = FRED_PUBLICATION_LAG_DAYS.get(column, DEFAULT_FRED_LAG_DAYS)
-    return value_date + timedelta(days=lag)
+    bound = value_date + timedelta(days=lag)
+    seen = (ledger if ledger is not None else load_first_seen()).get((column, value_date))
+    if seen is not None and seen <= bound:
+        return seen
+    return bound
 
 
 #: The univariate forecast targets beyond gold: (file, column, series start).

@@ -108,6 +108,53 @@ NEXT STEP:          OPERATE. P6 is DONE (2026-08-14): `FinEventsDailyRunner` is
                     estimates: docs/design/poc-macro-arm.md section 9. Nothing
                     is to change in the running configuration before then
                     unless a defect appears - the digest is the tripwire.
+                    2026-08-20: THE TRIPWIRE FIRED. The 12:45 run exited 1
+                    with AbstainedByConstruction - 1 session available, 40
+                    required - and sealed nothing for any instrument. The
+                    ADR-0058 controls were due to start their clock today and
+                    sealed zero days; gold's first t+5 grades did not land.
+                    ROOT CAUSE, and it is L4's own: the first-seen ledger had
+                    never existed. Today was the FIRST run of the post-L4
+                    fetcher, and its first write stamped all eleven years of
+                    every series 'first seen 2026-08-20'. read_fred re-dates
+                    each value to its knowledge day, so ~2,900 points per
+                    series collapsed onto one day, the panel intersected to a
+                    single session and sigma abstained. Nothing was corrupted
+                    and nothing was lost - a fresh clone would have hit this
+                    on its first fetch just the same, and every later run
+                    would have failed identically. The guard did its job: it
+                    refused to draw bucket edges from nothing rather than
+                    seal a silently wrong day.
+                    FIXED, two independent defects:
+                    (1) the fetcher no longer stamps a backfill - only value
+                    dates today could plausibly have published get a row, so
+                    the ledger holds observations and never bootstrap noise;
+                    (2) fred_knowledge_date rejects any row later than the
+                    measured bound, because such a row records OUR download
+                    rather than the publisher's release. That makes the
+                    collapse structurally impossible, not merely repaired: at
+                    most lag+1 consecutive value dates can share a knowledge
+                    day. The ledger keeps its whole purpose - it may still
+                    tighten the bound, the one thing it could ever do
+                    honestly. The 17,482 poisoned rows were pruned to the 18
+                    genuine ones, PROVEN a no-op: knowledge days recomputed
+                    for every value date before and after differ on 0.
+                    A THIRD defect, independent and older: the ledger could
+                    never have been committed. .gitignore excluded data/ as a
+                    directory, and git does not descend into one, so the
+                    negation inside it was dead; the negation also sat above
+                    `*.csv`, which re-excluded it anyway. Two wrong rules over
+                    one file, while gold_poc_data.py's docstring said it was
+                    'committed on purpose'. Now fixed on the ui/data/ pattern
+                    and the ledger is committed for the first time - so this
+                    cannot recur on a clone.
+                    THE PARK STANDS. This is a repair, not a lever: no rung,
+                    prompt, threshold or arm changed. The macro arm stays
+                    parked and the Monday 2026-08-24 review is unmoved.
+                    NOTE FOR THAT REVIEW: the week is now 2 of 4 days lost
+                    (08-19 RecursionError, 08-20 this), so the observation
+                    week carries less than it was meant to and the controls
+                    have not started their clock.
 
 LADDER POSITION:    increments 0 and 1 built; neither deployed. The ladder resumes
                     after the POC.

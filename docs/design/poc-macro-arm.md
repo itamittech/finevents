@@ -158,6 +158,21 @@ The arm is `llm_macro`: `llm_raw`'s brief **plus** the macro block, nothing else
    an as-of join) and the brief takes value-dated series *filtered* by knowledge (correct for
    quoting moves). The old join differed on **91–100% of report-window sessions**, so the
    offline ladder was re-run under the corrected rule.
+
+   **Corrected 2026-08-20, after it took the daily run down.** The ledger shipped with
+   no bootstrap rule, and it had never actually been written: the first post-L4 fetch,
+   on 2026-08-20, stamped eleven years of every series `first seen` that morning. Since
+   `read_fred` re-dates each value to its knowledge day, every covariate collapsed to a
+   single point, the panel intersected to one session and σ abstained by construction —
+   nothing sealed, and every later run would have failed the same way. Two fixes: the
+   fetcher now stamps only value dates the day could plausibly have published, so a
+   backfill is never mistaken for an observation; and `fred_knowledge_date` rejects any
+   row later than the measured bound, because such a row records *our download*, not the
+   publisher's release. That second rule makes the collapse structurally impossible —
+   at most `lag + 1` consecutive value dates can share a knowledge day. A third, older
+   defect surfaced with it: `.gitignore` excluded `data/` as a directory, so the
+   negation admitting the ledger was dead and the file had never been committable at
+   all, despite the loader's docstring claiming it was.
 2. `data/policy_calendar.csv` + its CI coverage assertion, in the REQ-210 mould.
 3. The macro block in the brief, behind a flag like L1's, so `llm_raw` stays byte-identical.
 4. `llm_macro` sealed as a fourth model arm; ADR + REQ written before the code, comparison
