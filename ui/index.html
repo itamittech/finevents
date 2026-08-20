@@ -1022,6 +1022,29 @@ function agentBoard() {
 
   const info = INSTRUMENTS[state.instrument];
   const h = state.horizon;
+
+  // An all-"not yet graded" column is the correct state on a young horizon, but
+  // it looks identical to a broken one. Say which it is, and when it ends. The
+  // ladder can already carry a t+h outcome the agent has no row in - an anchor
+  // sealed before its first bet - and that asymmetry is what reads as a fault.
+  const gradedHere = withLlm.filter(r => (r.matured || {})[h]).length;
+  if (!gradedHere) {
+    const first = withLlm.reduce((a, b) => (a.as_of <= b.as_of ? a : b));
+    const ladder = track.records.filter(r => (r.matured || {})[h]);
+    // gradeWhen says either "grades <date>" or "<n> more sessions"; both have to
+    // read as English here, so the second form gets its preposition back.
+    const when = gradeWhen(first.as_of, h).text;
+    const phrase = when.startsWith("grades") ? when : `grades in ${when}`;
+    let why = `Nothing graded at t+${h} yet — a countdown, not a fault. The agent's ` +
+      `earliest bet at this horizon was sealed ${first.as_of}, and it ${phrase}.`;
+    if (ladder.length) {
+      const earliest = ladder.reduce((a, b) => (a.as_of <= b.as_of ? a : b));
+      why += ` The t+${h} outcome already in the live track record above is the ` +
+        `${earliest.as_of} anchor, sealed before the agent's first bet — so there is ` +
+        `no call of its own to score on that day.`;
+    }
+    wrap.appendChild(el("p", { class: "note", text: why }));
+  }
   // Every honest stat needs its bar. The point call is measured against the
   // "always 0%" forecaster (a random walk's best guess) on the SAME graded
   // days; the exact-bucket tick against what "always flat" would have scored
